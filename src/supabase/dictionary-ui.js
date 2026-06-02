@@ -141,6 +141,7 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
         </div>
       </div>
       <p class="ss-sub ss-dict-hint">Pick a class to preview and edit its pronunciation rules. The <b>All classes</b> dictionary is rebuilt from every class.</p>
+      <p class="ss-dict-shared-warn" role="note">\u26a0 <b>Shared dictionary.</b> Adding, editing, or rebuilding rules changes the class dictionary in Supabase for <b>everyone</b> who uses it — other authors included — not just on your screen.</p>
       <div class="ss-controls ss-dict-controls">
         <label class="ss-type">Class:
           <select id="ss-course-select" class="ss-btn"></select>
@@ -219,6 +220,30 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
   function showDictError(msg) {
     errorEl.textContent = msg ?? "";
     errorEl.classList.toggle("hidden", !msg);
+  }
+
+  // Writes hit the shared Supabase dictionary, so warn that changes are global.
+  // Adds confirm once per browser session; destructive actions confirm every time.
+  const SHARED_ACK_KEY = "hearsay-shared-write-ack";
+  function confirmSharedWrite() {
+    try {
+      if (sessionStorage.getItem(SHARED_ACK_KEY)) return true;
+    } catch {
+      // sessionStorage unavailable — fall through to confirm each time.
+    }
+    const ok = window.confirm(
+      "Heads up: this saves to the SHARED class dictionary in Supabase.\n\n" +
+        "The change is global — everyone who uses this class (other authors included) " +
+        "will get it, not just you. Continue?",
+    );
+    if (ok) {
+      try {
+        sessionStorage.setItem(SHARED_ACK_KEY, "1");
+      } catch {
+        // ignore
+      }
+    }
+    return ok;
   }
 
   function showRuleError(msg) {
@@ -320,6 +345,7 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
       showRuleError('Switch to a class dictionary to add rules. Rebuild "All classes" after.');
       return;
     }
+    if (!confirmSharedWrite()) return;
     showRuleError("");
     try {
       const pattern = patternInput.value.trim();
@@ -377,6 +403,14 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
 
   root.querySelector("#ss-dict-reload").addEventListener("click", () => reloadDictionary());
   root.querySelector("#ss-dict-rebuild").addEventListener("click", async () => {
+    if (
+      !window.confirm(
+        'Rebuild combined will DELETE and rebuild the shared "All classes" dictionary in Supabase.\n\n' +
+          "This is a global change affecting everyone who uses it (other authors included). Continue?",
+      )
+    ) {
+      return;
+    }
     showDictError("");
     try {
       const { count } = await api.rebuildCombinedDictionary();

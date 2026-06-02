@@ -145,6 +145,18 @@ export function ruleCount() {
   return RULES.length;
 }
 
+// The full effective dictionary currently in memory (bundled base + any class
+// rules merged on top). Used by the viewer so authors see every active rule,
+// not only the class-specific rows stored in Supabase.
+export function getActiveRules() {
+  return RULES.map((r) => ({
+    pattern: r.raw,
+    replacement: String(r.replacement ?? "").trim(),
+    rule_type: Number(r.type) || 0,
+    case_sensitive: Boolean(r.caseSensitive),
+  }));
+}
+
 // Apply the whole dictionary to a string (NVDA simulation).
 export function applyDictionary(text) {
   let out = text;

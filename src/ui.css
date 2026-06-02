@@ -231,6 +231,32 @@ mark.ss-hit.low { background: var(--low); }
 .ss-dict-check { display: flex; align-items: center; gap: 6px; text-transform: none; }
 .ss-dict-readonly .ss-dict-add-body { opacity: 0.55; pointer-events: none; }
 .ss-dict-save-note { color: var(--low); margin-top: 6px; }
+.ss-dict-shared-warn {
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--medium, #d29922);
+  border-left-width: 3px;
+  border-radius: 6px;
+  background: rgba(210, 153, 34, 0.12);
+  color: var(--text);
+}
+.ss-dv-badge {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.ss-dv-badge-class {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.ss-dv-badge-bundled {
+  color: var(--muted, #9aa7b4);
+}
+.ss-dv-source-cell { white-space: nowrap; }
 .ss-btn:disabled { opacity: 0.55; cursor: default; }
 .ss-btn.ss-dict-saved {
   background: var(--low, #2ea043);
