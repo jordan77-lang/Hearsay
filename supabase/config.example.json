@@ -1,0 +1,7 @@
+{
+  "url": "https://YOUR_PROJECT.supabase.co",
+  "anonKey": "YOUR_ANON_KEY",
+  "serviceRoleKey": "YOUR_SERVICE_ROLE_KEY",
+  "courseId": "chem113",
+  "_comment": "courseId is the default class; use the Class dropdown in the app to switch. Run supabase/schema.sql before first push."
+}

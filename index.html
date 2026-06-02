@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HearSay · Course pronunciation assistant</title>
+    <link rel="stylesheet" href="src/ui.css" />
+  </head>
+  <body>
+    <main class="hs-landing">
+      <header class="hs-landing-hero">
+        <h1 class="ss-title hs-landing-title">HearSay</h1>
+        <p class="hs-landing-tagline">I can speak it — and spell it — for screen readers.</p>
+        <p class="ss-sub hs-landing-lead">
+          Internal tool for course authors. Paste curriculum, hear how it reads, copy Canvas HTML
+          so students don&rsquo;t need to edit their own screen-reader dictionaries.
+          Works across classes — chemistry, art history, music theory, and more.
+        </p>
+      </header>
+
+      <section class="hs-landing-actions" aria-labelledby="hs-get-started">
+        <h2 id="hs-get-started" class="ss-title hs-landing-section-title">Get started</h2>
+        <div class="hs-landing-cards">
+          <a class="hs-landing-card hs-landing-card-primary" href="playground/">
+            <span class="hs-landing-card-label">Open HearSay in your browser</span>
+            <span class="ss-sub">Paste, analyze, hear, copy Canvas HTML — no install</span>
+          </a>
+          <a class="hs-landing-card" href="dist/hearsay-chrome-extension.zip" download>
+            <span class="hs-landing-card-label">Download Chrome extension</span>
+            <span class="ss-sub">Side panel + pull selection from Canvas</span>
+          </a>
+          <div class="hs-landing-card hs-landing-card-disabled" aria-disabled="true">
+            <span class="hs-landing-card-label">Safari extension (Mac)</span>
+            <span class="ss-sub">Coming soon — use the browser tool on Mac for now</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="hs-landing-install" aria-labelledby="hs-chrome-install">
+        <h2 id="hs-chrome-install" class="ss-title hs-landing-section-title">Install Chrome extension</h2>
+        <ol class="hs-landing-steps">
+          <li>Download <a href="dist/hearsay-chrome-extension.zip">hearsay-chrome-extension.zip</a> (run <code>npm run pack:extension</code> before deploying if the file is missing).</li>
+          <li>Extract the zip to a folder you will keep (e.g. <code>Documents/HearSay-extension</code>).</li>
+          <li>Open <code>chrome://extensions</code>, turn on <b>Developer mode</b>.</li>
+          <li>Click <b>Load unpacked</b> and select the extracted folder (must contain <code>manifest.json</code>).</li>
+          <li>Click the HearSay toolbar icon to open the side panel. Use <b>Pull selection from page</b> while authoring in Canvas.</li>
+        </ol>
+      </section>
+
+      <section class="hs-landing-install" aria-labelledby="hs-dict">
+        <h2 id="hs-dict" class="ss-title hs-landing-section-title">Class dictionaries</h2>
+        <p class="ss-sub">
+          After opening the tool, click <b>☁ Connect</b> and sign in with your Supabase URL and anon key.
+          Pick your class in the dictionary panel to load its pronunciation rules.
+        </p>
+      </section>
+
+      <p class="ss-sub hs-landing-foot">
+        <a href="playground/">Go to the tool →</a>
+      </p>
+    </main>
+  </body>
+</html>

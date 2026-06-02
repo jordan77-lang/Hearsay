@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "HearSay \u2013 Course pronunciation assistant",
+  "version": "0.1.0",
+  "description": "Flags course content that screen readers mispronounce and suggests Canvas-ready fixes (spoken text, MathML) without end-user dictionary changes.",
+  "permissions": ["activeTab", "scripting", "sidePanel"],
+  "host_permissions": ["https://*.supabase.co/*"],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Open HearSay"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel.html"
+  }
+}

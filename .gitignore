@@ -1,0 +1,9 @@
+node_modules/
+_site/
+dist/
+*.pdf
+*.docx
+supabase/config.local.json
+supabase/config.public.json
+.env
+.env.local

@@ -1,0 +1,489 @@
+# DSL chemistry NVDA speech dictionary. Copy or append these entries to default.dic.
+# Columns: pattern, replacement, caseSensitive, type. Type 1 means regular expression.
+# standalone parentheses — default TTS/NVDA skip "(" and ")" unless spoken explicitly
+(	 open parenthesis 	0	0
+)	 close parenthesis 	0	0
+# full phrase with heat capacity unit
+Effective heat capacity (J/°C)	Effective heat capacity in jools per degree Celsius	0	0
+# parenthetical heat capacity unit
+\(J/°C\)	in jools per degree Celsius	0	1
+# heat capacity unit
+J/°C	jools per degree Celsius	0	0
+# heat capacity unit with optional spaces around slash
+J\s?/\s?°C	jools per degree Celsius	0	1
+# heat capacity unit after a number with optional spaces
+(?<=\d)\s?J\s?/\s?°C	jools per degree Celsius	0	1
+# specific heat capacity unit
+J/g°C	jools per gram degree Celsius	0	0
+# specific heat capacity unit with space
+J/g °C	jools per gram degree Celsius	0	0
+# specific heat capacity unit with spaced slash
+J / g°C	jools per gram degree Celsius	0	0
+# specific heat capacity unit with spaced slash and degree
+J / g °C	jools per gram degree Celsius	0	0
+# specific heat capacity unit with parentheses and multiplication dot
+J/(g·°C)	jools per gram degree Celsius	0	0
+# specific heat capacity unit with optional spaces around slash
+J\s?/\s?g\s?°C	jools per gram degree Celsius	0	1
+# specific heat capacity unit after a number with optional spaces
+(?<=\d)\s?J\s?/\s?g\s?°C	jools per gram degree Celsius	0	1
+# parenthetical specific heat capacity unit
+\(J/g°C\)	open parenthesis jools per gram degree Celsius close parenthesis	0	1
+# parenthetical specific heat capacity unit with space
+\(J/g °C\)	open parenthesis jools per gram degree Celsius close parenthesis	0	1
+# parenthetical specific heat capacity unit with spaced slash
+\(J / g°C\)	open parenthesis jools per gram degree Celsius close parenthesis	0	1
+# energy per gram unit
+J/g	jools per gram	0	0
+# energy per gram unit with optional spaces around slash
+J\s?/\s?g\b	jools per gram	0	1
+# molar mass unit
+g/mol	grams per mol	0	0
+# molar mass unit with optional spaces around slash
+g\s?/\s?mol	grams per mol	0	1
+# molar energy unit, phonetic reading
+kJ/mol	killuh jools per mol	0	0
+# molar energy unit with optional spaces around slash
+kJ\s?/\s?mol	killuh jools per mol	0	1
+# molar energy unit
+J/mol	jools per mol	0	0
+# molar energy unit with optional spaces around slash
+J\s?/\s?mol	jools per mol	0	1
+# kilojoule symbol, phonetic reading
+kJ	killuh jools	0	2
+# energy unit after a number, phonetic reading
+(?<=\d)\s?kJ\b	killuh jools	0	1
+# joule symbol
+J	jools	0	2
+# energy unit after a number
+(?<=\d)\s?J\b	jools	0	1
+# kilogram symbol
+kg	kilograms	0	2
+# metric mass unit after a number
+(?<=\d)\s?kg\b	kilograms	0	1
+# milligram symbol
+mg	milligrams	0	2
+# metric mass unit after a number
+(?<=\d)\s?mg\b	milligrams	0	1
+# gram symbol
+g	grams	0	2
+# metric mass unit after a number
+(?<=\d)\s?g\b	grams	0	1
+# Orbital Research Station acronym
+ORS	O R S	0	2
+# Institute for Tele-present Exploration acronym
+ITE	I T E	0	2
+# deionized water abbreviation
+DI water	D I water	0	2
+DIwater	D I water	0	2
+DI-water	D I water	0	2
+# deionized abbreviation
+DI	D I	0	2
+# plain-text specific heat capacity variable for water
+cH2O	c of H two O	0	0
+# specific heat capacity variable for water with unicode subscripts
+cH₂O	c of H two O	0	0
+# plain-text specific heat capacity variable for hydrogen gas
+cH2	c of H two	0	0
+# specific heat capacity variable for hydrogen gas with unicode subscript
+cH₂	c of H two	0	0
+# specific heat capacity variable for water with optional space
+c\s?H₂O	c of H two O	0	1
+# specific heat capacity variable for water with optional space
+c\s?H2O	c of H two O	0	1
+# specific heat capacity variable for hydrogen gas with optional space
+c\s?H₂	c of H two	0	1
+# specific heat capacity variable for hydrogen gas with optional space
+c\s?H2	c of H two	0	1
+# plain-text hydrogen molecule
+H2	H two	0	0
+# hydrogen molecule
+H₂	H two	0	0
+# plain-text oxygen molecule
+O2	O two	0	0
+# oxygen molecule
+O₂	O two	0	0
+# plain-text nitrogen molecule
+N2	N two	0	0
+# nitrogen molecule
+N₂	N two	0	0
+# plain-text water formula
+H2O	H two O	0	0
+# water formula
+H₂O	H two O	0	0
+# plain-text hydrogen peroxide formula
+H2O2	H two O two	0	0
+# hydrogen peroxide formula
+H₂O₂	H two O two	0	0
+# plain-text ammonia formula
+NH3	N H three	0	0
+# ammonia formula
+NH₃	N H three	0	0
+# nitrogen monoxide formula
+NO	N O	0	2
+# hydrochloric acid formula
+HCl	H C L	0	0
+# plain-text manganese dioxide formula
+MnO2	M N O two	0	0
+# manganese dioxide formula
+MnO₂	M N O two	0	0
+# zinc chemical symbol
+Zn	zinc	0	0
+# sodium chloride formula
+NaCl	sodium chloride	0	0
+# plain-text chlorine molecule
+Cl2	C L two	0	0
+# chlorine molecule
+Cl₂	C L two	0	0
+# plain-text sodium ion
+Na+	sodium ion	0	0
+# sodium ion
+Na⁺	sodium ion	0	0
+# plain-text chloride ion
+Cl-	chloride ion	0	0
+# chloride ion
+Cl⁻	chloride ion	0	0
+# plain-text hydrogen-to-oxygen ratio
+H2:O2	H two to O two	0	0
+# hydrogen-to-oxygen ratio
+H₂:O₂	H two to O two	0	0
+# ratio notation
+1:2	one to two	0	0
+# ratio notation
+1:1	one to one	0	0
+# ratio notation
+2:1	two to one	0	0
+# ratio notation
+3:1	three to one	0	0
+# ratio notation
+4:1	four to one	0	0
+# plain-text reaction
+2H2 + O2 -> 2H2O	two H two plus O two yields two H two O	0	0
+# combustion reaction
+2H₂ + O₂ → 2H₂O	two H two plus O two yields two H two O	0	0
+# plain-text nitrogen monoxide reaction
+N2 + O2 -> 2NO	N two plus O two yields two N O	0	0
+# nitrogen monoxide reaction
+N₂ + O₂ → 2NO	N two plus O two yields two N O	0	0
+# plain-text ammonia reaction
+N2 + 3H2 -> 2NH3	N two plus three H two yields two N H three	0	0
+# ammonia reaction
+N₂ + 3H₂ → 2NH₃	N two plus three H two yields two N H three	0	0
+# plain-text sodium chloride reaction
+2Na + Cl2 -> 2NaCl	two sodium plus C L two yields two sodium chloride	0	0
+# sodium chloride reaction
+2Na + Cl₂ → 2 NaCl	two sodium plus C L two yields two sodium chloride	0	0
+# heat equation without spaces
+q=mcΔT	q equals m c delta T	0	0
+# heat equation
+q = mcΔT	q equals m c delta T	0	0
+# enthalpy change symbol
+ΔH	delta H	0	0
+# temperature change symbol
+ΔT	delta T	0	0
+# plain-text starting temperature variable, read as subscript
+T1	T of 1	0	0
+# starting temperature variable with Unicode subscript
+T₁	T of 1	0	0
+# plain-text final temperature variable, read as subscript
+T2	T of 2	0	0
+# final temperature variable with Unicode subscript
+T₂	T of 2	0	0
+# phonetic reading of joule
+joule	jool	0	2
+# phonetic reading of joules
+joules	jools	0	2
+# milliliter symbol
+mL	milliliters	0	0
+# degree Celsius symbol
+°C	degrees Celsius	0	0
+# fuel name
+isooctane	eye so octane	0	2
+# nickel superalloy
+Inconel 718	in co nell seven eighteen	0	2
+# chemistry term
+stoichiometric	stoy key oh metric	0	2
+# igniter term
+piezoelectric	pee ay zo electric	0	2
+# lab tool
+microspatula	micro spatula	0	2
+# temperature equation with plain-text subscripts and flexible spacing
+T2\s?=\s?T1\s?\+\s?ΔT	T of 2 equals T of 1 plus delta T	0	1
+# temperature equation with Unicode subscripts and flexible spacing
+T₂\s?=\s?T₁\s?\+\s?ΔT	T of 2 equals T of 1 plus delta T	0	1
+# temperature equation as written in plain text
+T2 = T1 + ΔT	T of 2 equals T of 1 plus delta T	0	0
+# temperature equation with Unicode subscripts
+T₂ = T₁ + ΔT	T of 2 equals T of 1 plus delta T	0	0
+# Collins K2 cloud identifier
+K2	K two	0	2
+# hyphenated device name
+photo-catalyzer	photo catalyzer	0	2
+# minute abbreviation used on axes
+min	minutes	0	2
+# stir rate unit
+rpm	revolutions per minute	0	2
+# degree Fahrenheit symbol
+°F	degrees Fahrenheit	0	0
+# heating slope unit
+°C/min	degrees Celsius per minute	0	0
+# isooctane formula and transmission code
+C8H18	C eight H eighteen	0	0
+# isooctane formula with Unicode subscripts
+C₈H₁₈	C eight H eighteen	0	0
+# hydroxyl group without dash
+OH	O H	0	2
+# hydroxyl group with hyphen
+-OH	O H group	0	0
+# hydroxyl group with en dash
+–OH	O H group	0	0
+# plain-text methyl group notation
+H3C	H three C	0	0
+# methyl group notation with Unicode subscript
+H₃C	H three C	0	0
+# plain-text methyl group notation
+CH3	C H three	0	0
+# methyl group notation with Unicode subscript
+CH₃	C H three	0	0
+# plain-text methylene group notation
+H2C	H two C	0	0
+# methylene group notation with Unicode subscript
+H₂C	H two C	0	0
+# total heat capacity equation with flexible spacing
+C\s?=\s?m\s?c	capital C equals m c	0	1
+# heat equation using total heat capacity with flexible spacing
+q\s?=\s?C\s?ΔT	q equals capital C delta T	0	1
+# specific heat capacity equation with division symbol and flexible spacing
+c\s?=\s?q\s?÷\s?m\s?ΔT	c equals q divided by m delta T	0	1
+# specific heat capacity equation as written
+c = q ÷ mΔT	c equals q divided by m delta T	0	0
+# heat equation using total heat capacity as written
+q = CΔT	q equals capital C delta T	0	0
+# total heat capacity equation as written
+C = mc	capital C equals m c	0	0
+# plain-text hydrogen single bond
+H-H	H single bond H	0	0
+# hydrogen single bond using en dash
+H–H	H single bond H	0	0
+# oxygen double bond
+O=O	O double bond O	0	0
+# nitrogen triple bond
+N≡N	N triple bond N	0	0
+# plain-text oxygen hydrogen single bond
+O-H	O single bond H	0	0
+# oxygen hydrogen single bond using en dash
+O–H	O single bond H	0	0
+# nitrogen oxygen double bond
+N=O	N double bond O	0	0
+# plain-text nitrogen hydrogen single bond
+N-H	N single bond H	0	0
+# nitrogen hydrogen single bond using en dash
+N–H	N single bond H	0	0
+# capital M concentration unit, as in 3 M HCl; phonetic reading for molar
+M	moh lurr	1	2
+# general ratio pattern; reads colon between numbers as to
+\b(\d+(?:\.\d+)?)\s?:\s?(\d+(?:\.\d+)?)\b	\1 to \2	0	1
+# hydrogen-to-oxygen ratio with Unicode subscripts
+H₂\s?:\s?O₂	H two to O two	0	1
+# hydrogen-to-oxygen ratio with plain-text numbers
+H2\s?:\s?O2	H two to O two	0	1
+# metric length unit after a number
+(?<=\d)\s?mm\b	millimeters	0	1
+# metric length unit after a number
+(?<=\d)\s?cm\b	centimeters	0	1
+# metric length unit after a number
+(?<=\d)\s?dm\b	decimeters	0	1
+# metric length unit after a number
+(?<=\d)\s?m\b	meters	0	1
+# metric length unit after a number
+(?<=\d)\s?km\b	kilometers	0	1
+# metric mass unit after a number
+(?<=\d)\s?µg\b	micrograms	0	1
+# metric mass unit after a number using u for micro
+(?<=\d)\s?ug\b	micrograms	0	1
+# metric volume unit after a number
+(?<=\d)\s?µL\b	microliters	0	1
+# metric volume unit after a number using u for micro
+(?<=\d)\s?uL\b	microliters	0	1
+# metric volume unit after a number
+(?<=\d)\s?mL\b	milliliters	0	1
+# metric volume unit after a number lowercase variant
+(?<=\d)\s?ml\b	milliliters	0	1
+# metric volume unit after a number
+(?<=\d)\s?L\b	liters	0	1
+# metric volume unit after a number
+(?<=\d)\s?dL\b	deciliters	0	1
+# time unit after a number
+(?<=\d)\s?ms\b	milliseconds	0	1
+# time unit after a number
+(?<=\d)\s?s\b	seconds	0	1
+# time unit after a number
+(?<=\d)\s?sec\b	seconds	0	1
+# time unit after a number
+(?<=\d)\s?min\b	minutes	0	1
+# temperature unit after a number
+(?<=\d)\s?°C\b	degrees Celsius	0	1
+# temperature unit after a number
+(?<=\d)\s?°F\b	degrees Fahrenheit	0	1
+# temperature unit after a number; avoids Collins K2
+(?<=\d)\s?K\b	kelvin	0	1
+# amount unit after a number
+(?<=\d)\s?mol\b	moles	0	1
+# amount unit after a number
+(?<=\d)\s?mmol\b	millimoles	0	1
+# energy unit after a number
+(?<=\d)\s?cal\b	calories	0	1
+# energy unit after a number
+(?<=\d)\s?kcal\b	kilocalories	0	1
+# pressure unit after a number
+(?<=\d)\s?Pa\b	pascals	0	1
+# pressure unit after a number
+(?<=\d)\s?kPa\b	kilopascals	0	1
+# pressure unit after a number
+(?<=\d)\s?atm\b	atmospheres	0	1
+# pressure unit after a number
+(?<=\d)\s?mmHg\b	millimeters of mercury	0	1
+# electrical unit after a number
+(?<=\d)\s?V\b	volts	0	1
+# power unit after a number
+(?<=\d)\s?W\b	watts	0	1
+# power unit after a number
+(?<=\d)\s?kW\b	kilowatts	0	1
+# resistance unit after a number
+(?<=\d)\s?Ω\b	ohms	0	1
+# resistance unit after a number
+(?<=\d)\s?ohm\b	ohms	0	1
+# molarity unit
+mol/L	moles per liter	0	0
+# molarity unit with inverse exponent
+mol/L⁻¹	moles per liter	0	0
+# density unit
+g/mL	grams per milliliter	0	0
+# concentration unit
+g/L	grams per liter	0	0
+# concentration unit
+mg/L	milligrams per liter	0	0
+# concentration unit
+µg/L	micrograms per liter	0	0
+# concentration unit using u for micro
+ug/L	micrograms per liter	0	0
+# volume unit
+cm³	cubic centimeters	0	0
+# plain-text volume unit
+cm3	cubic centimeters	0	0
+# volume unit
+m³	cubic meters	0	0
+# plain-text volume unit
+m3	cubic meters	0	0
+# imperial length unit after a number
+(?<=\d)\s?in\b	inches	0	1
+# imperial length unit after a number with period
+(?<=\d)\s?in\.\b	inches	0	1
+# imperial length unit after a number
+(?<=\d)\s?ft\b	feet	0	1
+# imperial length unit after a number with period
+(?<=\d)\s?ft\.\b	feet	0	1
+# imperial length unit after a number
+(?<=\d)\s?yd\b	yards	0	1
+# imperial length unit after a number with period
+(?<=\d)\s?yd\.\b	yards	0	1
+# imperial length unit after a number
+(?<=\d)\s?mi\b	miles	0	1
+# imperial length unit after a number with period
+(?<=\d)\s?mi\.\b	miles	0	1
+# imperial mass or volume unit after a number
+(?<=\d)\s?oz\b	ounces	0	1
+# imperial mass or volume unit after a number with period
+(?<=\d)\s?oz\.\b	ounces	0	1
+# imperial mass unit after a number
+(?<=\d)\s?lb\b	pounds	0	1
+# imperial mass unit after a number
+(?<=\d)\s?lbs\b	pounds	0	1
+# imperial mass unit after a number with period
+(?<=\d)\s?lb\.\b	pounds	0	1
+# imperial volume unit after a number
+(?<=\d)\s?fl\s?oz\b	fluid ounces	0	1
+# U.S. customary volume unit after a number
+(?<=\d)\s?tsp\b	teaspoons	0	1
+# U.S. customary volume unit after a number
+(?<=\d)\s?tbsp\b	tablespoons	0	1
+# U.S. customary volume unit after a number; context-aware to avoid variable c
+(?<=\d)\s?c\b	cups	0	1
+# U.S. customary volume unit after a number
+(?<=\d)\s?pt\b	pints	0	1
+# U.S. customary volume unit after a number
+(?<=\d)\s?qt\b	quarts	0	1
+# U.S. customary volume unit after a number
+(?<=\d)\s?gal\b	gallons	0	1
+# imperial speed unit after a number
+(?<=\d)\s?mph\b	miles per hour	0	1
+# imperial pressure unit after a number
+(?<=\d)\s?psi\b	pounds per square inch	0	1
+# phonetic reading of kilojoule
+kilojoule	kiloh jool	0	2
+# phonetic reading of kilojoules
+kilojoules	kiloh jools	0	2
+# NASA pronounced as a word, not as individual letters
+NASA	NASS uh	0	2
+# Human Landing System acronym
+HLS	H L S	0	2
+# Reaction Control System acronym
+RCS	R C S	0	2
+# likely plain-text water formula typo using zero instead of two
+H20	H two O	0	0
+# plain-text ferric nitrate formula
+Fe(NO3)3	F E open parenthesis N O three close parenthesis three	0	0
+# ferric nitrate formula with unicode subscripts
+Fe(NO₃)₃	F E open parenthesis N O three close parenthesis three	0	0
+# plain-text ferric nitrate nonahydrate formula
+Fe(NO3)3·9H2O	F E open parenthesis N O three close parenthesis three dot nine H two O	0	0
+# ferric nitrate nonahydrate formula with unicode subscripts
+Fe(NO₃)₃·9H₂O	F E open parenthesis N O three close parenthesis three dot nine H two O	0	0
+# element symbol for silver when used in catalyst context
+Ag	silver	1	2
+# plain-text heat absorbed by the calorimeter
+qcalorimeter	q of calorimeter	0	2
+# heat absorbed by the calorimeter with underscore
+q_calorimeter	q of calorimeter	0	2
+# fallback for stylized subscript calorimeter if exposed as unicode
+q꜀ₐₗₒᵣᵢₘₑₜₑᵣ	q of calorimeter	0	2
+# plain-text heat absorbed by the solution
+qsolution	q of solution	0	2
+# heat absorbed by the solution with underscore
+q_solution	q of solution	0	2
+# plain-text heat released by reaction
+qreaction	q of reaction	0	2
+# heat released by reaction with underscore
+q_reaction	q of reaction	0	2
+# plain-text heat capacity of the calorimeter
+Ccalorimeter	capital C of calorimeter	1	2
+# heat capacity of the calorimeter with underscore
+C_calorimeter	capital C of calorimeter	1	2
+# plain-text mass of solution
+msolution	m sub solution	0	2
+# mass of solution with underscore
+m_solution	m sub solution	0	2
+# plain-text specific heat capacity of solution
+csolution	c sub solution	0	2
+# specific heat capacity of solution with underscore
+c_solution	c sub solution	0	2
+# temperature change equation with plain-number variables
+ΔT\s?=\s?T2\s?[−-]\s?T1	delta T equals T of 2 minus T of 1	0	1
+# temperature change equation with unicode subscript variables
+ΔT\s?=\s?T₂\s?[−-]\s?T₁	delta T equals T of 2 minus T of 1	0	1
+# plain-language equation from Act 3
+total chemical energy\s?=\s?energy released per gram\s?[×x*]\s?H₂O₂ propellant mass	total chemical energy equals energy released per gram times H two O two propellant mass	0	1
+# plain-language equation from Act 3
+mechanical work\s?=\s?total chemical energy\s?[×x*]\s?efficiency	mechanical work equals total chemical energy times efficiency	0	1
+# LaTeX fraction with joules over grams, such as \frac{14J}{23g} or \frac{14 J}{23 g}
+\\frac\{(\d+(?:\.\d+)?)\s*J\}\{(\d+(?:\.\d+)?)\s*g\}	\1 jools divided by \2 grams	0	1
+# LaTeX fraction with kilojoules over grams, phonetic reading
+\\frac\{(\d+(?:\.\d+)?)\s*kJ\}\{(\d+(?:\.\d+)?)\s*g\}	\1 killuh jools divided by \2 grams	0	1
+# generic LaTeX fraction fallback; works only when NVDA receives literal LaTeX text
+\\frac\{([^{}]+)\}\{([^{}]+)\}	\1 divided by \2	0	1
+# full effective heat capacity equation with unicode subscripts
+Effective heat capacity \(J/°C\)\s?=\s?\(Mass of H₂O\s?[×x*]\s?cH₂O\)\s?\+\s?\(mass of excess H₂\s?[×x*]\s?cH₂\)	Effective heat capacity in jools per degree Celsius equals mass of H two O times c of H two O plus mass of excess H two times c of H two	0	1
+# full effective heat capacity equation with plain-number formulas
+Effective heat capacity \(J/°C\)\s?=\s?\(Mass of H2O\s?[×x*]\s?cH2O\)\s?\+\s?\(mass of excess H2\s?[×x*]\s?cH2\)	Effective heat capacity in jools per degree Celsius equals mass of H two O times c of H two O plus mass of excess H two times c of H two	0	1
+# Division symbol
+÷	divided by	0	0

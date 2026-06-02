@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HearSay screen-reader listening test</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color:#111; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.05rem; margin-top: 1.6rem; border-top: 1px solid #ddd; padding-top: 1rem; }
+  dt { font-weight: 600; color:#444; margin-top: .6rem; font-size: .9rem; }
+  dd { margin: .2rem 0 0; font-size: 1.05rem; }
+  .how { background:#f4f7fb; border:1px solid #d6e0ee; border-radius:8px; padding:1rem; }
+  code { background:#eef; padding:0 .25rem; border-radius:3px; }
+  math { font-size: 1.1rem; }
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+</style>
+</head>
+<body>
+  <h1>HearSay screen-reader listening test</h1>
+  <div class="how">
+    <p><strong>How to run this test (Windows + NVDA, free):</strong></p>
+    <ol>
+      <li>Install NVDA from nvaccess.org and start it (<code>Ctrl+Alt+N</code>).</li>
+      <li>Open this page in Chrome or Firefox.</li>
+      <li>Click the heading, then press the <strong>Down arrow</strong> to read one line at a time.</li>
+      <li>For each example, compare what you hear across variants 1–4.</li>
+      <li>Variant 1 (Raw) should sound wrong; 2–4 should sound correct.</li>
+    </ol>
+    <p>NVDA tip: press <code>NVDA+Down</code> to "say all", or <code>NVDA+Numpad Plus</code> from the top.
+       For MathML, NVDA 2026.1+ reads it automatically (MathCAT built in).</p>
+  </div>
+  
+    <section aria-labelledby="s0">
+      <h2 id="s0">Example 1</h2>
+      <dl>
+        <dt>1. Raw (no fix — what authors usually publish)</dt>
+        <dd>Dissolve 5.0 g of NaCl in 250 mL of H2O.</dd>
+        <dt>2. Visually-hidden spoken text (works everywhere, incl. braille)</dt>
+        <dd>Dissolve 5.0 <span aria-hidden="true">g</span><span class="sr-only">grams</span> of <span aria-hidden="true">NaCl</span><span class="sr-only">N a C l</span> in 250 <span aria-hidden="true">mL</span><span class="sr-only">milliliters</span> of <span aria-hidden="true">H2O</span><span class="sr-only">H 2 O</span>.</dd>
+        <dt>3. aria-label override (note: changes braille output)</dt>
+        <dd>Dissolve 5.0 <span role="text" aria-label="grams">g</span> of <span role="text" aria-label="N a C l">NaCl</span> in 250 <span role="text" aria-label="milliliters">mL</span> of <span role="text" aria-label="H 2 O">H2O</span>.</dd>
+        <dt>4. MathML (NVDA 2026.1 MathCAT / SRE speak + braille)</dt>
+        <dd>Dissolve 5.0 <span aria-hidden="true">g</span><span class="sr-only">grams</span> of <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mi mathvariant="normal">Na</mi><mi mathvariant="normal">Cl</mi></mrow></math> in 250 <span aria-hidden="true">mL</span><span class="sr-only">milliliters</span> of <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><msub><mi mathvariant="normal">H</mi><mn>2</mn></msub><mi mathvariant="normal">O</mi></mrow></math>.</dd></dl>
+    </section>
+
+    <section aria-labelledby="s1">
+      <h2 id="s1">Example 2</h2>
+      <dl>
+        <dt>1. Raw (no fix — what authors usually publish)</dt>
+        <dd>Prepare 2 mol/L H2SO4 and adjust to pH 7.</dd>
+        <dt>2. Visually-hidden spoken text (works everywhere, incl. braille)</dt>
+        <dd>Prepare 2 <span aria-hidden="true">mol/L</span><span class="sr-only">moles per liter</span> <span aria-hidden="true">H2SO4</span><span class="sr-only">H 2 S O 4</span> and adjust to pH 7.</dd>
+        <dt>3. aria-label override (note: changes braille output)</dt>
+        <dd>Prepare 2 <span role="text" aria-label="moles per liter">mol/L</span> <span role="text" aria-label="H 2 S O 4">H2SO4</span> and adjust to pH 7.</dd>
+        <dt>4. MathML (NVDA 2026.1 MathCAT / SRE speak + braille)</dt>
+        <dd>Prepare 2 <span aria-hidden="true">mol/L</span><span class="sr-only">moles per liter</span> <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><msub><mi mathvariant="normal">H</mi><mn>2</mn></msub><mi mathvariant="normal">S</mi><msub><mi mathvariant="normal">O</mi><mn>4</mn></msub></mrow></math> and adjust to pH 7.</dd></dl>
+    </section>
+
+    <section aria-labelledby="s2">
+      <h2 id="s2">Example 3</h2>
+      <dl>
+        <dt>1. Raw (no fix — what authors usually publish)</dt>
+        <dd>Heat CuSO4·5H2O to 80°C.</dd>
+        <dt>2. Visually-hidden spoken text (works everywhere, incl. braille)</dt>
+        <dd>Heat <span aria-hidden="true">CuSO4·5H2O</span><span class="sr-only">C U S O 4 with 5 H 2 O</span> to 80<span aria-hidden="true">°C</span><span class="sr-only">degrees Celsius</span>.</dd>
+        <dt>3. aria-label override (note: changes braille output)</dt>
+        <dd>Heat <span role="text" aria-label="C U S O 4 with 5 H 2 O">CuSO4·5H2O</span> to 80<span role="text" aria-label="degrees Celsius">°C</span>.</dd>
+        <dt>4. MathML (NVDA 2026.1 MathCAT / SRE speak + braille)</dt>
+        <dd>Heat <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mi mathvariant="normal">Cu</mi><mi mathvariant="normal">S</mi><msub><mi mathvariant="normal">O</mi><mn>4</mn></msub><mo>&#183;</mo><mn>5</mn><msub><mi mathvariant="normal">H</mi><mn>2</mn></msub><mi mathvariant="normal">O</mi></mrow></math> to 80<span aria-hidden="true">°C</span><span class="sr-only">degrees Celsius</span>.</dd></dl>
+    </section>
+
+    <section aria-labelledby="s3">
+      <h2 id="s3">Example 4</h2>
+      <dl>
+        <dt>1. Raw (no fix — what authors usually publish)</dt>
+        <dd>The reaction 2H2 + O2 → 2H2O releases ΔH = −286 kJ/mol.</dd>
+        <dt>2. Visually-hidden spoken text (works everywhere, incl. braille)</dt>
+        <dd>The reaction <span aria-hidden="true">2H2</span><span class="sr-only">2 H 2</span> + <span aria-hidden="true">O2</span><span class="sr-only">O 2</span> <span aria-hidden="true">→</span><span class="sr-only">yields</span> <span aria-hidden="true">2H2O</span><span class="sr-only">2 H 2 O</span> releases <span aria-hidden="true">Δ</span><span class="sr-only">delta</span>H = −286 <span aria-hidden="true">kJ/mol</span><span class="sr-only">kilojoules per mole</span>.</dd>
+        <dt>3. aria-label override (note: changes braille output)</dt>
+        <dd>The reaction <span role="text" aria-label="2 H 2">2H2</span> + <span role="text" aria-label="O 2">O2</span> <span role="text" aria-label="yields">→</span> <span role="text" aria-label="2 H 2 O">2H2O</span> releases <span role="text" aria-label="delta">Δ</span>H = −286 <span role="text" aria-label="kilojoules per mole">kJ/mol</span>.</dd>
+        <dt>4. MathML (NVDA 2026.1 MathCAT / SRE speak + braille)</dt>
+        <dd>The reaction <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mn>2</mn><msub><mi mathvariant="normal">H</mi><mn>2</mn></msub></mrow></math> + <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><msub><mi mathvariant="normal">O</mi><mn>2</mn></msub></mrow></math> <span aria-hidden="true">→</span><span class="sr-only">yields</span> <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mn>2</mn><msub><mi mathvariant="normal">H</mi><mn>2</mn></msub><mi mathvariant="normal">O</mi></mrow></math> releases <span aria-hidden="true">Δ</span><span class="sr-only">delta</span>H = −286 <span aria-hidden="true">kJ/mol</span><span class="sr-only">kilojoules per mole</span>.</dd></dl>
+    </section>
+
+    <section aria-labelledby="s4">
+      <h2 id="s4">Example 5</h2>
+      <dl>
+        <dt>1. Raw (no fix — what authors usually publish)</dt>
+        <dd>Add Ca(OH)2(aq) until the solution is neutral.</dd>
+        <dt>2. Visually-hidden spoken text (works everywhere, incl. braille)</dt>
+        <dd>Add <span aria-hidden="true">Ca(OH)2</span><span class="sr-only">C a O H 2</span><span aria-hidden="true">(aq)</span><span class="sr-only">aqueous</span> until the solution is neutral.</dd>
+        <dt>3. aria-label override (note: changes braille output)</dt>
+        <dd>Add <span role="text" aria-label="C a O H 2">Ca(OH)2</span><span role="text" aria-label="aqueous">(aq)</span> until the solution is neutral.</dd>
+        <dt>4. MathML (NVDA 2026.1 MathCAT / SRE speak + braille)</dt>
+        <dd>Add <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mi mathvariant="normal">Ca</mi><msub><mrow><mo>(</mo><mi mathvariant="normal">O</mi><mi mathvariant="normal">H</mi><mo>)</mo></mrow><mn>2</mn></msub></mrow></math><span aria-hidden="true">(aq)</span><span class="sr-only">aqueous</span> until the solution is neutral.</dd></dl>
+    </section>
+
+    <section aria-labelledby="s5">
+      <h2 id="s5">Example 6</h2>
+      <dl>
+        <dt>1. Raw (no fix — what authors usually publish)</dt>
+        <dd>Concentration of Na+ was 140 mM; glucose (C6H12O6) was 5 mM.</dd>
+        <dt>2. Visually-hidden spoken text (works everywhere, incl. braille)</dt>
+        <dd>Concentration of <span aria-hidden="true">Na+</span><span class="sr-only">N a plus</span> was 140 <span aria-hidden="true">mM</span><span class="sr-only">millimolar</span>; glucose (C6H12O6) was 5 <span aria-hidden="true">mM</span><span class="sr-only">millimolar</span>.</dd>
+        <dt>3. aria-label override (note: changes braille output)</dt>
+        <dd>Concentration of <span role="text" aria-label="N a plus">Na+</span> was 140 <span role="text" aria-label="millimolar">mM</span>; glucose (C6H12O6) was 5 <span role="text" aria-label="millimolar">mM</span>.</dd>
+        <dt>4. MathML (NVDA 2026.1 MathCAT / SRE speak + braille)</dt>
+        <dd>Concentration of <math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><msup><mrow><mi mathvariant="normal">Na</mi></mrow><mo>+</mo></msup></mrow></math> was 140 <span aria-hidden="true">mM</span><span class="sr-only">millimolar</span>; glucose (C6H12O6) was 5 <span aria-hidden="true">mM</span><span class="sr-only">millimolar</span>.</dd></dl>
+    </section>
+  <p style="margin-top:2rem;color:#777;font-size:.85rem">Generated by tools/build-test-doc.mjs</p>
+</body>
+</html>

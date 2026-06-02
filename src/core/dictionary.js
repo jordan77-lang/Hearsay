@@ -1,0 +1,242 @@
+// NVDA speech-dictionary engine.
+//
+// Parses the bundled .dic (tab-separated: pattern, replacement, caseSensitive,
+// type) and simulates how NVDA would rewrite text, so Sci-Speak's spoken
+// previews and accessible-text fixes default to the SAME pronunciations the
+// course's NVDA add-on produces.
+//
+// Type column (per this dictionary's convention):
+//   0 = literal, match anywhere
+//   1 = regular expression
+//   2 = literal, whole word (word-boundary matched)
+// caseSensitive column: 0 = ignore case, 1 = case sensitive.
+//
+// Rules are applied in file order (specific entries precede general ones), each
+// operating on the running text, exactly like NVDA processes its dictionary.
+
+import { DICTIONARY_DIC } from "./dictionary-data.js";
+import { BOND_NOTATION } from "./lexicon.js";
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Convert NVDA/Python-style backreferences (\1) to JS ($1) in replacements.
+function convertReplacement(rep) {
+  return rep.replace(/\$/g, "$$$$").replace(/\\(\d+)/g, "$$$1");
+}
+
+function compile(line) {
+  const parts = line.split("\t");
+  if (parts.length < 4) return null;
+  const [pattern, replacement, caseSensitive, type] = parts;
+  const flags = "g" + (caseSensitive === "1" ? "" : "i");
+  let source;
+  if (type === "1") source = pattern;
+  else if (type === "2") source = `\\b${escapeRegex(pattern)}\\b`;
+  else source = escapeRegex(pattern);
+  let regex;
+  let single;
+  try {
+    regex = new RegExp(source, flags);
+    // A non-global twin used to compute the replacement for ONE match without
+    // disturbing the global regex's lastIndex during span scanning.
+    single = new RegExp(source, flags.replace("g", ""));
+  } catch {
+    return null; // skip patterns that aren't valid in JS regex
+  }
+  return {
+    regex,
+    single,
+    replacement: convertReplacement(replacement),
+    raw: pattern,
+    type,
+    caseSensitive: caseSensitive === "1",
+  };
+}
+
+function parse(raw) {
+  const rules = [];
+  for (const line of raw.split(/\r?\n/)) {
+    if (!line.trim() || line.startsWith("#")) continue;
+    const rule = compile(line);
+    if (rule) rules.push(rule);
+  }
+  return rules;
+}
+
+// Always keep standalone parentheses and unicode minus in the active rule set —
+// remote/partial dictionaries often omit them and TTS/NVDA skip them silently.
+const PINNED_DIC =
+  "(\t open parenthesis \t0\t0\n)\t close parenthesis \t0\t0\n" +
+  "−\t minus \t0\t0\n" +
+  "DI water\t D I water \t0\t2\n" +
+  "DIwater\t D I water \t0\t2\n" +
+  "DI-water\t D I water \t0\t2\n" +
+  "DI\t D I \t0\t2\n" +
+  "qcalorimeter\t q of calorimeter \t0\t2\n" +
+  "q_calorimeter\t q of calorimeter \t0\t2\n" +
+  "Ccalorimeter\t capital C of calorimeter \t1\t2\n" +
+  "C_calorimeter\t capital C of calorimeter \t1\t2\n" +
+  "msolution\t m sub solution \t0\t2\n" +
+  "csolution\t c sub solution \t0\t2";
+
+function mergePinnedRules(rules) {
+  const pinned = parse(PINNED_DIC);
+  const have = new Set(rules.map((r) => r.raw));
+  return [...rules, ...pinned.filter((r) => !have.has(r.raw))];
+}
+
+let RULES = mergePinnedRules(parse(DICTIONARY_DIC));
+let dictionarySourceLabel = "bundled";
+
+function rebuildCompositionRules() {
+  COMPOSITION_RULES = RULES.filter(isCompositionRule);
+}
+
+// Replace in-memory rules (e.g. after fetching from Supabase). Falls back to
+// bundled dictionary on the next page load if remote sync is unavailable.
+export function loadDictionary(raw, sourceLabel = "remote") {
+  RULES = mergePinnedRules(parse(raw));
+  rebuildCompositionRules();
+  dictionarySourceLabel = sourceLabel;
+}
+
+export function dictionarySource() {
+  return dictionarySourceLabel;
+}
+
+// Sci-Speak composes spoken output from short, atomic dictionary entries (units,
+// formulas, symbols). It skips whole-sentence / whole-equation rules so
+// punctuation — especially parentheses — stays in the stream and NVDA reads it.
+function isCompositionRule(rule) {
+  const p = rule.raw;
+  if (p.length > 40) return false;
+  // Equations use =; bond notation (O=O, N=O) is an exception.
+  if (p.includes("=") && !BOND_NOTATION.test(p)) return false;
+  if ((p.match(/\s/g) || []).length >= 3) return false;
+  // e.g. \(J/°C\) — keep literal parens; the inner unit rule handles J/°C.
+  if (/^\\\([^\\=]+\\\)$/.test(p)) return false;
+  return true;
+}
+
+let COMPOSITION_RULES = RULES.filter(isCompositionRule);
+
+export function ruleCount() {
+  return RULES.length;
+}
+
+// Apply the whole dictionary to a string (NVDA simulation).
+export function applyDictionary(text) {
+  let out = text;
+  for (const r of RULES) {
+    r.regex.lastIndex = 0;
+    out = out.replace(r.regex, r.replacement);
+  }
+  return out;
+}
+
+// Get the dictionary's pronunciation for a single token, or null if the
+// dictionary leaves it unchanged.
+export function lookup(token) {
+  const result = applyDictionary(token);
+  return result === token ? null : result.trim();
+}
+
+function spokenForMatch(text, m, rule) {
+  let result = m[0];
+  const re = new RegExp(rule.single.source, rule.single.flags + "g");
+  text.replace(re, (match, ...args) => {
+    const offset = args[args.length - 2];
+    if (offset !== m.index) return match;
+    const groups = args.slice(0, -2);
+    result = rule.replacement.replace(/\$(\d+)/g, (_, n) => groups[Number(n) - 1] ?? "");
+    return match;
+  });
+  return result;
+}
+
+// Type-0 "match anywhere" dictionary rules (e.g. NO, mL) must not fire inside
+// English words like "nozzle" or "firmly" when Sci-Speak composes speech.
+function isSafeCompositionMatch(text, start, end, rule) {
+  if (rule.type !== "0") return true;
+  const before = start > 0 ? text[start - 1] : "";
+  const after = end < text.length ? text[end] : "";
+  const letterBefore = /[A-Za-z]/.test(before);
+  const letterAfter = /[A-Za-z]/.test(after);
+  if (letterBefore && letterAfter) return false;
+  const matched = text.slice(start, end);
+  if (
+    !letterBefore &&
+    letterAfter &&
+    !rule.caseSensitive &&
+    /^[A-Za-z]+$/.test(rule.raw) &&
+    matched === matched.toLowerCase()
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function segmentWithRules(text, rules, { compositionSafe = false } = {}) {
+  if (!text) return [];
+  const raw = [];
+  let i = 0;
+  while (i < text.length) {
+    let best = null;
+    for (const r of rules) {
+      r.regex.lastIndex = i;
+      const m = r.regex.exec(text);
+      if (m && m.index === i && (!best || m[0].length > best.len)) {
+        const end = m.index + m[0].length;
+        if (compositionSafe && !isSafeCompositionMatch(text, m.index, end, r)) continue;
+        best = {
+          text: m[0],
+          spoken: spokenForMatch(text, m, r),
+          len: m[0].length,
+        };
+      }
+    }
+    if (best) {
+      raw.push({ text: best.text, spoken: best.spoken });
+      i += best.len;
+    } else {
+      let j = i + 1;
+      while (j < text.length && !matchAt(text, j, rules, compositionSafe)) j++;
+      raw.push({ text: text.slice(i, j), spoken: null });
+      i = j;
+    }
+  }
+  const out = [];
+  for (const span of raw) {
+    const prev = out[out.length - 1];
+    if (prev && prev.spoken === null && span.spoken === null) prev.text += span.text;
+    else out.push(span);
+  }
+  return out;
+}
+
+// All dictionary rules (includes whole-sentence NVDA add-on rules).
+export function segmentByDictionary(text) {
+  return segmentWithRules(text, RULES);
+}
+
+// Atomic rules only — Sci-Speak stitches these together and leaves punctuation
+// (parentheses, equals, plus, …) in the spoken stream.
+export function segmentForComposition(text) {
+  return segmentWithRules(text, COMPOSITION_RULES, { compositionSafe: true });
+}
+
+function matchAt(text, index, rules, compositionSafe = false) {
+  for (const r of rules) {
+    r.regex.lastIndex = index;
+    const m = r.regex.exec(text);
+    if (m && m.index === index) {
+      if (compositionSafe && !isSafeCompositionMatch(text, m.index, m.index + m[0].length, r)) {
+        continue;
+      }
+      return true;
+    }
+  }
+  return false;
+}
