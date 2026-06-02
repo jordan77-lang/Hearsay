@@ -12,7 +12,10 @@ import {
   guessRuleType,
 } from "./dictionary-api.js";
 import { openCloudSettingsModal } from "./cloud-settings.js";
+import { openDictionaryViewer } from "./dictionary-viewer.js";
 import { ruleCount, dictionarySource } from "../core/dictionary.js";
+import { normalizePastedContent, pasteDataFromEvent } from "../core/paste-normalize.js";
+import { insertAtCursor } from "../fraction-builder.js";
 import { helpTip } from "../help-tip.js";
 
 function hasCloudConfig(config) {
@@ -142,6 +145,7 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
         <label class="ss-type">Class:
           <select id="ss-course-select" class="ss-btn"></select>
         </label>
+        <button type="button" class="ss-btn" id="ss-dict-view" title="View all rules in this class">View rules</button>
         <button type="button" class="ss-btn" id="ss-dict-reload" title="Reload rules from Supabase">Reload</button>
         <span class="ss-dict-rebuild-wrap" style="display:inline-flex;align-items:center;gap:2px">
           <button type="button" class="ss-btn" id="ss-dict-rebuild" title="Merge every class into All classes">Rebuild combined</button>
@@ -155,12 +159,17 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
           <p><b>Spoken replacement</b> — what a screen reader should say (e.g. <code>jools per gram degree Celsius</code>).</p>
           <p>Rules save to the selected class. You can also use <b>Save to class dictionary</b> on a finding below.</p>`)}</summary>
         <div class="ss-dict-add-body">
-          <label class="ss-frac-label" for="ss-rule-pattern">Pattern (what appears in text)</label>
+          <label class="ss-frac-label" for="ss-rule-pattern">Pattern (what appears in text) ${helpTip(`<p>The exact text as it shows up in your curriculum — the thing a screen reader currently misreads.</p>
+            <p>Examples: <code>J/g°C</code>, <code>mL</code>, <code>qsolution</code>, <code>CuSO4</code>.</p>
+            <p>Pasting here keeps subscript/superscript formatting so the pattern matches the source text.</p>`)}</label>
           <input id="ss-rule-pattern" class="ss-input ss-frac-input" type="text" spellcheck="false" placeholder="e.g. J/g°C, mL, NO" />
-          <label class="ss-frac-label" for="ss-rule-spoken">Spoken replacement</label>
+          <label class="ss-frac-label" for="ss-rule-spoken">Spoken replacement ${helpTip(`<p>What the screen reader should say <b>out loud</b> instead of the pattern.</p>
+            <p>Write it phonetically in plain words: <code>jools per gram degree Celsius</code>, <code>milliliters</code>, <code>q of solution</code>.</p>`)}</label>
           <input id="ss-rule-spoken" class="ss-input ss-frac-input" type="text" spellcheck="false" placeholder="e.g. jools per gram degree Celsius" />
           <div class="ss-dict-add-row">
-            <label class="ss-type">Match type:
+            <label class="ss-type">Match type ${helpTip(`<p><b>Whole word</b> — matches only as a standalone word (e.g. <code>mL</code>, not inside <code>HTML</code>). Best for most terms.</p>
+              <p><b>Anywhere</b> — matches the text anywhere, even glued to numbers/letters. Good for symbols and units like <code>°C</code>.</p>
+              <p><b>Regular expression</b> — advanced pattern matching for power users.</p>`)}:
               <select id="ss-rule-type" class="ss-btn">
                 <option value="2">Whole word</option>
                 <option value="0">Anywhere (symbol/unit)</option>
@@ -190,6 +199,22 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
   const caseCheck = root.querySelector("#ss-rule-case");
   const ruleError = root.querySelector("#ss-rule-error");
   const ruleSuccess = root.querySelector("#ss-rule-success");
+  const saveBtn = root.querySelector("#ss-rule-save");
+  const SAVE_LABEL = "Save to class dictionary";
+
+  // After a save, grey the button until an input changes so the same rule
+  // isn't submitted twice and the click clearly registered.
+  function markRuleSaved(updated) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = updated ? "\u2713 Updated" : "\u2713 Added";
+    saveBtn.classList.add("ss-dict-saved");
+  }
+
+  function resetSaveButton() {
+    saveBtn.textContent = SAVE_LABEL;
+    saveBtn.classList.remove("ss-dict-saved");
+    saveBtn.disabled = courseId === COMBINED_COURSE_ID;
+  }
 
   function showDictError(msg) {
     errorEl.textContent = msg ?? "";
@@ -279,6 +304,17 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
     }
   }
 
+  function prefillRule(pattern, spoken, ruleType, caseSensitive) {
+    patternInput.value = pattern ?? "";
+    spokenInput.value = spoken ?? "";
+    typeSelect.value = String(ruleType ?? guessRuleType(pattern ?? ""));
+    caseCheck.checked = Boolean(caseSensitive);
+    resetSaveButton();
+    ruleSuccess.classList.add("hidden");
+    root.querySelector("#ss-dict-add").open = true;
+    patternInput.focus();
+  }
+
   async function saveRule() {
     if (courseId === COMBINED_COURSE_ID) {
       showRuleError('Switch to a class dictionary to add rules. Rebuild "All classes" after.');
@@ -303,6 +339,7 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
           ' All classes not updated — use Rebuild combined or run "npm run sync:dict" with a service role key.';
       }
       onDictionaryChange?.();
+      markRuleSaved(result.updated);
       showRuleSuccess(
         (result.updated
           ? `Updated "${pattern}" in ${courseSelect.selectedOptions[0]?.textContent ?? courseId}.`
@@ -318,7 +355,24 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
     courseId = courseSelect.value;
     setStoredCourseId(courseId);
     renderCourseOptions();
+    resetSaveButton();
+    ruleSuccess.classList.add("hidden");
     await reloadDictionary();
+  });
+
+  root.querySelector("#ss-dict-view").addEventListener("click", () => {
+    openDictionaryViewer({
+      api,
+      courseId,
+      courseLabel: courses.find((c) => c.id === courseId)?.label ?? courseId,
+      onEdit: (rule) => {
+        if (courseId === COMBINED_COURSE_ID) {
+          showRuleError("Select a class dictionary to edit rules (not All classes).");
+          return;
+        }
+        prefillRule(rule.pattern, rule.replacement, rule.rule_type, rule.case_sensitive);
+      },
+    });
   });
 
   root.querySelector("#ss-dict-reload").addEventListener("click", () => reloadDictionary());
@@ -353,8 +407,31 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
     }
   });
 
+  // Any edit to the rule re-enables Save (so a changed rule can be submitted)
+  // and clears the prior success note.
+  function onRuleFieldEdit() {
+    if (saveBtn.classList.contains("ss-dict-saved")) {
+      resetSaveButton();
+      ruleSuccess.classList.add("hidden");
+    }
+  }
+
   patternInput.addEventListener("input", () => {
     if (typeSelect.value !== "1") typeSelect.value = String(guessRuleType(patternInput.value));
+    onRuleFieldEdit();
+  });
+  spokenInput.addEventListener("input", onRuleFieldEdit);
+  typeSelect.addEventListener("change", onRuleFieldEdit);
+  caseCheck.addEventListener("change", onRuleFieldEdit);
+
+  // Match the main editor: normalize pasted formatting (Word/HTML subscripts,
+  // superscripts, glued chem variables) so the pattern matches the curriculum text.
+  patternInput.addEventListener("paste", (e) => {
+    e.preventDefault();
+    const normalized = normalizePastedContent(pasteDataFromEvent(e));
+    insertAtCursor(patternInput, normalized);
+    if (typeSelect.value !== "1") typeSelect.value = String(guessRuleType(patternInput.value));
+    onRuleFieldEdit();
   });
 
   root.querySelector("#ss-rule-save").addEventListener("click", saveRule);
@@ -375,13 +452,7 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
     reload: reloadDictionary,
     getCourseId: () => courseId,
     canSaveRules: () => courseId !== COMBINED_COURSE_ID,
-    prefillRule(pattern, spoken, ruleType) {
-      patternInput.value = pattern ?? "";
-      spokenInput.value = spoken ?? "";
-      typeSelect.value = String(ruleType ?? guessRuleType(pattern ?? ""));
-      root.querySelector("#ss-dict-add").open = true;
-      patternInput.focus();
-    },
+    prefillRule,
     async saveFindingToDictionary(finding) {
       if (!finding?.raw || !finding?.primarySpoken) return;
       if (courseId === COMBINED_COURSE_ID) {
