@@ -1,8 +1,8 @@
 // Supabase dictionary CRUD: per-class rules + merged "all" course.
 
-import { createSupabaseClient } from "./client.js";
+import { createSupabaseClient, loadConfigFromPaths } from "./client.js";
 import { addonEntriesToRows, normalizeRuleRow, normalizeRuleRows, rowClassId, rowsToDic } from "./dictionary-format.js";
-import { loadDictionary } from "../core/dictionary.js";
+import { loadClassDictionary, loadDictionary, ruleCount } from "../core/dictionary.js";
 
 export const COMBINED_COURSE_ID = "all";
 
@@ -374,11 +374,29 @@ export function createDictionaryApi(config) {
   async function loadCourseDictionary(classSlug) {
     const { rows, source, rulesTableMissing } = await fetchRulesWithMeta(classSlug);
     if (!rows.length) {
-      return { ruleCount: 0, source: "remote-empty", skipped: true, courseId: classSlug, rulesTableMissing };
+      return {
+        ruleCount: 0,
+        classRuleCount: 0,
+        source: "remote-empty",
+        skipped: true,
+        courseId: classSlug,
+        rulesTableMissing,
+      };
     }
     const raw = rowsToDic(rows);
-    loadDictionary(raw, `supabase:${classSlug}`);
-    return { ruleCount: rows.length, source, courseId: classSlug, rulesTableMissing };
+    const sourceLabel = `supabase:${classSlug}`;
+    if (classSlug === COMBINED_COURSE_ID) {
+      loadDictionary(raw, sourceLabel);
+    } else {
+      loadClassDictionary(raw, sourceLabel);
+    }
+    return {
+      ruleCount: ruleCount(),
+      classRuleCount: rows.length,
+      source,
+      courseId: classSlug,
+      rulesTableMissing,
+    };
   }
 
   async function createCourse({ id, label, description }) {
@@ -438,21 +456,23 @@ export function createDictionaryApi(config) {
 }
 
 export async function loadSupabaseConfigFromBrowser() {
-  const { loadConfigFromPaths } = await import("./client.js");
-  const fileConfig = await loadConfigFromPaths([
-    "../supabase/config.local.json",
-    "../supabase/config.public.json",
-    "supabase/config.local.json",
-    "supabase/config.public.json",
-  ]);
   const stored = getStoredSupabaseConfig();
+  const paths =
+    typeof location !== "undefined" && location.pathname.includes("/playground/")
+      ? ["../supabase/config.local.json", "../supabase/config.public.json"]
+      : ["supabase/config.local.json", "supabase/config.public.json"];
+
+  // Skip config file fetches when ☁ Connect already saved credentials (avoids 404 noise).
+  const fileConfig =
+    stored?.url && stored?.anonKey ? null : await loadConfigFromPaths(paths);
+
   if (!fileConfig && !stored) return null;
   return {
-    ...fileConfig,
+    ...(fileConfig ?? {}),
     ...stored,
     url: stored?.url ?? fileConfig?.url,
     anonKey: stored?.anonKey ?? fileConfig?.anonKey,
-    courseId: fileConfig?.courseId,
+    courseId: fileConfig?.courseId ?? getStoredCourseId(),
   };
 }
 

@@ -87,6 +87,18 @@ function mergePinnedRules(rules) {
   return [...rules, ...pinned.filter((r) => !have.has(r.raw))];
 }
 
+/** Class rules override bundled patterns; new patterns append at end (NVDA order). */
+export function mergeBundledWithClassRules(classRules) {
+  const bundled = parse(DICTIONARY_DIC);
+  const overrideByPattern = new Map(classRules.map((r) => [r.raw, r]));
+  const merged = bundled.map((r) => overrideByPattern.get(r.raw) ?? r);
+  const bundledPatterns = new Set(bundled.map((r) => r.raw));
+  for (const r of classRules) {
+    if (!bundledPatterns.has(r.raw)) merged.push(r);
+  }
+  return merged;
+}
+
 let RULES = mergePinnedRules(parse(DICTIONARY_DIC));
 let dictionarySourceLabel = "bundled";
 
@@ -98,6 +110,13 @@ function rebuildCompositionRules() {
 // bundled dictionary on the next page load if remote sync is unavailable.
 export function loadDictionary(raw, sourceLabel = "remote") {
   RULES = mergePinnedRules(parse(raw));
+  rebuildCompositionRules();
+  dictionarySourceLabel = sourceLabel;
+}
+
+// Load a class dictionary: bundled base + class overrides/additions.
+export function loadClassDictionary(raw, sourceLabel = "remote") {
+  RULES = mergePinnedRules(mergeBundledWithClassRules(parse(raw)));
   rebuildCompositionRules();
   dictionarySourceLabel = sourceLabel;
 }

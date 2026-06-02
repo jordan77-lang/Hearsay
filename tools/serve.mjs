@@ -25,7 +25,13 @@ createServer(async (req, res) => {
       return;
     }
     const data = await readFile(filePath);
-    res.writeHead(200, { "Content-Type": TYPES[extname(filePath)] ?? "application/octet-stream" });
+    res.writeHead(200, {
+      "Content-Type": TYPES[extname(filePath)] ?? "application/octet-stream",
+      // Dev server: never cache, so edits to JS/CSS/HTML always load on refresh.
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+    });
     res.end(data);
   } catch {
     res.writeHead(404).end("Not found");

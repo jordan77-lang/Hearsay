@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { parseFormula, formulaToSymbolSpeech, formulaToNameSpeech, formulaToMathML } from "../src/core/formula.js";
 import { findTokens } from "../src/core/detect.js";
 import { analyze, toSpokenText, toCanvasHtml, toDictionarySpeech, analyzeEquation, normalizeEquationInsert, canvasSpokenLinesFromText, canvasOutputHearLines } from "../src/core/transform.js";
-import { lookup, applyDictionary, ruleCount, loadDictionary, dictionarySource } from "../src/core/dictionary.js";
+import { lookup, applyDictionary, ruleCount, loadDictionary, loadClassDictionary, dictionarySource } from "../src/core/dictionary.js";
 import { DICTIONARY_DIC } from "../src/core/dictionary-data.js";
 import { dicToRows, rowsToDic } from "../src/supabase/dictionary-format.js";
 import { normalizeNumberUnitSpacing } from "../src/core/math.js";
@@ -435,6 +435,21 @@ test("loadDictionary replaces in-memory rules", () => {
   assert.equal(lookup("ZZZTESTTOKEN"), "spoken test word");
   loadDictionary(DICTIONARY_DIC, "bundled");
   assert.equal(ruleCount(), before);
+});
+
+test("loadClassDictionary keeps bundled base when class has few rules", () => {
+  const before = ruleCount();
+  loadClassDictionary("ZZZTESTTOKEN\tspoken test word\t0\t2\n", "test-class");
+  assert.ok(ruleCount() >= before, "class load should not drop bundled rules");
+  assert.equal(lookup("ZZZTESTTOKEN"), "spoken test word");
+  assert.ok(lookup("mL"), "bundled entries should still apply");
+  loadDictionary(DICTIONARY_DIC, "bundled");
+});
+
+test("loadClassDictionary overrides bundled patterns", () => {
+  loadClassDictionary("mL\tcustom milliliters\t0\t2\n", "test-class");
+  assert.equal(lookup("mL"), "custom milliliters");
+  loadDictionary(DICTIONARY_DIC, "bundled");
 });
 
 test("dic rows round-trip", () => {

@@ -2,9 +2,17 @@
 // extension side panel. Pure DOM + the core engine; no framework.
 
 import { findTokens } from "./core/detect.js";
-import { analyze, toCanvasHtml, canvasSpokenLinesFromText, canvasOutputHearLines } from "./core/transform.js";
+import { analyze, toCanvasHtml, canvasSpokenFromText, canvasOutputHearLines } from "./core/transform.js";
 import { ruleCount, dictionarySource } from "./core/dictionary.js";
-import { speak, speakQueued, cancelSpeech, loadVoices, speechSupported, subscribeSpeechState } from "./speech.js";
+import {
+  speak,
+  speakQueued,
+  cancelSpeech,
+  loadVoices,
+  preloadSpeech,
+  speechSupported,
+  subscribeSpeechState,
+} from "./speech.js";
 import { openFractionBuilder, insertAtCursor } from "./fraction-builder.js";
 import { openScriptEditor } from "./script-editor.js";
 import { openEquationEditor } from "./equation-editor.js";
@@ -46,19 +54,16 @@ function createHearController() {
       cancelSpeech();
       return;
     }
-    clear();
     const lines = Array.isArray(text) ? text : [text];
     const chunks = lines.map((l) => String(l ?? "").trim()).filter(Boolean);
     if (!chunks.length) return;
+    // speechSynthesis.speak must run before any DOM work in this click handler.
+    if (chunks.length === 1) speak(chunks[0]);
+    else speakQueued(chunks);
+    clear();
     activeBtn = btn;
     activeMeta = meta;
     setHearPlaying(btn, true, meta);
-    void (async () => {
-      if (speechSupported()) await loadVoices();
-      if (activeBtn !== btn) return;
-      if (chunks.length === 1) speak(chunks[0]);
-      else speakQueued(chunks);
-    })();
   }
 
   function bind(btn, meta) {
@@ -98,7 +103,7 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
     <div class="ss-wrap">
       <h1 class="ss-title">HearSay · Course pronunciation assistant</h1>
       <p class="ss-sub">Paste authored content. HearSay flags tokens screen readers
-        mispronounce and proposes Canvas-ready fixes — for chemistry, art history, music theory, and more.</p>
+        mispronounce and proposes Canvas-ready fixes.</p>
 
       <div class="ss-workflow-steps" aria-label="Workflow">
         <span><span class="ss-wf-num">1</span>Pick dictionary</span>
@@ -111,7 +116,7 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
         ${helpTip(`<p><b>Typical workflow</b></p><ul>
           <li><b>Course dictionary</b> — choose a class (or All classes) to load pronunciation rules from Supabase, or use the bundled dictionary offline.</li>
           <li><b>Paste text</b> — curriculum from Word or Canvas; HearSay normalizes subscripts and flags risky tokens.</li>
-          <li><b>Hear (your dictionary)</b> — previews how NVDA should read it with your class rules.</li>
+          <li><b>Hear (your dictionary)</b> — previews how a screen reader should read it with your class rules.</li>
           <li><b>Copy Canvas HTML</b> — paste into Canvas’s HTML editor for students.</li>
           <li><b>Add rules</b> — save new pronunciations to Supabase for your class (select a class, not All).</li>
         </ul>`)}
@@ -136,11 +141,11 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
         <button class="ss-btn" id="ss-insert-sub" title="Add a subscript at the cursor">x\u2099 Subscript</button>
         <button class="ss-btn" id="ss-insert-sup" title="Add a superscript at the cursor">x\u00b2 Superscript</button>
         <button class="ss-btn" id="ss-hear-orig" title="How TTS reads the raw text">\u25b6 Hear original</button>
-        <button class="ss-btn" id="ss-hear-dict" title="What your NVDA course dictionary says">\u25b6 Hear (your dictionary)</button>
+        <button class="ss-btn" id="ss-hear-dict" title="What your course dictionary says to a screen reader">\u25b6 Hear (your dictionary)</button>
         ${helpTip(`<p><b>Hear original</b> — browser TTS reading the raw text (before dictionary rules).</p>
           <p><b>Hear (your dictionary)</b> — simulates composed speech using the loaded class or bundled dictionary. Multi-line text is read <b>one line at a time</b> with a pause between lines.</p>
           <p><b>Hear this output</b> (below) — reads the Canvas-ready spoken stream the same way.</p>
-          <p>In Canvas, students can press NVDA+Down arrow to move paragraph-by-paragraph (each line is its own paragraph).</p>`)}
+          <p>In Canvas, students can move paragraph-by-paragraph (each line is its own paragraph) with their screen reader&rsquo;s next-paragraph command.</p>`)}
         <button class="ss-btn" id="ss-sample">Load sample</button>
         <span id="ss-speech-note" class="ss-type"></span>
       </div>
@@ -151,17 +156,17 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
       <section class="ss-canvas" aria-labelledby="ss-canvas-h">
         <div class="ss-findings-head">
           <h2 id="ss-canvas-h" class="ss-title" style="font-size:14px;margin:0">Canvas-ready output</h2>
-          ${helpTip(`<p>Generates HTML for Canvas’s <b>&lt;/&gt;</b> HTML editor. Each line of your text becomes its own <code>&lt;p&gt;</code> paragraph so students can navigate line-by-line in NVDA (Down arrow or Ctrl+Down for next paragraph).</p>
-            <p>Do not use Say All for step-by-step review — it reads every paragraph without stopping.</p>
+          ${helpTip(`<p>Generates HTML for Canvas’s <b>&lt;/&gt;</b> HTML editor. Each line of your text becomes its own <code>&lt;p&gt;</code> paragraph so students can navigate line-by-line with a screen reader.</p>
+            <p>Do not use say-all for step-by-step review — it reads every paragraph without stopping.</p>
             <p><b>Spoken text</b> mode (recommended) — one hidden spoken stream per line matching your dictionary.</p>
-            <p><b>MathML</b> mode — live math for NVDA 2026.1+; units still get spoken replacements.</p>`)}
+            <p><b>MathML</b> mode — live math for screen readers with MathML support; units still get spoken replacements.</p>`)}
         </div>
         <p class="ss-sub">Review the rendered preview, hear it, then copy the HTML into the Canvas HTML editor.</p>
         <div class="ss-controls">
           <label class="ss-type">Mode:
             <select id="ss-unit-strategy" class="ss-btn">
-              <option value="spoken">Spoken text (works in all NVDA, matches your dictionary)</option>
-              <option value="mathml">MathML for math (navigable, needs NVDA 2026.1)</option>
+              <option value="spoken">Spoken text (works in all screen readers, matches your dictionary)</option>
+              <option value="mathml">MathML for math (navigable, needs MathML-capable screen reader)</option>
             </select>
           </label>
           <button class="ss-btn" id="ss-hear-canvas">\u25b6 Hear this output</button>
@@ -200,7 +205,15 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
 
   input.value = initialText ?? SAMPLE;
 
-  let current = { text: "", findings: [], canvasHtml: "", canvasSpoken: "" };
+  let current = {
+    text: "",
+    findings: [],
+    canvasHtml: "",
+    canvasSpoken: "",
+    hearOrig: "",
+    hearDict: "",
+    hearCanvas: "",
+  };
   const supabaseConfig = configFromCaller ?? dictionarySync?.config;
   let dictPanel = null;
   const hear = createHearController();
@@ -216,7 +229,18 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
     const { html, mathCount, textCount, spoken } = toCanvasHtml(text, findings, {
       mode: unitStrategy.value,
     });
-    current = { text, findings, canvasHtml: html, canvasSpoken: spoken ?? "" };
+    current = {
+      text,
+      findings,
+      canvasHtml: html,
+      canvasSpoken: spoken ?? "",
+      hearOrig: text.replace(/\s*\n+\s*/g, " ").replace(/\s+/g, " ").trim(),
+      hearDict: canvasSpokenFromText(text),
+      hearCanvas:
+        unitStrategy.value === "spoken"
+          ? canvasSpokenFromText(text)
+          : canvasOutputHearLines(text, findings, { mode: "mathml" }).join(" "),
+    };
     renderSummary(summary, counts, total);
     renderPreview(preview, text, findings);
     renderFindings(findingsEl, findings, findingsCount, canSaveToDict());
@@ -254,18 +278,17 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
   hear.bind(root.querySelector("#ss-hear-orig"), {
     hearLabel: "\u25b6 Hear original",
     hearTitle: "How TTS reads the raw text",
-    getText: () => current.text.split(/\r?\n/).filter((l) => l.trim()),
+    getText: () => current.hearOrig,
   });
   hear.bind(root.querySelector("#ss-hear-dict"), {
     hearLabel: "\u25b6 Hear (your dictionary)",
-    hearTitle: "What your NVDA course dictionary says",
-    getText: () => canvasSpokenLinesFromText(current.text),
+    hearTitle: "What your course dictionary says to a screen reader",
+    getText: () => current.hearDict,
   });
   hear.bind(root.querySelector("#ss-hear-canvas"), {
     hearLabel: "\u25b6 Hear this output",
     hearTitle: "Hear the Canvas spoken output",
-    getText: () =>
-      canvasOutputHearLines(current.text, current.findings, { mode: unitStrategy.value }),
+    getText: () => current.hearCanvas,
   });
 
   unitStrategy.addEventListener("change", run);
@@ -325,6 +348,7 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
       : `Web Speech unavailable \u00b7 ${note}`;
   }
   if (speechSupported()) {
+    preloadSpeech();
     loadVoices().then((v) => {
       voicePrefix = v.length ? `${v.length} voices \u00b7 ` : "";
       refreshSpeechNote();

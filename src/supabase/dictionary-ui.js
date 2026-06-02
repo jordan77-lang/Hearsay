@@ -87,7 +87,7 @@ function mountDisconnectedPanel(root, { onOpenSettings }) {
   root.innerHTML = `
     <section class="ss-dict-panel ss-dict-unsigned" aria-labelledby="ss-dict-h">
       <div class="ss-dict-head">
-        <h2 id="ss-dict-h" class="ss-title" style="font-size:14px;margin:0">Course dictionary ${helpTip(`<p>HearSay uses pronunciation rules like an NVDA dictionary. Without signing in you get the bundled default dictionary.</p>
+        <h2 id="ss-dict-h" class="ss-title" style="font-size:14px;margin:0">Course dictionary ${helpTip(`<p>HearSay uses pronunciation rules like a screen reader dictionary. Without signing in you get the bundled default dictionary.</p>
           <p>Click <b>☁ Connect</b> and enter your Supabase project URL and anon key to load and edit class-specific rules.</p>`)}</h2>
         <div class="ss-dict-head-actions">
           <span class="ss-type ss-dict-signin-note">${escapeHtml(statusNote)}</span>
@@ -152,7 +152,7 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
       </div>
       <details class="ss-dict-add" id="ss-dict-add">
         <summary class="ss-dict-add-summary">Add pronunciation rule ${helpTip(`<p><b>Pattern</b> — the text as it appears in curriculum (e.g. <code>J/g°C</code>, <code>qsolution</code>).</p>
-          <p><b>Spoken replacement</b> — what NVDA should say (e.g. <code>jools per gram degree Celsius</code>).</p>
+          <p><b>Spoken replacement</b> — what a screen reader should say (e.g. <code>jools per gram degree Celsius</code>).</p>
           <p>Rules save to the selected class. You can also use <b>Save to class dictionary</b> on a finding below.</p>`)}</summary>
         <div class="ss-dict-add-body">
           <label class="ss-frac-label" for="ss-rule-pattern">Pattern (what appears in text)</label>
@@ -209,16 +209,25 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
   }
 
   let lastLoadSource = null;
+  let lastClassRuleCount = null;
   let rulesTableMissing = false;
 
   function updateMeta() {
     const course = courses.find((c) => c.id === courseId);
     const label = course?.label ?? courseId;
     const src = dictionarySource();
+    const total = ruleCount();
     let note = "";
-    if (lastLoadSource === "addon_defaults") note = " (from class addon_defaults)";
+    if (
+      courseId !== COMBINED_COURSE_ID &&
+      lastClassRuleCount != null &&
+      lastClassRuleCount > 0 &&
+      lastClassRuleCount < total
+    ) {
+      note = ` (${lastClassRuleCount} class-specific on bundled base)`;
+    } else if (lastLoadSource === "addon_defaults") note = " (from class addon_defaults)";
     else if (!src.includes("supabase")) note = " (bundled fallback)";
-    metaEl.textContent = `${ruleCount()} rules · ${label}${note}`;
+    metaEl.textContent = `${total} rules · ${label}${note}`;
   }
 
   function renderCourseOptions() {
@@ -246,6 +255,7 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
     try {
       const result = await api.loadCourseDictionary(courseId);
       lastLoadSource = result.source ?? null;
+      lastClassRuleCount = result.classRuleCount ?? null;
       rulesTableMissing = Boolean(result.rulesTableMissing);
       if (result.skipped) {
         const setupHint = rulesTableMissing

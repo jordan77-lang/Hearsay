@@ -220,7 +220,7 @@ function buildFixes(raw, spoken, mathml) {
     fixes.push({
       id: "mathml",
       label: "MathML (best for screen readers + braille)",
-      support: "NVDA 2026.1+ (MathCAT) and SRE speak & braille this with no user setup.",
+      support: "Screen readers with MathML support (e.g. MathCAT, browser math engines) speak and braille this with no user setup.",
       caveat: "Replaces the visual rendering; verify it displays as expected.",
       snippet: mathml,
     });
