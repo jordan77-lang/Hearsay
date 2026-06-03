@@ -14,7 +14,14 @@ import {
 } from "./supabase/dictionary-api.js";
 import { parseImportFile, buildImportTemplateCsv, buildImportTemplateTsv } from "./dictionary-import.js";
 import { filterRowIndices, parseSearchTerms } from "./dictionary-search.js";
-import { buildAppleCsv, buildJawsTsv, buildNvdaDic, downloadTextFile } from "./dictionary-export.js";
+import { buildAppleCsv, buildJawsTsv, buildExportNvdaDic, buildNvdaDic, resolveExportRegexEntries, downloadTextFile } from "./dictionary-export.js";
+import {
+  resolveAddonOptions,
+  downloadNvdaAddon,
+  defaultAddonDefaults,
+  countRegexInDic,
+} from "./nvda-addon.js";
+import { shouldMergeBundledBase } from "./supabase/dictionary-api.js";
 import { helpTip, bindHelpTips } from "./help-tip.js";
 import { previewTermSpeech } from "./core/dictionary.js";
 import { createHearController } from "./hear-ui.js";
@@ -50,7 +57,7 @@ const HELP = {
   pattern: `<p><b>Pattern</b> is the exact text in your course (as students see it in Canvas).</p>
     <p>Examples: <code>ΔT</code>, <code>mL</code>, <code>J/g°C</code>. The screen reader replaces each match with <b>Spoken</b>.</p>`,
   spoken: `<p><b>Spoken</b> is how you want a screen reader to say the pattern.</p>
-    <p>Used in Canvas Translate and saved to Supabase for your class dictionary.</p>`,
+    <p>Used in the Screen Reader Lab and saved to Supabase for your class dictionary.</p>`,
   note: `<p><b>Note</b> is optional — a reminder for authors only.</p>
     <p>Included in NVDA export files as a comment line; students never hear it.</p>`,
   case: `<p><b>Ignore case</b> is the NVDA dictionary setting for whether capitalization must match.</p>
@@ -82,7 +89,11 @@ const HELP = {
     <p><b>↑ ↓</b> or Enter / Shift+Enter jump between matches. <b>Clear</b> resets the filter.</p>`,
   import: `<p><b>Template CSV/TSV</b> — blank file with the right columns and sample rows.</p>
     <p><b>Import</b> — load a spreadsheet into this table (merged on top). Click <b>Save class</b> to push to Supabase.</p>`,
-  advanced: `<p>Optional files for NVDA, JAWS, or Apple VoiceOver dictionary tools — not required for Canvas Translate.</p>`,
+  advanced: `<p>Optional files for NVDA, JAWS, or Apple VoiceOver dictionary tools.</p>`,
+  students: `<p><b>Download for students</b> builds install files from the current class table.</p>
+    <p><b>NVDA add-on</b> (recommended): one install for Windows students. Requires NVDA <b>2026.1+</b>.</p>
+    <p><b>Regex rules</b> handle chemistry units after numbers (e.g. <code>10 mL</code>, <code>J/g°C</code>). Chemistry classes merge the bundled regex set automatically.</p>
+    <p>Bump <b>Version</b> before each redistribution so students can update.</p>`,
   connect: `<p>Your team Supabase <b>URL</b> and <b>anon key</b>. Stored in this browser only (same credentials as the legacy Dictionary Builder).</p>`,
 };
 
@@ -107,8 +118,8 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
     <div class="hs-site-nav-mount"></div>
     <main class="ss-wrap hs-dict-editor">
       <header class="hs-dict-editor-head">
-        <h1 class="ss-title hs-dict-editor-title">Dictionary ${helpTip("<p>Edit pronunciations for one class. Changes apply in <b>Canvas Translate</b> after you <b>Save class</b>.</p><p>Use <b>Pull</b> to reload from Supabase; <b>▶ Hear</b> to test before saving.</p>")}</h1>
-        <p class="ss-sub">Edit class pronunciations for Canvas Translate · saves to Supabase <code>entries</code> · hear before you save</p>
+        <h1 class="ss-title hs-dict-editor-title">Dictionary ${helpTip("<p>Edit pronunciations for one class. After you <b>Save class</b>, export an NVDA add-on for students or test in the <b>Screen Reader Lab</b>.</p><p>Use <b>Pull</b> to reload from Supabase; <b>▶ Hear</b> to test before saving.</p>")}</h1>
+        <p class="ss-sub">Edit class pronunciations · save to Supabase · export NVDA add-ons for students</p>
       </header>
 
       <section class="hs-dict-editor-card hs-dict-editor-connect" aria-labelledby="hs-dict-ed-connect-h">
@@ -151,6 +162,58 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
           </div>
         </div>
         <p id="hs-dict-ed-error" class="ss-dict-error hidden" role="alert"></p>
+      </section>
+
+      <section class="hs-dict-editor-card hs-dict-editor-download" aria-labelledby="hs-dict-ed-download-h">
+        <h2 id="hs-dict-ed-download-h" class="hs-dict-editor-card-title hs-dict-editor-card-title-inline">
+          Download for students ${helpTip(HELP.students)}
+        </h2>
+        <p class="ss-sub">Students install once per course. Plain Canvas New Quizzes text reads correctly — no special HTML.</p>
+        <p id="hs-dict-ed-regex-status" class="hs-dict-editor-regex-status ss-type" aria-live="polite"></p>
+        <div class="hs-dict-editor-export-btns">
+          <button type="button" class="ss-btn primary" id="hs-dict-ed-export-addon">NVDA add-on (.nvda-addon)</button>
+          <button type="button" class="ss-btn" id="hs-dict-ed-export-nvda">NVDA .dic</button>
+          <button type="button" class="ss-btn" id="hs-dict-ed-export-jaws">JAWS source TSV</button>
+          <button type="button" class="ss-btn" id="hs-dict-ed-export-apple">Apple VoiceOver CSV</button>
+        </div>
+        <label class="hs-dict-editor-merge-regex">
+          <input type="checkbox" id="hs-dict-ed-merge-regex" checked />
+          Include NVDA regex rules (units after numbers, parenthetical J/g°C, etc.)
+        </label>
+        <details class="hs-dict-editor-addon-meta">
+          <summary class="hs-dict-editor-addon-meta-summary">Add-on settings (version, ID)</summary>
+          <div class="hs-dict-editor-addon-grid">
+            <label class="hs-dict-editor-field">
+              <span class="hs-dict-editor-label">Add-on ID</span>
+              <input type="text" id="hs-dict-ed-addon-id" class="ss-input hs-dict-inline-input" spellcheck="false" autocomplete="off" />
+            </label>
+            <label class="hs-dict-editor-field">
+              <span class="hs-dict-editor-label">Version</span>
+              <input type="text" id="hs-dict-ed-addon-version" class="ss-input hs-dict-inline-input" spellcheck="false" autocomplete="off" />
+            </label>
+            <label class="hs-dict-editor-field hs-dict-editor-field-wide">
+              <span class="hs-dict-editor-label">Summary</span>
+              <input type="text" id="hs-dict-ed-addon-summary" class="ss-input hs-dict-inline-input" autocomplete="off" />
+            </label>
+            <label class="hs-dict-editor-field hs-dict-editor-field-wide">
+              <span class="hs-dict-editor-label">Author</span>
+              <input type="text" id="hs-dict-ed-addon-author" class="ss-input hs-dict-inline-input" autocomplete="off" />
+            </label>
+            <label class="hs-dict-editor-field">
+              <span class="hs-dict-editor-label">Dictionary name</span>
+              <input type="text" id="hs-dict-ed-addon-dict-name" class="ss-input hs-dict-inline-input" spellcheck="false" autocomplete="off" />
+            </label>
+            <label class="hs-dict-editor-field hs-dict-editor-field-wide">
+              <span class="hs-dict-editor-label">Dictionary display name</span>
+              <input type="text" id="hs-dict-ed-addon-dict-display" class="ss-input hs-dict-inline-input" autocomplete="off" />
+            </label>
+          </div>
+        </details>
+        <p class="ss-sub hs-dict-editor-install-hint">
+          Downloads the <strong>.nvda-addon</strong> and a <strong>student install PDF</strong> (post both on Canvas).
+          Students open the add-on file to install, then restart NVDA.
+          Quick test in Notepad: <code>kJ/mol</code>, <code>10 mL</code>, <code>J/g°C</code>.
+        </p>
       </section>
 
       <section class="hs-dict-editor-card" aria-labelledby="hs-dict-ed-add-h">
@@ -238,16 +301,6 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
           <p id="hs-dict-ed-empty" class="hs-dict-editor-empty ss-sub hidden">No rows yet. Connect, pull from cloud, or add a term.</p>
         </div>
       </section>
-
-      <details class="hs-dict-editor-advanced">
-        <summary class="hs-dict-editor-advanced-summary"><span>Advanced — screen reader file exports</span>${helpTip(HELP.advanced)}</summary>
-        <p class="ss-sub">Optional NVDA, JAWS, and VoiceOver files from the current class table.</p>
-        <div class="hs-dict-editor-export-btns">
-          <button type="button" class="ss-btn" id="hs-dict-ed-export-apple">Apple VoiceOver CSV</button>
-          <button type="button" class="ss-btn" id="hs-dict-ed-export-jaws">JAWS source TSV</button>
-          <button type="button" class="ss-btn" id="hs-dict-ed-export-nvda">NVDA .dic</button>
-        </div>
-      </details>
     </main>`;
 
   mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
@@ -268,6 +321,14 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
   const searchPrevBtn = root.querySelector("#hs-dict-ed-search-prev");
   const searchNextBtn = root.querySelector("#hs-dict-ed-search-next");
   const searchClearBtn = root.querySelector("#hs-dict-ed-search-clear");
+  const mergeRegexCheckbox = root.querySelector("#hs-dict-ed-merge-regex");
+  const regexStatusEl = root.querySelector("#hs-dict-ed-regex-status");
+  const addonIdInput = root.querySelector("#hs-dict-ed-addon-id");
+  const addonVersionInput = root.querySelector("#hs-dict-ed-addon-version");
+  const addonSummaryInput = root.querySelector("#hs-dict-ed-addon-summary");
+  const addonAuthorInput = root.querySelector("#hs-dict-ed-addon-author");
+  const addonDictNameInput = root.querySelector("#hs-dict-ed-addon-dict-name");
+  const addonDictDisplayInput = root.querySelector("#hs-dict-ed-addon-dict-display");
   const searchFieldSelect = root.querySelector("#hs-dict-ed-search-field");
   const connectSection = root.querySelector(".hs-dict-editor-connect");
   const addClassToggleBtn = root.querySelector("#hs-dict-ed-add-class-toggle");
@@ -425,6 +486,64 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
 
   function setActiveRows(rows) {
     entriesByClass[activeSlug] = rows;
+  }
+
+  function getActiveProfile() {
+    return classProfiles.find((c) => c.slug === activeSlug);
+  }
+
+  function getActiveAddonDefaults() {
+    const prof = getActiveProfile();
+    const base = defaultAddonDefaults(activeSlug, prof?.label || activeSlug);
+    const raw = prof?.addon_defaults;
+    if (raw && typeof raw === "object") return { ...base, ...raw };
+    return base;
+  }
+
+  function getExportRegexEntries() {
+    if (!mergeRegexCheckbox.checked) return [];
+    return resolveExportRegexEntries(activeSlug, getActiveAddonDefaults());
+  }
+
+  function syncAddonForm() {
+    const d = getActiveAddonDefaults();
+    addonIdInput.value = d.addonId ?? "";
+    addonVersionInput.value = d.version ?? "1.0.0";
+    addonSummaryInput.value = d.summary ?? "";
+    addonAuthorInput.value = d.author ?? "";
+    addonDictNameInput.value = d.dictionaryName ?? activeSlug;
+    addonDictDisplayInput.value = d.dictionaryDisplayName ?? "";
+    updateExportMeta();
+  }
+
+  function updateExportMeta() {
+    const regex = getExportRegexEntries();
+    const label = getActiveProfile()?.label || activeSlug;
+    if (!regexStatusEl) return;
+    if (shouldMergeBundledBase(activeSlug)) {
+      regexStatusEl.textContent = `NVDA regex (${label}): ${regex.length} available (bundled chemistry set)`;
+    } else {
+      regexStatusEl.textContent = `NVDA regex (${label}): ${regex.length} loaded`;
+    }
+    regexStatusEl.classList.toggle("is-warn", regex.length === 0);
+  }
+
+  function readAddonFormFields() {
+    return {
+      addonId: addonIdInput.value,
+      version: addonVersionInput.value,
+      summary: addonSummaryInput.value,
+      author: addonAuthorInput.value,
+      dictionaryName: addonDictNameInput.value,
+      dictionaryDisplayName: addonDictDisplayInput.value,
+    };
+  }
+
+  function buildStudentNvdaDic(rows) {
+    if (shouldMergeBundledBase(activeSlug)) {
+      return buildExportNvdaDic(rows, { classSlug: activeSlug });
+    }
+    return buildNvdaDic(rows, { regexEntries: getExportRegexEntries() });
   }
 
   function getFilePrefix() {
@@ -617,6 +736,7 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
       }
       renderClassSelect();
       renderTable();
+      syncAddonForm();
       await api.loadCourseDictionary(activeSlug);
       const n = getActiveRows().length;
       setStatus(`Loaded ${classProfiles.length} class(es) · ${n} rows in ${activeSlug}`);
@@ -711,6 +831,7 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
   classSelect.addEventListener("change", async () => {
     activeSlug = classSelect.value;
     setStoredCourseId(activeSlug);
+    syncAddonForm();
     renderTable();
     if (api) {
       try {
@@ -811,6 +932,8 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
     }
   });
 
+  mergeRegexCheckbox.addEventListener("change", updateExportMeta);
+
   function exportRows() {
     return getActiveRows().filter((r) => r.text?.trim() && r.substitution?.trim());
   }
@@ -821,6 +944,7 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
       showClassError("Add or load rows before exporting.");
       return;
     }
+    showClassError("");
     const prefix = getFilePrefix();
     downloadTextFile(`dictionary_${prefix}_apple_voiceover.csv`, buildAppleCsv(rows), "text/csv;charset=utf-8");
   });
@@ -831,6 +955,7 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
       showClassError("Add or load rows before exporting.");
       return;
     }
+    showClassError("");
     const prefix = getFilePrefix();
     downloadTextFile(
       `dictionary_${prefix}_jaws_source.tsv`,
@@ -845,12 +970,49 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
       showClassError("Add or load rows before exporting.");
       return;
     }
+    showClassError("");
     const prefix = getFilePrefix();
-    downloadTextFile(`${prefix}.dic`, buildNvdaDic(rows), "text/plain;charset=utf-8");
+    downloadTextFile(`${prefix}.dic`, buildStudentNvdaDic(rows), "text/plain;charset=utf-8");
+  });
+
+  root.querySelector("#hs-dict-ed-export-addon").addEventListener("click", async () => {
+    const rows = exportRows();
+    if (!rows.length) {
+      showClassError("Add or load rows before exporting.");
+      return;
+    }
+
+    const regexEntries = getExportRegexEntries();
+    if (mergeRegexCheckbox.checked && regexEntries.length === 0 && !shouldMergeBundledBase(activeSlug)) {
+      const proceed = window.confirm(
+        "No NVDA regex rules are loaded for this class. Many chemistry pronunciations only work with regex rules (units after numbers, spacing variants). Export anyway?",
+      );
+      if (!proceed) return;
+    }
+
+    showClassError("");
+    setStatus("Building NVDA add-on…");
+    try {
+      const options = resolveAddonOptions(readAddonFormFields(), getActiveAddonDefaults());
+      const dictionaryContent = buildStudentNvdaDic(rows);
+      const regexCount = countRegexInDic(dictionaryContent);
+      const result = await downloadNvdaAddon({
+        options,
+        dictionaryContent,
+        literalCount: rows.length,
+        regexCount,
+      });
+      setStatus(`Exported ${result.filename}${result.pdfFilename ? ` + ${result.pdfFilename}` : ""}`);
+      window.alert(result.message);
+    } catch (err) {
+      showClassError(err.message ?? String(err));
+      setStatus("");
+    }
   });
 
   updateConnectNote();
   renderClassSelect();
+  syncAddonForm();
   renderTable();
 
   if (api) {

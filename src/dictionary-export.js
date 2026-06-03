@@ -1,4 +1,9 @@
-// Export class entries for NVDA, JAWS, and Apple VoiceOver (Advanced).
+// Export class entries for NVDA, JAWS, and Apple VoiceOver.
+
+import { buildMergedExportDic } from "./core/dictionary.js";
+import { DICTIONARY_DIC } from "./core/dictionary-data.js";
+import { parseDicLine } from "./supabase/dictionary-format.js";
+import { shouldMergeBundledBase } from "./supabase/dictionary-api.js";
 
 function sanitize(value) {
   return String(value ?? "").trim();
@@ -74,6 +79,55 @@ export function buildNvdaDic(rows, { regexEntries = [] } = {}) {
     );
   }
   return output.join("\r\n");
+}
+
+/** Regex-only entries from bundled chem .dic (type 1). */
+export function bundledRegexEntries() {
+  const entries = [];
+  let comments = [];
+  for (const line of DICTIONARY_DIC.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (trimmed.startsWith("#")) {
+      comments.push(trimmed.slice(1).trim());
+      continue;
+    }
+    const parsed = parseDicLine(line);
+    if (!parsed || parsed.rule_type !== 1) {
+      comments = [];
+      continue;
+    }
+    entries.push({
+      pattern: parsed.pattern,
+      replacement: parsed.replacement,
+      caseSensitive: parsed.case_sensitive ? 1 : 0,
+      type: 1,
+      comments: [...comments],
+    });
+    comments = [];
+  }
+  return entries;
+}
+
+/** NVDA regex rules: Supabase addon_defaults first, else bundled chem fallback. */
+export function resolveExportRegexEntries(classSlug, addonDefaults) {
+  const fromAddon = addonDefaults?.nvdaRegexEntries ?? [];
+  if (fromAddon.length) return fromAddon;
+  if (shouldMergeBundledBase(classSlug)) return bundledRegexEntries();
+  return [];
+}
+
+/**
+ * Full .dic for student install: merges bundled chem base when applicable.
+ * @param {Array<{text,substitution,ignore_case,note}>} rows
+ */
+export function buildExportNvdaDic(rows, { classSlug, regexEntries = [], mergeBundled } = {}) {
+  const useBundled = mergeBundled ?? shouldMergeBundledBase(classSlug);
+  if (useBundled) {
+    const classOnly = buildNvdaDic(rows);
+    return buildMergedExportDic(classOnly);
+  }
+  return buildNvdaDic(rows, { regexEntries });
 }
 
 export function downloadTextFile(filename, content, mimeType = "text/plain;charset=utf-8") {

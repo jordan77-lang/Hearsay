@@ -23,6 +23,7 @@ import {
   fracSpeech,
   speakFracParts,
   normalizeNumberUnitSpacing,
+  literalMathML,
 } from "./math.js";
 import {
   wordSubscriptMathML,
@@ -31,7 +32,7 @@ import {
   wordSuperscriptSpeech,
   gluedToken,
 } from "./vars.js";
-import { applyDictionary, segmentForComposition } from "./dictionary.js";
+import { applyDictionary, segmentForComposition, withEmptyDictionary } from "./dictionary.js";
 import { parseLatex } from "./latex.js";
 import { normalizePastedContent } from "./paste-normalize.js";
 
@@ -65,13 +66,11 @@ function describedVarSpoken(finding) {
 }
 
 // Inline (class-free) screen-reader-only style. Canvas strips unknown CSS
-// classes but allows inline style; this keeps the visual hidden while the
-// spoken text stays in the accessibility/braille stream.
+// classes and may strip clip-path / off-screen positioning; prefer aria-label
+// on paragraphs in spoken mode. This style is used for per-token fixes in MathML mode.
 const SR_ONLY_INLINE =
-  "position:absolute;left:-10000px;top:auto;width:1px;height:1px;" +
-  "padding:0;margin:-1px;overflow:hidden;" +
-  "clip:rect(1px,1px,1px,1px);clip-path:inset(50%);" +
-  "border:0;word-wrap:normal;";
+  "position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;" +
+  "clip:rect(0,0,0,0);white-space:nowrap;border:0;";
 
 export function enrich(finding) {
   switch (finding.type) {
@@ -371,6 +370,68 @@ function emitPlain(run) {
   return { html, count };
 }
 
+function emitPlainVisible(run) {
+  if (!run) return { html: "", count: 0 };
+  return { html: escapeHtml(run), count: 0 };
+}
+
+const QUIZ_SPOKEN_UNIT_TYPES = new Set(["unit", "compound-unit", "symbol", "state"]);
+
+/** Visible symbol plus spoken gloss — the only NQ-safe way to get dictionary unit speech. */
+function quizDualNotation(raw, spoken) {
+  if (!spoken || spoken.replace(/\s+/g, " ").trim() === raw.replace(/\s+/g, " ").trim()) {
+    return escapeHtml(raw);
+  }
+  return `${escapeHtml(raw)} (${escapeHtml(spoken)})`;
+}
+
+/**
+ * New Quizzes MathML: normal <p> wrapping, MathML for formulae/fractions only,
+ * units/symbols as visible dual notation so NVDA reads dictionary speech without
+ * hidden spans or one unbreakable math line.
+ */
+function canvasLineAsQuizMathml(line) {
+  const pre = normalizeNumberUnitSpacing(line);
+  const { findings, normalizedText } = analyze(pre, findTokens);
+  let html = "";
+  let cursor = 0;
+  let mathCount = 0;
+  for (const f of findings) {
+    html += escapeHtml(normalizedText.slice(cursor, f.start));
+    const raw = normalizedText.slice(f.start, f.end);
+    const spoken = f.primarySpoken;
+    const isMath = MATH_TYPES.has(f.type) && f.mathml;
+
+    if (isMath) {
+      html += f.mathml;
+      mathCount++;
+    } else if (QUIZ_SPOKEN_UNIT_TYPES.has(f.type)) {
+      html += quizDualNotation(raw, spoken);
+    } else {
+      html += escapeHtml(raw);
+    }
+    cursor = f.end;
+  }
+  html += escapeHtml(normalizedText.slice(cursor));
+  if (!html.trim()) return { html: "", mathCount: 0 };
+  return { html: `<p>${html}</p>`, mathCount };
+}
+
+function canvasFromQuizMathml(text) {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length === 0) {
+    return { html: "", mathCount: 0, textCount: 0, spoken: canvasSpokenFromText(text) };
+  }
+  let html = "";
+  let mathCount = 0;
+  for (const line of lines) {
+    const block = canvasLineAsQuizMathml(line);
+    html += block.html;
+    mathCount += block.mathCount;
+  }
+  return { html, mathCount, textCount: 0, spoken: canvasSpokenFromText(text) };
+}
+
 const CANVAS_ENRICHED_TYPES = new Set([
   "fraction",
   "formula",
@@ -385,15 +446,24 @@ function canvasMarkedFindings(findings) {
     .sort((a, b) => a.start - b.start);
 }
 
-// Build the sighted-student visual line: LaTeX fractions and chemical formulae
-// become MathML; everything else stays as normalized plain text.
+// Build the sighted-student visual line. Spoken mode uses plain text (not MathML)
+// so Canvas pages and quizzes keep one font and avoid MathML sanitizer breakage.
+function visualForFinding(f, text) {
+  if (f.type === "fraction") {
+    const num = String(f.numerator ?? "").trim();
+    const den = String(f.denominator ?? "").trim();
+    return escapeHtml(`${num} / ${den}`);
+  }
+  return escapeHtml(text.slice(f.start, f.end));
+}
+
 function buildCanvasVisual(text, findings) {
   const marked = canvasMarkedFindings(findings);
   let html = "";
   let cursor = 0;
   for (const f of marked) {
     html += escapeHtml(text.slice(cursor, f.start));
-    html += f.mathml ?? escapeHtml(text.slice(f.start, f.end));
+    html += visualForFinding(f, text);
     cursor = f.end;
   }
   html += escapeHtml(text.slice(cursor));
@@ -419,10 +489,9 @@ function canvasSpokenLine(normalized, findings) {
   return normalizeMathMinusSpeech(spoken.replace(/\s+/g, " ").trim());
 }
 
-// One Canvas block per line: a single continuous spoken stream (composed from
-// atomic dictionary terms, with punctuation preserved) plus the full visual line
-// marked aria-hidden. Fragmenting inline aria-hidden + sr-only pairs breaks NVDA
-// in Canvas — it stops after "(" when the next node is aria-hidden.
+// One Canvas block per line: aria-label carries the composed spoken stream;
+// the visual line is aria-hidden plain text (Canvas-safe — no MathML, no
+// off-screen clip hacks that sanitizers strip). Fragmenting inline pairs breaks NVDA.
 function canvasLineBlock(line) {
   const pre = normalizeNumberUnitSpacing(line);
   const { findings, normalizedText } = analyze(pre, findTokens);
@@ -430,56 +499,70 @@ function canvasLineBlock(line) {
   const visual = buildCanvasVisual(normalizedText, findings);
   const norm = (s) => s.replace(/\s+/g, " ").trim();
   if (norm(spoken) === norm(normalizedText) && visual === escapeHtml(normalizedText)) {
-    return { html: escapeHtml(line), count: 0 };
+    return { content: escapeHtml(line), count: 0, label: null };
   }
-  return {
-    html: hiddenSpokenSpan(spoken) + `<span aria-hidden="true">${visual}</span>`,
-    count: 1,
-  };
+  return { content: visual, count: 1, label: spoken };
+}
+
+function wrapCanvasParagraph({ content, count, label }) {
+  if (label) {
+    return {
+      html: `<p aria-label="${escapeAttr(label)}"><span aria-hidden="true">${content}</span></p>`,
+      count,
+    };
+  }
+  return { html: `<p>${content}</p>`, count: count ?? 0 };
 }
 
 function canvasFromDictionary(text) {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length === 0) return { html: "", count: 0 };
-  if (lines.length === 1) return canvasLineBlock(lines[0]);
+  if (lines.length === 1) return wrapCanvasParagraph(canvasLineBlock(lines[0]));
   let html = "";
   let count = 0;
   for (const line of lines) {
-    const block = canvasLineBlock(line);
-    html += `<p>${block.html}</p>`;
-    count += block.count;
+    const wrapped = wrapCanvasParagraph(canvasLineBlock(line));
+    html += wrapped.html;
+    count += wrapped.count;
   }
   return { html, count };
 }
 
+/** New Quizzes / Classic Quizzes: plain visible text only (no aria-label / aria-hidden). */
+function canvasFromQuizSafe(text) {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length === 0) return { html: "", count: 0 };
+  let html = "";
+  for (const line of lines) {
+    const pre = normalizeNumberUnitSpacing(line);
+    const { findings, normalizedText } = analyze(pre, findTokens);
+    const spoken = canvasSpokenLine(normalizedText, findings);
+    html += `<p>${escapeHtml(spoken)}</p>`;
+  }
+  return { html, count: lines.length };
+}
+
 // Build a single Canvas-ready HTML string for the whole passage.
 //
-// mode "spoken" (default, most robust): Sci-Speak composes atomic dictionary
-//   readings into one spoken stream per line (parentheses and operators included).
-//   The spoken text lives in a single off-screen span; the visual line is one
-//   aria-hidden block. This avoids NVDA stopping mid-sentence in Canvas.
-// mode "mathml" (navigable): math stays as live MathML (needs NVDA 2026.1 /
-//   MathCAT or MathJax to be announced); units/symbols use hidden spoken text.
+// mode "quiz" (New Quizzes): dictionary speech as plain visible text in <p> tags.
+//   Canvas quiz views ignore aria-label and hidden markup — students must read the
+//   visible line. Chemical symbols (J/g°C, mL) become spoken words on screen.
+// mode "spoken" (Pages / assignments): aria-label speech + aria-hidden visual symbols.
+// mode "quiz-mathml" (New Quizzes): <p> per line; MathML for formulae/fractions;
+//   units/symbols as visible dual notation, e.g. J/g°C (jools per gram degree Celsius),
+//   because MathCAT reads mtext literally and hidden spans double-announce in NQ.
+// mode "mathml" (Pages): MathML for math; units/symbols use hidden spoken text.
 //
 // NOTE: aria-label on inline <span>s is intentionally NOT used here -- NVDA does
 // not reliably expose it as an accessible name, so it gets ignored.
-export function toCanvasHtml(text, findings, { mode = "spoken" } = {}) {
-  if (mode === "spoken") {
-    const body = canvasFromDictionary(text);
-    return {
-      html: body.html,
-      mathCount: 0,
-      textCount: body.count,
-      spoken: canvasSpokenFromText(text),
-    };
-  }
-
+function canvasFromMathml(text, findings, { quizSafe = false } = {}) {
+  const emitGap = quizSafe ? emitPlainVisible : emitPlain;
   let html = "";
   let cursor = 0;
   let mathCount = 0;
   let textCount = 0;
   for (const f of findings) {
-    const gap = emitPlain(text.slice(cursor, f.start));
+    const gap = emitGap(text.slice(cursor, f.start));
     html += gap.html;
     textCount += gap.count;
     const raw = text.slice(f.start, f.end);
@@ -489,7 +572,10 @@ export function toCanvasHtml(text, findings, { mode = "spoken" } = {}) {
     if (isMath) {
       html += f.mathml;
       mathCount++;
-    } else if (spoken && spoken !== raw) {
+    } else if (quizSafe && spoken && spoken !== raw) {
+      html += literalMathML(raw);
+      mathCount++;
+    } else if (!quizSafe && spoken && spoken !== raw) {
       html += `<span aria-hidden="true">${escapeHtml(raw)}</span>` + hiddenSpokenSpan(spoken);
       textCount++;
     } else {
@@ -497,10 +583,35 @@ export function toCanvasHtml(text, findings, { mode = "spoken" } = {}) {
     }
     cursor = f.end;
   }
-  const tail = emitPlain(text.slice(cursor));
+  const tail = emitGap(text.slice(cursor));
   html += tail.html;
   textCount += tail.count;
   return { html, mathCount, textCount, spoken: toSpokenText(text, findings) };
+}
+
+export function toCanvasHtml(text, findings, { mode = "quiz-mathml" } = {}) {
+  if (mode === "quiz") {
+    const body = canvasFromQuizSafe(text);
+    return {
+      html: body.html,
+      mathCount: 0,
+      textCount: body.count,
+      spoken: canvasSpokenFromText(text),
+    };
+  }
+  if (mode === "spoken") {
+    const body = canvasFromDictionary(text);
+    return {
+      html: body.html,
+      mathCount: 0,
+      textCount: body.count,
+      spoken: canvasSpokenFromText(text),
+    };
+  }
+  if (mode === "quiz-mathml") {
+    return canvasFromQuizMathml(text);
+  }
+  return canvasFromMathml(text, findings, { quizSafe: false });
 }
 
 // Spoken stream for Canvas "spoken" mode — one composed line per input line,
@@ -522,7 +633,9 @@ export function canvasSpokenLinesFromText(text) {
 
 /** Line-by-line spoken preview for Canvas output (spoken vs MathML mode). */
 export function canvasOutputHearLines(text, findings, { mode = "spoken" } = {}) {
-  if (mode === "spoken") return canvasSpokenLinesFromText(text);
+  if (mode === "spoken" || mode === "quiz" || mode === "quiz-mathml") {
+    return canvasSpokenLinesFromText(text);
+  }
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (!lines.length) return [];
   return lines.map((line) => {
@@ -535,6 +648,78 @@ export function canvasOutputHearLines(text, findings, { mode = "spoken" } = {}) 
 // Composed curriculum speech: dictionary terms plus enriched formulae/fractions.
 export function toDictionarySpeech(text) {
   return canvasSpokenFromText(text);
+}
+
+/** Same as toDictionarySpeech but keeps blank lines and one spoken line per input line. */
+export function toDictionarySpeechByLine(text) {
+  const normalized = normalizePastedContent(text);
+  const spoken = canvasSpokenLinesFromText(text);
+  let i = 0;
+  return normalized
+    .split(/\r?\n/)
+    .map((line) => (line.trim() ? spoken[i++] ?? "" : ""))
+    .join("\n");
+}
+
+function normSpeech(s) {
+  return String(s).replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function wrapLabSpeech(changed, spoken) {
+  const esc = escapeHtml(spoken);
+  return changed ? `<strong class="hs-lab-speech-changed">${esc}</strong>` : esc;
+}
+
+/** Gap text: highlight each segment matched by a composition dictionary rule. */
+function stitchSpeechHtml(chunk) {
+  if (!chunk) return "";
+  return segmentForComposition(chunk)
+    .map((seg) => {
+      const spoken = compositionSpoken(seg);
+      return wrapLabSpeech(seg.spoken !== null, spoken);
+    })
+    .join("");
+}
+
+/** Enriched token (formula, described-var, …): highlight when dictionary changes primarySpoken. */
+function findingSpeechHtml(f, rawSlice) {
+  const stitchPlain = (c) =>
+    segmentForComposition(c)
+      .map((s) => compositionSpoken(s))
+      .join("");
+  const spoken = f.primarySpoken ?? stitchPlain(rawSlice);
+  const baseline = withEmptyDictionary(() => {
+    const enriched = enrich(f);
+    return enriched.primarySpoken ?? stitchPlain(rawSlice);
+  });
+  return wrapLabSpeech(normSpeech(spoken) !== normSpeech(baseline), spoken);
+}
+
+function formatLabLineHtml(line) {
+  const pre = normalizeNumberUnitSpacing(line);
+  const { findings, normalizedText } = analyze(pre, findTokens);
+  const marked = canvasMarkedFindings(findings);
+  let html = "";
+  let cursor = 0;
+  for (const f of marked) {
+    html += stitchSpeechHtml(normalizedText.slice(cursor, f.start));
+    html += findingSpeechHtml(f, normalizedText.slice(f.start, f.end));
+    cursor = f.end;
+  }
+  html += stitchSpeechHtml(normalizedText.slice(cursor));
+  return html;
+}
+
+/**
+ * Line-by-line dictionary speech with changed pronunciations wrapped in <strong>.
+ * Highlights whole dictionary segments (not word-by-word diff).
+ */
+export function formatDictionarySpeechHtmlByLine(text) {
+  const normalized = normalizePastedContent(text);
+  return normalized
+    .split(/\r?\n/)
+    .map((line) => (line.trim() ? formatLabLineHtml(line) : ""))
+    .join("\n");
 }
 
 // Normalize LaTeX for insert / parse (unicode subscripts, chem symbols, operators).

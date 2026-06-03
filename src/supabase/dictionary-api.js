@@ -513,7 +513,7 @@ export function createDictionaryApi(config) {
     try {
       return (
         (await client.rest(
-          "classes?order=sort_order.asc&select=slug,label,file_prefix,sort_order",
+          "classes?order=sort_order.asc&select=slug,label,file_prefix,sort_order,addon_defaults",
         )) ?? []
       );
     } catch {

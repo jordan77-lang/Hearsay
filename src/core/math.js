@@ -106,6 +106,11 @@ function escapeXml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/** Wrap literal notation (units, arrows) as a single MathML object — no hidden speech. */
+export function literalMathML(text) {
+  return `<math xmlns="http://www.w3.org/1998/Math/MathML"><mtext>${escapeXml(text)}</mtext></math>`;
+}
+
 // Unit tokens sorted longest-first so "kJ" wins over "J", etc.
 const NUMBER_UNIT_KEYS = Object.keys(UNITS).sort((a, b) => b.length - a.length);
 

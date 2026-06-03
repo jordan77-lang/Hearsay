@@ -63,7 +63,7 @@ function normalizeMathSymbols(s) {
 /** Remove invisible chars and leading/trailing junk whitespace from pasted docs. */
 function normalizeWhitespaceCleanup(s) {
   let out = String(s ?? "")
-    .replace(/[\u200B-\u200D\uFEFF\u180E\u00AD\u2060\u2800\u202F]/g, "")
+    .replace(/[\u200B-\u200D\uFEFF\u180E\u00AD\u2060\u2800\u202F\u115F\u1160\u3164]/g, "")
     .replace(/\u00a0/g, " ");
   const lines = out.split(/\r?\n/).map((line) => line.replace(/[ \t]+/g, " ").trim());
   while (lines.length && lines[0] === "") lines.shift();

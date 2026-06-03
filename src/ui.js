@@ -104,17 +104,20 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
       <section class="ss-canvas" aria-labelledby="ss-canvas-h">
         <div class="ss-findings-head">
           <h2 id="ss-canvas-h" class="ss-title" style="font-size:14px;margin:0">Canvas-ready output</h2>
-          ${helpTip(`<p>Generates HTML for Canvas’s <b>&lt;/&gt;</b> HTML editor. Each line of your text becomes its own <code>&lt;p&gt;</code> paragraph so students can navigate line-by-line with a screen reader.</p>
-            <p>Do not use say-all for step-by-step review — it reads every paragraph without stopping.</p>
-            <p><b>Spoken text</b> mode (recommended) — one hidden spoken stream per line matching your dictionary.</p>
-            <p><b>MathML</b> mode — live math for screen readers with MathML support; units still get spoken replacements.</p>`)}
+          ${helpTip(`<p>Generates HTML for Canvas’s <b>&lt;/&gt;</b> HTML editor.</p>
+            <p><b>New Quizzes — MathML</b> (recommended) — formulae as MathML; units show as <code>J/g°C (jools per gram degree Celsius)</code> so New Quizzes reads your dictionary. Normal paragraph wrapping.</p>
+            <p><b>New Quizzes — spoken text</b> — visible dictionary words instead of symbols (no MathML).</p>
+            <p><b>Page</b> — keep symbols visible; <code>aria-label</code> carries dictionary speech (Pages only).</p>
+            <p><b>Page — MathML + hidden units</b> — MathML for math plus hidden spoken text for units (Pages only).</p>`)}
         </div>
-        <p class="ss-sub">Review the rendered preview, hear it, then copy the HTML into the Canvas HTML editor.</p>
+        <p class="ss-sub">Review the rendered preview, hear it, then copy the HTML into the Canvas HTML editor (<b>&lt;/&gt;</b> view). Units use visible parentheses for dictionary speech; formulae use MathML (NVDA 2026.1+ / MathCAT).</p>
         <div class="ss-controls">
           <label class="ss-type">Mode:
             <select id="ss-unit-strategy" class="ss-btn">
-              <option value="spoken">Spoken text (works in all screen readers, matches your dictionary)</option>
-              <option value="mathml">MathML for math (navigable, needs MathML-capable screen reader)</option>
+              <option value="quiz-mathml" selected>New Quizzes — MathML only (recommended)</option>
+              <option value="quiz">New Quizzes — visible spoken text</option>
+              <option value="spoken">Page — keep symbols visible (aria-label)</option>
+              <option value="mathml">Page — MathML + hidden unit speech</option>
             </select>
           </label>
           <button class="ss-btn" id="ss-hear-canvas">\u25b6 Hear this output</button>
@@ -132,8 +135,9 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
           <h2 id="ss-findings-h" class="ss-title" style="font-size:14px;margin:0">Pronunciation findings</h2>
           <span id="ss-findings-count" class="ss-type"></span>
           ${helpTip(`<p>Tokens HearSay thinks a screen reader may misread. Click a yellow highlight above to jump to a finding.</p>
-            <p><b>Hear intended</b> — preview the recommended pronunciation.</p>
-            <p><b>Save to class dictionary</b> — adds the rule to Supabase for the selected class (requires ☁ Connect and a class other than All classes).</p>`)}
+            <p><b>Recommended</b> — the reading Canvas output uses (course dictionary when available).</p>
+            <p><b>▶ Hear</b> — compare any option before you save a rule.</p>
+            <p><b>Save to class dictionary</b> — adds the recommended rule to Supabase (requires ☁ Connect and a class other than All classes).</p>`)}
         </div>
         <p class="ss-sub ss-findings-hint">Flagged tokens and copy-ready fixes. Click a highlight in the preview above to jump here.</p>
         <div id="ss-findings" class="ss-findings-scroll" aria-live="polite" tabindex="0"></div>
@@ -185,9 +189,9 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
       hearOrig: text.replace(/\s*\n+\s*/g, " ").replace(/\s+/g, " ").trim(),
       hearDict: canvasSpokenFromText(text),
       hearCanvas:
-        unitStrategy.value === "spoken"
-          ? canvasSpokenFromText(text)
-          : canvasOutputHearLines(text, findings, { mode: "mathml" }).join(" "),
+        unitStrategy.value === "mathml"
+          ? canvasOutputHearLines(text, findings, { mode: "mathml" }).join(" ")
+          : canvasSpokenFromText(text),
     };
     renderSummary(summary, counts, total);
     renderPreview(preview, text, findings);
@@ -195,7 +199,15 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
     hear.resetIfDetached();
     renderEl.innerHTML = html || "<span class='ss-type'>(nothing to render)</span>";
     canvasCode.textContent = html;
-    canvasStat.textContent = `${mathCount} MathML \u00b7 ${textCount} text fixes`;
+    const mode = unitStrategy.value;
+    canvasStat.textContent =
+      mode === "quiz"
+        ? `${textCount} spoken line(s) · quiz-safe (visible text)`
+        : mode === "spoken"
+          ? `${textCount} labeled line(s) · page mode`
+          : mode === "quiz-mathml"
+            ? `${mathCount} MathML formula(s) · dual notation for units`
+            : `${mathCount} MathML · ${textCount} text fixes`;
   }
 
   root.querySelector("#ss-analyze").addEventListener("click", run);
@@ -268,8 +280,8 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
       hear.play(
         hearBtn,
         {
-          hearLabel: "\u25b6 Hear intended",
-          hearTitle: "Hear intended pronunciation",
+          hearLabel: "\u25b6 Hear",
+          hearTitle: "Hear this pronunciation",
         },
         hearBtn.dataset.spoken ?? "",
       );
@@ -358,12 +370,6 @@ function renderFindings(el, findings, countEl, showDictSave = false) {
   el.innerHTML = findings
     .map((f, idx) => {
       const risk = f.risk ?? "medium";
-      const alts =
-        f.alternatives && f.alternatives.length > 1
-          ? `<div class="ss-spoken">Alternatives: ${f.alternatives
-              .map((a) => `${a.label}: <b>${escapeHtml(a.spoken)}</b>`)
-              .join(" &nbsp;\u00b7&nbsp; ")}</div>`
-          : "";
       const fixes = (f.fixes ?? [])
         .map(
           (fx) => `
@@ -376,18 +382,15 @@ function renderFindings(el, findings, countEl, showDictSave = false) {
         </div>`,
         )
         .join("");
-      const hearBtn =
-        speechSupported() && f.primarySpoken
-          ? `<button type="button" class="ss-btn ss-hear-fix" data-spoken="${escapeAttr(
-              f.primarySpoken,
-            )}">\u25b6 Hear intended</button>`
-          : "";
       const saveDictBtn =
         showDictSave && f.primarySpoken
           ? `<button type="button" class="ss-btn ss-save-dict" data-pattern="${escapeAttr(
               f.raw,
             )}" data-spoken="${escapeAttr(f.primarySpoken)}">Save to class dictionary</button>`
           : "";
+      const actions = saveDictBtn
+        ? `<div class="ss-finding-actions">${saveDictBtn}</div>`
+        : "";
       return `
       <div class="ss-finding ${risk}" data-idx="${idx}">
         <div class="ss-finding-head">
@@ -396,13 +399,62 @@ function renderFindings(el, findings, countEl, showDictSave = false) {
         </div>
         ${f.message ? `<div class="ss-msg">${escapeHtml(f.message)}</div>` : ""}
         ${f.note ? `<div class="ss-note">\u2139 ${escapeHtml(f.note)}</div>` : ""}
-        <div class="ss-spoken">Intended: <b>${escapeHtml(f.primarySpoken ?? "")}</b></div>
-        ${alts}
+        ${renderPronunciationOptions(f)}
         ${fixes}
-        <div class="ss-finding-actions">${hearBtn}${saveDictBtn}</div>
+        ${actions}
       </div>`;
     })
     .join("");
+}
+
+function normalizeSpoken(s) {
+  return String(s ?? "").replace(/\s+/g, " ").trim();
+}
+
+function isRecommendedSpoken(spoken, primary) {
+  return normalizeSpoken(spoken) === normalizeSpoken(primary);
+}
+
+function hearAltButton(spoken, label = "Hear") {
+  if (!speechSupported() || !spoken) return "";
+  return `<button type="button" class="ss-btn ss-hear-fix ss-hear-alt" data-spoken="${escapeAttr(
+    spoken,
+  )}" title="Hear: ${escapeAttr(normalizeSpoken(spoken))}">\u25b6 ${escapeHtml(label)}</button>`;
+}
+
+function renderPronunciationOptions(f) {
+  const primary = f.primarySpoken ?? "";
+  const alts = f.alternatives ?? [];
+
+  if (alts.length) {
+    return `<div class="ss-pronounce-options">
+      <div class="ss-pronounce-options-title">Pronunciation options</div>
+      <ul class="ss-pronounce-list">
+        ${alts
+          .map((a) => {
+            const rec = isRecommendedSpoken(a.spoken, primary);
+            return `<li class="ss-pronounce-row${rec ? " is-recommended" : ""}">
+            ${rec ? `<span class="ss-recommended-badge">Recommended</span>` : ""}
+            <span class="ss-pronounce-label">${escapeHtml(a.label)}:</span>
+            <span class="ss-pronounce-spoken"><b>${escapeHtml(a.spoken)}</b></span>
+            ${hearAltButton(a.spoken)}
+          </li>`;
+          })
+          .join("")}
+      </ul>
+      <p class="ss-pronounce-note ss-type">Canvas output uses the <b>Recommended</b> reading.</p>
+    </div>`;
+  }
+
+  if (!primary) return "";
+  return `<div class="ss-pronounce-options">
+    <div class="ss-pronounce-row is-recommended">
+      <span class="ss-recommended-badge">Recommended</span>
+      <span class="ss-pronounce-label">Intended:</span>
+      <span class="ss-pronounce-spoken"><b>${escapeHtml(primary)}</b></span>
+      ${hearAltButton(primary)}
+    </div>
+  </div>`;
 }
 
 function flashCopied(btn) {

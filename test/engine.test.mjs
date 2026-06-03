@@ -136,14 +136,13 @@ test("normalizeNumberUnitSpacing inserts space before units", () => {
   assert.equal(normalizeNumberUnitSpacing("\\frac{14J}{23g}"), "\\frac{14 J}{23 g}");
 });
 
-test("toCanvasHtml spoken mode renders fractions as MathML with spaced units", () => {
+test("toCanvasHtml spoken mode renders fractions as plain text with spaced units in aria-label", () => {
   const text = "q = \\frac{14J}{23g}";
   const { findings } = analyze(text, findTokens);
   const { html } = toCanvasHtml(text, findings, { mode: "spoken" });
-  assert.match(html, /<mfrac>/);
-  assert.match(html, /<mn>14<\/mn><mspace width="0.25em"\/><mtext>\u00A0<\/mtext><mi mathvariant="normal">J<\/mi>/);
-  assert.match(html, /<mn>23<\/mn><mspace width="0.25em"\/><mtext>\u00A0<\/mtext><mi mathvariant="normal">g<\/mi>/);
-  assert.match(html, /14 jools divided by 23 grams/);
+  assert.doesNotMatch(html, /<math|<mfrac>/);
+  assert.match(html, /aria-label="[^"]*14 jools divided by 23 grams/);
+  assert.match(html, /aria-hidden="true">[^<]*14 J \/ 23 g/);
   assert.doesNotMatch(html, /\\frac/);
 });
 
@@ -161,8 +160,8 @@ test("CuSO4 speaks as symbol letters not raw token", () => {
   assert.match(spoken, /C U S O 4/);
   assert.doesNotMatch(spoken, /CuSO4/);
   const { html } = toCanvasHtml("Dissolve CuSO4 in water.", [], { mode: "spoken" });
-  assert.match(html, /C U S O 4/);
-  assert.match(html, /<mi mathvariant="normal">Cu<\/mi>/);
+  assert.match(html, /aria-label="[^"]*C U S O 4/);
+  assert.doesNotMatch(html, /<math|<mi/);
 });
 
 test("CuSO4 hydrate is one formula not partial H2O dictionary match", () => {
@@ -182,14 +181,37 @@ test("toCanvasHtml mathml mode: live MathML for math, hidden text for units", ()
   assert.match(html, /<span style="position:absolute[^"]*">milliliters<\/span>/);
 });
 
+test("toCanvasHtml quiz-mathml mode: paragraph wrap, dual units, MathML formulae", () => {
+  const text = "Heat 10 mL of 3 M HCl. Specific heat 4.18 J/g°C.";
+  const { findings } = analyze(text, findTokens);
+  const { html, mathCount, textCount } = toCanvasHtml(text, findings, { mode: "quiz-mathml" });
+  assert.ok(mathCount >= 1, "formula as MathML");
+  assert.equal(textCount, 0, "no hidden text fixes");
+  assert.match(html, /^<p>/, "wraps in paragraph for normal line flow");
+  assert.doesNotMatch(html, /aria-hidden|position:absolute|clip:rect|<mtext>mL/);
+  assert.match(html, /mL \(milliliters\)/);
+  assert.match(html, /J\/g°C \(jools per gram degree Celsius\)/);
+  assert.match(html, /<mi mathvariant="normal">H<\/mi><mi mathvariant="normal">Cl<\/mi>/);
+  assert.equal((html.match(/^<math/m) || []).length, 0, "line is not one giant math block");
+});
+
 test("toCanvasHtml spoken mode: one spoken stream per line for Canvas/NVDA", () => {
   const text = "Add 10 mL of H2O.";
   const { findings } = analyze(text, findTokens);
   const { html } = toCanvasHtml(text, findings, { mode: "spoken" });
-  assert.match(html, /milliliters/);
-  assert.match(html, /H two O/);
-  assert.match(html, /<mi mathvariant="normal">H<\/mi>/);
+  assert.match(html, /aria-label="[^"]*milliliters/);
+  assert.match(html, /aria-label="[^"]*H two O/);
+  assert.doesNotMatch(html, /<math|<mi/);
   assert.equal((html.match(/aria-hidden="true"/g) || []).length, 1);
+});
+
+test("toCanvasHtml quiz mode writes visible spoken text for New Quizzes", () => {
+  const text = "Heat 10 mL of 3 M HCl.";
+  const { findings } = analyze(text, findTokens);
+  const { html, textCount } = toCanvasHtml(text, findings, { mode: "quiz" });
+  assert.equal(textCount, 1);
+  assert.match(html, /<p>Heat 10 milliliters of 3 moh lurr H C L\.<\/p>/);
+  assert.doesNotMatch(html, /aria-label|aria-hidden|<math|<span style=/);
 });
 
 test("parenthetical J/g°C reads with units and parentheses", () => {
@@ -197,7 +219,7 @@ test("parenthetical J/g°C reads with units and parentheses", () => {
   const spoken = toDictionarySpeech(text);
   assert.match(spoken, /open parenthesis jools per gram degree Celsius close parenthesis/);
   const { html } = toCanvasHtml(text, [], { mode: "spoken" });
-  assert.match(html, /open parenthesis jools per gram degree Celsius close parenthesis/);
+  assert.match(html, /aria-label="[^"]*open parenthesis jools per gram degree Celsius close parenthesis/);
   assert.match(html, /aria-hidden="true">The specific heat of water is 4.18 \(J\/g°C\)/);
 });
 
@@ -209,7 +231,7 @@ test("curriculum effective heat capacity equation composes from atomic terms", (
   assert.match(spoken, /open parenthesis jools per degree Celsius close parenthesis/);
   assert.doesNotMatch(spoken, /H twoO/);
   const { html } = toCanvasHtml(text, [], { mode: "spoken" });
-  assert.match(html, /open parenthesis jools per degree Celsius close parenthesis/);
+  assert.match(html, /aria-label="[^"]*open parenthesis jools per degree Celsius close parenthesis/);
   assert.match(html, /c of H two O/);
   assert.match(html, /aria-hidden="true">Effective heat capacity \(J\/°C\)/);
   assert.equal((html.match(/aria-hidden="true"/g) || []).length, 1);
@@ -336,8 +358,8 @@ test("multi-line Canvas output wraps each line in a paragraph", () => {
     "Effective heat capacity (J/°C) = 72.0 J/°C + 28.6 J/°C\n" +
     "Effective heat capacity (J/°C) = 100.6 J/°C";
   const { html } = toCanvasHtml(text, [], { mode: "spoken" });
-  assert.match(html, /<p>.*jools per degree Celsius/s);
-  assert.equal((html.match(/<p>/g) || []).length, 2);
+  assert.match(html, /aria-label="[^"]*jools per degree Celsius/s);
+  assert.equal((html.match(/<p[\s>]/g) || []).length, 2);
 });
 
 test("dictionary loads many rules", () => {
@@ -434,9 +456,9 @@ test("inserted LaTeX equation reads in Canvas spoken mode", () => {
   assert.match(spoken, /T of 2/);
   assert.match(spoken, /delta/i);
   const { html } = toCanvasHtml(text, findings, { mode: "spoken" });
-  assert.match(html, /<math/);
-  assert.match(html, /T of 2/);
-  assert.match(html, /aria-hidden="true">Measure when <math/);
+  assert.match(html, /aria-label="[^"]*T of 2/);
+  assert.doesNotMatch(html, /<math/);
+  assert.match(html, /aria-hidden="true">Measure when T_2 = T_1 \+ \\Delta T/);
 });
 
 test("loadDictionary replaces in-memory rules", () => {
@@ -503,7 +525,8 @@ test("described variables render subscripts in Canvas output", () => {
   assert.match(q?.mathml, /calorimeter/);
   assert.match(q?.primarySpoken, /q of calorimeter/);
   const { html } = toCanvasHtml(text, findings, { mode: "spoken" });
-  assert.match(html, /<msub>/);
+  assert.doesNotMatch(html, /<msub>/);
+  assert.match(html, /q_\{calorimeter\}/);
 });
 
 test("plain English words like compare are not split into subscripts", () => {

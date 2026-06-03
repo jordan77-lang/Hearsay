@@ -11,7 +11,7 @@ mkdirSync(OUT, { recursive: true });
 
 execSync("npm run pack:extension", { stdio: "inherit", cwd: ROOT });
 
-for (const item of ["index.html", "playground", "dictionary", "src", "dist"]) {
+for (const item of ["index.html", "playground", "dictionary", "lab", "src", "dist"]) {
   cpSync(join(ROOT, item), join(OUT, item), { recursive: true });
 }
 

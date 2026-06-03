@@ -130,6 +130,55 @@ mark.ss-hit.low { background: var(--low); }
 .ss-spoken { margin: 6px 0; }
 .ss-spoken b { color: var(--low); }
 
+.ss-pronounce-options { margin: 8px 0; }
+.ss-pronounce-options-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.ss-pronounce-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ss-pronounce-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-2);
+}
+.ss-pronounce-row.is-recommended {
+  border-color: color-mix(in srgb, var(--low) 45%, var(--border));
+  background: color-mix(in srgb, var(--low) 8%, var(--panel-2));
+}
+.ss-recommended-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--low);
+  background: color-mix(in srgb, var(--low) 14%, transparent);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+.ss-pronounce-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.ss-pronounce-spoken b { color: var(--text); font-weight: 600; }
+.ss-pronounce-note { margin: 6px 0 0; font-size: 12px; }
+.ss-hear-alt { margin-left: auto; }
+
 .ss-fix { background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin: 6px 0; }
 .ss-fix-label { font-weight: 600; font-size: 13px; }
 .ss-fix-support { color: var(--low); font-size: 12px; margin: 2px 0; }
@@ -1184,4 +1233,201 @@ mark.ss-hit.low { background: var(--low); }
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
+}
+.hs-dict-editor-download .ss-sub {
+  margin-top: 4px;
+}
+.hs-dict-editor-regex-status {
+  margin: 10px 0 0;
+  font-size: 13px;
+}
+.hs-dict-editor-regex-status.is-warn {
+  color: var(--high, #b45309);
+}
+.hs-dict-editor-merge-regex {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.hs-dict-editor-merge-regex input {
+  margin-top: 3px;
+}
+.hs-dict-editor-addon-meta {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.hs-dict-editor-addon-meta-summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.hs-dict-editor-addon-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  margin-top: 12px;
+}
+.hs-dict-editor-field-wide {
+  grid-column: 1 / -1;
+}
+@media (max-width: 640px) {
+  .hs-dict-editor-addon-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.hs-dict-editor-install-hint {
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+/* Screen Reader Lab */
+.hs-lab {
+  max-width: 960px;
+}
+.hs-lab-head {
+  margin-bottom: 1.25rem;
+}
+.hs-lab-head .ss-sub a {
+  color: inherit;
+}
+.hs-lab-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  background: var(--surface, var(--panel));
+}
+.hs-lab-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.hs-lab-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+.hs-lab-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hs-lab-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted, #666);
+}
+.hs-lab-dict-meta {
+  margin-top: 8px;
+  font-size: 12px;
+}
+.hs-lab-textarea {
+  width: 100%;
+  min-height: 140px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.45;
+}
+.hs-lab-paste-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.hs-lab-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+@media (max-width: 720px) {
+  .hs-lab-compare {
+    grid-template-columns: 1fr;
+  }
+}
+.hs-lab-panel {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--surface, var(--panel));
+}
+.hs-lab-panel-dict {
+  border-color: var(--accent, #2563eb);
+}
+.hs-lab-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.hs-lab-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+.hs-lab-output {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.55;
+  font-size: 14px;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: normal;
+}
+.hs-lab-output .hs-lab-speech-changed {
+  font-weight: 700;
+  color: var(--low, #2ea043);
+}
+.hs-lab-changed {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--ok, #15803d);
+  text-transform: none;
+  letter-spacing: normal;
+}
+.hs-lab-token-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hs-lab-token {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--panel, #f8fafc);
+}
+.hs-lab-token.is-covered {
+  border-left: 3px solid var(--ok, #15803d);
+}
+.hs-lab-token-raw {
+  font-size: 12px;
+}
+.hs-lab-token-arrow {
+  opacity: 0.5;
+}
+.hs-lab-token-warn {
+  font-size: 11px;
+  color: var(--high, #b45309);
+}
+.hs-lab-token-more {
+  padding: 4px 8px;
+}
+.hs-lab-foot {
+  margin-top: 8px;
 }

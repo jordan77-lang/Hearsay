@@ -49,10 +49,22 @@ function compile(line) {
     regex,
     single,
     replacement: convertReplacement(replacement),
+    dicReplacement: replacement,
     raw: pattern,
     type,
     caseSensitive: caseSensitive === "1",
   };
+}
+
+/** NVDA .dic text: bundled base + class rows (class overrides by pattern). */
+export function buildMergedExportDic(classRowsRaw) {
+  const merged = mergeBundledWithClassRules(parse(classRowsRaw));
+  return merged
+    .map((r) => {
+      const rep = r.dicReplacement ?? r.replacement;
+      return `${r.raw}\t${rep}\t${r.caseSensitive ? 1 : 0}\t${r.type}`;
+    })
+    .join("\r\n");
 }
 
 function parse(raw) {
@@ -114,6 +126,22 @@ let dictionarySourceLabel = "bundled";
 
 function rebuildCompositionRules() {
   COMPOSITION_RULES = RULES.filter(isCompositionRule);
+}
+
+/** Run callback with dictionary rules cleared (lab baseline speech). */
+export function withEmptyDictionary(fn) {
+  const savedRules = RULES;
+  const savedComp = COMPOSITION_RULES;
+  const savedLabel = dictionarySourceLabel;
+  RULES = [];
+  COMPOSITION_RULES = [];
+  try {
+    return fn();
+  } finally {
+    RULES = savedRules;
+    COMPOSITION_RULES = savedComp;
+    dictionarySourceLabel = savedLabel;
+  }
 }
 
 // Replace in-memory rules (e.g. after fetching from Supabase). Falls back to
