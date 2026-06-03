@@ -125,14 +125,25 @@ export function dictionarySource() {
   return dictionarySourceLabel;
 }
 
+// An equation rule has a real "=" operator (not a regex lookaround like
+// "(?<=\d)").
+function isEquationRule(rule) {
+  const stripped = rule.raw.replace(/\(\?<?[=!][^)]*\)/g, "");
+  return stripped.includes("=");
+}
+
 // Sci-Speak composes spoken output from short, atomic dictionary entries (units,
-// formulas, symbols). It skips whole-sentence / whole-equation rules so
+// formulas, symbols). It skips long / parenthesized equation rules so
 // punctuation — especially parentheses — stays in the stream and NVDA reads it.
+// Short paren-free equations (e.g. "q = mcΔT") are included so they match
+// inline in sentences as well as on their own line.
 function isCompositionRule(rule) {
   const p = rule.raw;
   if (p.length > 40) return false;
-  // Equations use =; bond notation (O=O, N=O) is an exception.
-  if (p.includes("=") && !BOND_NOTATION.test(p)) return false;
+  if (p.includes("=") && !BOND_NOTATION.test(p)) {
+    if (!isEquationRule(rule)) return false;
+    if (p.includes("(") || p.includes(")")) return false;
+  }
   if ((p.match(/\s/g) || []).length >= 3) return false;
   // e.g. \(J/°C\) — keep literal parens; the inner unit rule handles J/°C.
   if (/^\\\([^\\=]+\\\)$/.test(p)) return false;

@@ -215,6 +215,17 @@ test("curriculum effective heat capacity equation composes from atomic terms", (
   assert.equal((html.match(/aria-hidden="true"/g) || []).length, 1);
 });
 
+test("q = mcΔT reads as a full equation, not a glued delta T", () => {
+  const spoken = toDictionarySpeech("q = mcΔT");
+  assert.equal(spoken, "q equals m c delta T");
+  assert.doesNotMatch(spoken, /mcdelta/);
+});
+
+test("q = mcΔT in a sentence uses the full equation reading", () => {
+  const spoken = toDictionarySpeech("Use q = mcΔT to find the heat.");
+  assert.equal(spoken, "Use q equals m c delta T to find the heat.");
+});
+
 test("parentheses around described variables are spoken", () => {
   const text =
     "calculate the heat absorbed by the calorimeter (q_{calorimeter}) and (C_{calorimeter} = 40 J/°C) and (ΔT):";
