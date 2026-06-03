@@ -62,20 +62,41 @@ speech dictionary — you gain navigation + braille but the exact words are chos
 by the reader. That's why equations offer both a MathML output and a
 dictionary-worded accessible-text alternative.
 
-## Supabase (optional cloud dictionary)
+## Supabase (cloud dictionary)
 
-HearSay can sync your NVDA dictionary to Supabase so authors get updates
-without redeploying the app. The bundled `.dic` remains the offline fallback.
+HearSay stores pronunciation rules in Supabase so authors can pick a **class**,
+reload rules, add pronunciations, and **Rebuild combined** without redeploying
+the app.
 
-**Setup (one time):**
+**Dictionary Builder integration (Phase 1):** The [Dictionary Builder](https://github.com/jordan77-lang/screenreader)
+saves class terms to Supabase **`entries`** (`text` → pattern, `substitution` →
+spoken). HearSay loads **`entries` first** when you reload a class. Legacy
+**`dictionary_rules`** rows (from the in-app add form or `npm run push:dict`) merge
+on top. CHEM classes (`chem113`, …) still merge on the bundled `.dic` base;
+other class slugs use Supabase rows only.
+
+**Site pages:** [Canvas Translate](playground/) (paste, hear, copy Canvas HTML), [Dictionary](dictionary/)
+(embedded Builder: edit `entries`, import CSV, Advanced NVDA/JAWS/VoiceOver exports),
+and landing [index.html](index.html). Connect once per browser — legacy
+[external Builder](https://jordan77-lang.github.io/screenreader/dictionary-builder.html)
+credentials (`screenReaderBackendUrl` / `screenReaderBackendAnonKey`) migrate to HearSay automatically.
+
+**Who connects:** Authors click **☁ Connect** and enter the project URL and
+**anon key** (shared privately with your team — do not commit it or publish it
+in a public repo). After connect, the app lists classes and loads rules for the
+selected class.
+
+**Setup (one time, your team project):**
 
 1. Copy `supabase/config.example.json` → `supabase/config.local.json` and fill in
-   your project URL and anon key (already created locally if you started integration).
-2. In the [Supabase SQL editor](https://supabase.com/dashboard), run
-   `supabase/schema.sql` to create the `dictionary_rules` table.
-3. Add your **service role key** to `config.local.json` (Dashboard → Settings → API).
-   Never commit this file or put the service role key in the browser.
-4. Push the current dictionary:
+   project URL and anon key (local dev only; gitignored).
+2. In the [Supabase SQL editor](https://supabase.com/dashboard), run:
+   - **`supabase/setup-dictionary-rules.sql`** if the project already has
+     `public.classes` (common for HearSay).
+   - **`supabase/schema.sql`** for a fresh project using `courses` / `course_id`.
+3. Add your **service role key** to `config.local.json` for CLI tools only.
+   Never put the service role key in the browser or extension.
+4. Seed rules from the bundled dictionary:
 
 ```bash
 npm run push:dict
@@ -85,16 +106,27 @@ npm run push:dict
 
 | Command | What it does |
 |---|---|
-| `npm run push:dict` | Upload `.dic` → Supabase (needs service role) |
+| `npm run push:dict` | Upload `.dic` → Supabase (service role) |
 | `npm run pull:dict` | Download Supabase → `.dic` + rebuild bundled JS |
-| `npm run serve` | Playground auto-loads from Supabase when configured |
+| `npm run sync:dict` | Rebuild combined `all` dictionary (service role) |
+| `npm run serve` | Local dev at `http://localhost:8123/` (Canvas Translate at `/playground/`) |
 
-The playground and extension try `supabase/config.local.json` on startup. If the
-table is empty or unreachable, they use the bundled dictionary and show that in
-the status line.
+**Local dev:** `supabase/config.local.json` can auto-load URL + anon key so you
+do not have to paste them every time. The **Chrome extension zip** does not
+include that file — extension users use **☁ Connect** (credentials in
+`localStorage`).
 
-**Security:** The anon key is safe in client apps when Row Level Security only
-allows `SELECT`. Writes use the service role in local CLI tools only.
+**Row Level Security (team authoring):** Policies in the SQL files allow the
+**anon** role to read and write all `dictionary_rules` rows, including
+`class_slug` / `course_id` **`all`**, so **Rebuild combined** works from the
+browser. This assumes the anon key is **team-private**, not embedded in a public
+site. Stricter policies (writes on class rows only, no browser rebuild of
+`all`) are documented in comments in `setup-dictionary-rules.sql`.
+
+**Bundled dictionary today:** The app still ships a large offline `.dic` (CHEM
+curriculum) and merges class rules on top when Supabase loads. A future
+**sign-in-first** mode (no class dictionary until ☁ Connect; demo sample only
+on the load screen) is planned for multi-department use — see *Roadmap* below.
 
 ## Equation typer
 
@@ -148,11 +180,12 @@ Live site (after first deploy): **https://jordan77-lang.github.io/Hearsay/**
 
 1. Push this repo to [github.com/jordan77-lang/Hearsay](https://github.com/jordan77-lang/Hearsay).
 2. In the repo: **Settings → Pages → Build and deployment → Source** → **GitHub Actions**.
-3. *(Optional)* For automatic Supabase load without pasting keys in ☁ Connect:
+3. *(Optional)* To bake Supabase URL + anon key into the deployed site (only if
+   you accept exposing the anon key on a public URL — usually **skip this** when
+   the key is team-private and authors use **☁ Connect** instead):
    - **Settings → Secrets and variables → Actions**
-   - Repository variable `HEARSAY_SUPABASE_URL` = your Supabase project URL
-   - Repository secret `HEARSAY_SUPABASE_ANON_KEY` = anon key (RLS-protected)
-   - Optional variable `HEARSAY_COURSE_ID` = default class slug (e.g. `chem113`)
+   - Variable `HEARSAY_SUPABASE_URL`, secret `HEARSAY_SUPABASE_ANON_KEY`
+   - Optional `HEARSAY_COURSE_ID` (default class slug)
 
 Every push to `main` runs tests, builds the site (`npm run build:pages`), packs the Chrome extension zip, and deploys.
 
@@ -175,11 +208,11 @@ npm run build:pages
 npm run serve
 ```
 
-Open `http://localhost:8123/` for the landing page, or `http://localhost:8123/playground/` for the tool.
+Open `http://localhost:8123/` for the landing page, or `http://localhost:8123/playground/` for Canvas Translate.
 
 ### Web app
 
-Open **Open HearSay in your browser** from the landing page, or `/playground/`. Click **Load sample** and **Analyze**.
+Open **Canvas Translate** from the landing page, or `/playground/`. Click **Load sample** and **Analyze**.
 
 ### Chrome extension
 
@@ -202,7 +235,8 @@ npm test
   testing with a real screen reader (NVDA + a few voices is the gold standard).
 - "Pull selection from page" reads text only; it does not yet write fixes back
   into web editors. Inline auto-fixing of CMS/editor DOM is the next milestone.
-- Per-class dictionaries (chemistry, art history, music theory, …) via Supabase; bundled fallback offline.
+- Per-class dictionaries via Supabase; bundled CHEM dictionary still loads offline today.
+- Sign-in-first + demo-only mode (no full dictionary until ☁ Connect) not implemented yet.
 - Google Docs/Workspace is intentionally **not** the first surface: Docs largely
   prevents injecting ARIA/MathML, so it's better as a *flagging* surface later.
 
@@ -210,6 +244,11 @@ npm test
 
 ## Roadmap
 
+- **Sign-in-first dictionary:** Require ☁ Connect before loading class rules;
+  list classes from Supabase after connect; optional demo sample on first visit
+  without shipping the full CHEM bundled dictionary to other departments.
+- **Multi-tenant docs:** Step-by-step Supabase setup for other teams (separate
+  projects) once sign-in-first behavior is implemented and verified.
 - Inline apply-fix into common web editors (contenteditable, Quill, ProseMirror).
 - Math support via Speech Rule Engine + MathML.
 - Optional `data-ssml` emission for platforms the author controls.

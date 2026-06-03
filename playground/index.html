@@ -3,19 +3,23 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>HearSay</title>
+    <title>HearSay · Canvas Translate</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='22'%3E%E2%99%AA%3C/text%3E%3C/svg%3E" />
     <link rel="stylesheet" href="../src/ui.css" />
   </head>
   <body>
+    <div id="hs-nav"></div>
     <div id="app"></div>
     <script type="module">
+      import { mountSiteNav } from "../src/site-nav.js";
       import { mountApp } from "../src/ui.js";
       import {
         tryLoadRemoteDictionary,
         loadSupabaseConfig,
         getStoredCourseId,
       } from "../src/supabase/dictionary-remote.js";
+
+      mountSiteNav(document.getElementById("hs-nav"), { active: "playground", base: ".." });
 
       const config = await loadSupabaseConfig();
       const sync = await tryLoadRemoteDictionary(config, getStoredCourseId());

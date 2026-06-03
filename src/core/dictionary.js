@@ -84,7 +84,19 @@ const PINNED_DIC =
 function mergePinnedRules(rules) {
   const pinned = parse(PINNED_DIC);
   const have = new Set(rules.map((r) => r.raw));
-  return [...rules, ...pinned.filter((r) => !have.has(r.raw))];
+  return insertRulesBeforeStandaloneParens(rules, pinned.filter((r) => !have.has(r.raw)));
+}
+
+/** NVDA applies rules in file order; `(≡)` must precede standalone `(`. */
+function indexBeforeStandaloneParens(rules) {
+  const idx = rules.findIndex((r) => r.raw === "(" && String(r.type) === "0");
+  return idx >= 0 ? idx : 0;
+}
+
+function insertRulesBeforeStandaloneParens(rules, toInsert) {
+  if (!toInsert.length) return rules;
+  const at = indexBeforeStandaloneParens(rules);
+  return [...rules.slice(0, at), ...toInsert, ...rules.slice(at)];
 }
 
 /** Class rules override bundled patterns; new patterns append at end (NVDA order). */
@@ -93,10 +105,8 @@ export function mergeBundledWithClassRules(classRules) {
   const overrideByPattern = new Map(classRules.map((r) => [r.raw, r]));
   const merged = bundled.map((r) => overrideByPattern.get(r.raw) ?? r);
   const bundledPatterns = new Set(bundled.map((r) => r.raw));
-  for (const r of classRules) {
-    if (!bundledPatterns.has(r.raw)) merged.push(r);
-  }
-  return merged;
+  const additions = classRules.filter((r) => !bundledPatterns.has(r.raw));
+  return insertRulesBeforeStandaloneParens(merged, additions);
 }
 
 let RULES = mergePinnedRules(parse(DICTIONARY_DIC));
@@ -137,7 +147,17 @@ function isEquationRule(rule) {
 // punctuation — especially parentheses — stays in the stream and NVDA reads it.
 // Short paren-free equations (e.g. "q = mcΔT") are included so they match
 // inline in sentences as well as on their own line.
+// Short parenthetical literals like (=), (–), (≡) — not full equations.
+function isParentheticalLiteralRule(rule) {
+  const p = rule.raw;
+  if (String(rule.type) !== "0") return false;
+  if (!/^\([^)]+\)$/.test(p) || p.length > 10) return false;
+  const inner = p.slice(1, -1);
+  return inner.length <= 3 && !inner.includes("/") && !inner.includes("°");
+}
+
 function isCompositionRule(rule) {
+  if (isParentheticalLiteralRule(rule)) return true;
   const p = rule.raw;
   if (p.length > 40) return false;
   if (p.includes("=") && !BOND_NOTATION.test(p)) {
@@ -281,4 +301,37 @@ function matchAt(text, index, rules, compositionSafe = false) {
     }
   }
   return false;
+}
+
+/** Build effective rules with one preview entry replacing the same pattern. */
+export function rulesWithPreview({ pattern, substitution, ignore_case = "Yes" }) {
+  const trimmedPattern = String(pattern ?? "").trim();
+  const trimmedSpoken = String(substitution ?? "").trim();
+  if (!trimmedPattern || !trimmedSpoken) return RULES;
+  const cs = String(ignore_case ?? "Yes").toLowerCase() === "no" ? "1" : "0";
+  let ruleType = "0";
+  if (/[\\^$.*+?[\](){}|]/.test(trimmedPattern) && trimmedPattern.includes("\\")) ruleType = "1";
+  else if (/^[A-Za-z][A-Za-z0-9/-]*$/.test(trimmedPattern) && trimmedPattern.length <= 24) ruleType = "2";
+  const previewRule = compile(`${trimmedPattern}\t${trimmedSpoken}\t${cs}\t${ruleType}`);
+  if (!previewRule) return RULES;
+  return insertRulesBeforeStandaloneParens(
+    RULES.filter((r) => r.raw !== trimmedPattern),
+    [previewRule],
+  );
+}
+
+function applyRules(text, rules) {
+  let out = text;
+  for (const r of rules) {
+    r.regex.lastIndex = 0;
+    out = out.replace(r.regex, r.replacement);
+  }
+  return out;
+}
+
+/** Hear how `text` would read with a proposed dictionary row applied. */
+export function previewTermSpeech(text, preview) {
+  const sample = String(text ?? "").trim();
+  if (!sample) return "";
+  return applyRules(sample, rulesWithPreview(preview)).replace(/\s+/g, " ").trim();
 }

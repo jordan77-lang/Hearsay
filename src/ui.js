@@ -1,18 +1,11 @@
-// Shared UI for HearSay. Mounted by both the standalone playground and the
+// Shared UI for HearSay. Mounted by Canvas Translate (/playground/) and the
 // extension side panel. Pure DOM + the core engine; no framework.
 
 import { findTokens } from "./core/detect.js";
 import { analyze, toCanvasHtml, canvasSpokenFromText, canvasOutputHearLines } from "./core/transform.js";
 import { ruleCount, dictionarySource } from "./core/dictionary.js";
-import {
-  speak,
-  speakQueued,
-  cancelSpeech,
-  loadVoices,
-  preloadSpeech,
-  speechSupported,
-  subscribeSpeechState,
-} from "./speech.js";
+import { createHearController } from "./hear-ui.js";
+import { speak, speakQueued, cancelSpeech, loadVoices, preloadSpeech, speechSupported } from "./speech.js";
 import { openFractionBuilder, insertAtCursor } from "./fraction-builder.js";
 import { openScriptEditor } from "./script-editor.js";
 import { openEquationEditor } from "./equation-editor.js";
@@ -21,66 +14,21 @@ import { normalizePastedContent, pasteDataFromEvent } from "./core/paste-normali
 import { helpTip, bindHelpTips } from "./help-tip.js";
 
 const RISK_LABEL = { high: "High risk", medium: "Medium risk", low: "Low risk" };
-const HEAR_STOP_LABEL = "\u25a0 Stop";
-
-function setHearPlaying(btn, playing, { hearLabel, hearTitle }) {
-  if (!btn?.isConnected) return;
-  btn.textContent = playing ? HEAR_STOP_LABEL : hearLabel;
-  btn.title = playing ? "Stop playback" : hearTitle;
-  btn.setAttribute("aria-pressed", playing ? "true" : "false");
-  btn.classList.toggle("ss-btn-stop", playing);
-  btn.classList.toggle("ss-hear-playing", playing);
-}
-
-function createHearController() {
-  let activeBtn = null;
-  let activeMeta = null;
-
-  function clear() {
-    if (activeBtn && activeMeta) setHearPlaying(activeBtn, false, activeMeta);
-    activeBtn = null;
-    activeMeta = null;
-  }
-
-  function resetIfDetached() {
-    if (activeBtn && !activeBtn.isConnected) {
-      activeBtn = null;
-      activeMeta = null;
-    }
-  }
-
-  function play(btn, meta, text) {
-    if (btn.classList.contains("ss-hear-playing")) {
-      cancelSpeech();
-      return;
-    }
-    const lines = Array.isArray(text) ? text : [text];
-    const chunks = lines.map((l) => String(l ?? "").trim()).filter(Boolean);
-    if (!chunks.length) return;
-    // speechSynthesis.speak must run before any DOM work in this click handler.
-    if (chunks.length === 1) speak(chunks[0]);
-    else speakQueued(chunks);
-    clear();
-    activeBtn = btn;
-    activeMeta = meta;
-    setHearPlaying(btn, true, meta);
-  }
-
-  function bind(btn, meta) {
-    btn.addEventListener("click", () => play(btn, meta, meta.getText()));
-  }
-
-  subscribeSpeechState((playing) => {
-    if (!playing) clear();
-  });
-
-  return { bind, play, clear, resetIfDetached };
-}
 
 function formatDictionaryNote(dictionarySync) {
   const count = ruleCount();
   const source = dictionarySource();
   const course = dictionarySync?.courseId;
+  if (source.startsWith("supabase-entries")) {
+    const n = dictionarySync?.classRuleCount;
+    const extra =
+      n != null && dictionarySync?.mergedBundled
+        ? ` · ${n} entries on bundled base`
+        : n != null
+          ? ` · ${n} entries`
+          : "";
+    return `${count} rules${course ? ` · ${course}` : ""} (Supabase entries${extra})`;
+  }
   if (source.startsWith("supabase")) {
     return `${count} rules${course ? ` · ${course}` : ""} (Supabase)`;
   }
@@ -101,12 +49,12 @@ const SAMPLE =
 export function mountApp(root, { initialText, dictionarySync, supabaseConfig: configFromCaller } = {}) {
   root.innerHTML = `
     <div class="ss-wrap">
-      <h1 class="ss-title">HearSay · Course pronunciation assistant</h1>
+      <h1 class="ss-title">Canvas Translate</h1>
       <p class="ss-sub">Paste authored content. HearSay flags tokens screen readers
-        mispronounce and proposes Canvas-ready fixes.</p>
+        mispronounce, lets you hear the result, and builds Canvas-ready HTML.</p>
 
       <div class="ss-workflow-steps" aria-label="Workflow">
-        <span><span class="ss-wf-num">1</span>Pick dictionary</span>
+        <span><span class="ss-wf-num">1</span>Pick dictionary <a class="hs-inline-link" href="../dictionary/">(edit terms)</a></span>
         <span aria-hidden="true">→</span>
         <span><span class="ss-wf-num">2</span>Paste &amp; edit text</span>
         <span aria-hidden="true">→</span>

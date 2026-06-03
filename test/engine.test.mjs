@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { parseFormula, formulaToSymbolSpeech, formulaToNameSpeech, formulaToMathML } from "../src/core/formula.js";
 import { findTokens } from "../src/core/detect.js";
 import { analyze, toSpokenText, toCanvasHtml, toDictionarySpeech, analyzeEquation, normalizeEquationInsert, canvasSpokenLinesFromText, canvasOutputHearLines } from "../src/core/transform.js";
-import { lookup, applyDictionary, ruleCount, loadDictionary, loadClassDictionary, dictionarySource } from "../src/core/dictionary.js";
+import { lookup, applyDictionary, ruleCount, loadDictionary, loadClassDictionary, dictionarySource, previewTermSpeech } from "../src/core/dictionary.js";
 import { DICTIONARY_DIC } from "../src/core/dictionary-data.js";
 import { dicToRows, rowsToDic } from "../src/supabase/dictionary-format.js";
 import { normalizeNumberUnitSpacing } from "../src/core/math.js";
@@ -516,4 +516,43 @@ test("explicit subscript c_{dog} renders without affecting compare", () => {
   const { findings } = analyze("c_{dog}", findTokens);
   assert.equal(findings[0]?.type, "described-var");
   assert.match(findings[0]?.primarySpoken, /c sub dog/);
+});
+
+test("previewTermSpeech applies a proposed row before save", () => {
+  loadDictionary("mL\tmilliliters\t0\t2\n", "test-preview");
+  assert.equal(
+    previewTermSpeech("10 mL", { pattern: "mL", substitution: "milli-liters", ignore_case: "Yes" }),
+    "10 milli-liters",
+  );
+  loadDictionary(DICTIONARY_DIC, "bundled");
+});
+
+test("parenthetical bond shorthands beat standalone paren rules", () => {
+  loadDictionary(DICTIONARY_DIC, "bundled");
+  assert.equal(
+    previewTermSpeech("(≡)", {
+      pattern: "(≡)",
+      substitution: "open parenthesis triple bond close parenthesis",
+      ignore_case: "Yes",
+    }),
+    "open parenthesis triple bond close parenthesis",
+  );
+  assert.equal(
+    previewTermSpeech("(=)", {
+      pattern: "(=)",
+      substitution: "open parenthesis double bond close parenthesis",
+      ignore_case: "Yes",
+    }),
+    "open parenthesis double bond close parenthesis",
+  );
+  loadClassDictionary(
+    "(≡)\topen parenthesis triple bond close parenthesis\t0\t0\n(=)\topen parenthesis double bond close parenthesis\t0\t0\n",
+    "test-bond-parens",
+  );
+  assert.equal(
+    applyDictionary("(≡)").replace(/\s+/g, " ").trim(),
+    "open parenthesis triple bond close parenthesis",
+  );
+  assert.equal(toDictionarySpeech("(=)"), "open parenthesis double bond close parenthesis");
+  loadDictionary(DICTIONARY_DIC, "bundled");
 });

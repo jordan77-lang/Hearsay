@@ -82,11 +82,19 @@ create policy "dictionary_rules anon read"
 
 
 
+-- Anon write policies (team-shared anon key, not published on a public site).
+-- Includes class_slug = 'all' so the browser can Rebuild combined.
+--
+-- Stricter alternative (if the anon key is ever embedded in a public app):
+--   insert: with check (class_slug <> 'all')
+--   update: using (class_slug <> 'all') with check (class_slug <> 'all')
+--   delete: using (class_slug <> 'all')
+
 drop policy if exists "dictionary_rules anon insert" on public.dictionary_rules;
 
 create policy "dictionary_rules anon insert"
 
-  on public.dictionary_rules for insert to anon with check (class_slug <> 'all');
+  on public.dictionary_rules for insert to anon with check (true);
 
 
 
@@ -94,9 +102,7 @@ drop policy if exists "dictionary_rules anon update" on public.dictionary_rules;
 
 create policy "dictionary_rules anon update"
 
-  on public.dictionary_rules for update to anon
-
-  using (class_slug <> 'all') with check (class_slug <> 'all');
+  on public.dictionary_rules for update to anon using (true) with check (true);
 
 
 
@@ -104,7 +110,7 @@ drop policy if exists "dictionary_rules anon delete" on public.dictionary_rules;
 
 create policy "dictionary_rules anon delete"
 
-  on public.dictionary_rules for delete to anon using (class_slug <> 'all');
+  on public.dictionary_rules for delete to anon using (true);
 
 
 

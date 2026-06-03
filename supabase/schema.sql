@@ -54,19 +54,19 @@ drop policy if exists "dictionary_rules anon read" on public.dictionary_rules;
 create policy "dictionary_rules anon read"
   on public.dictionary_rules for select to anon using (true);
 
--- Anon: write for internal authoring tools (lock down with Auth in production).
+-- Anon write (team-shared anon key; includes course_id = 'all' for Rebuild combined).
+-- Stricter alternative if the anon key is public: use (course_id <> 'all') on all three.
 drop policy if exists "dictionary_rules anon insert" on public.dictionary_rules;
 create policy "dictionary_rules anon insert"
-  on public.dictionary_rules for insert to anon with check (course_id <> 'all');
+  on public.dictionary_rules for insert to anon with check (true);
 
 drop policy if exists "dictionary_rules anon update" on public.dictionary_rules;
 create policy "dictionary_rules anon update"
-  on public.dictionary_rules for update to anon
-  using (course_id <> 'all') with check (course_id <> 'all');
+  on public.dictionary_rules for update to anon using (true) with check (true);
 
 drop policy if exists "dictionary_rules anon delete" on public.dictionary_rules;
 create policy "dictionary_rules anon delete"
-  on public.dictionary_rules for delete to anon using (course_id <> 'all');
+  on public.dictionary_rules for delete to anon using (true);
 
 -- Authenticated users: full access (future admin UI).
 drop policy if exists "dictionary_rules auth write" on public.dictionary_rules;

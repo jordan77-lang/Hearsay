@@ -1,0 +1,149 @@
+id,class_slug,text,substitution,app,ignore_case,note,position,created_at
+01a2c8b4-20e7-4978-96b2-56d1576bbaed,chem113,q_solution,q of solution,All Apps,Yes,heat absorbed by the solution with underscore,139,2026-06-01 21:37:56.386666+00
+03759b81-1b47-415a-96b4-e0a00cbb2fbd,chem113,cH₂O,c of H two O,All Apps,Yes,specific heat capacity variable for water with unicode subscripts,22,2026-06-01 21:37:56.386666+00
+03d4d9ce-903e-4718-8cd3-b77165d00e98,chem113,T₁,T of 1,All Apps,Yes,starting temperature variable with Unicode subscript,69,2026-06-01 21:37:56.386666+00
+075da458-7525-4403-b4a7-3d26b1af0489,chem113,RCS,R C S,All Apps,Yes,Reaction Control System acronym,128,2026-06-01 21:37:56.386666+00
+10c7807b-cd6d-45d9-9b6e-eb26166306ad,chem113,NaCl,sodium chloride,All Apps,Yes,sodium chloride formula,42,2026-06-01 21:37:56.386666+00
+11b83b39-98a2-4f21-b1da-b63e93ed6b05,chem113,q꜀ₐₗₒᵣᵢₘₑₜₑᵣ,q of calorimeter,All Apps,Yes,fallback for stylized subscript calorimeter if exposed as unicode,137,2026-06-01 21:37:56.386666+00
+15702ada-4490-4a5b-b4e2-721354677f5d,chem113,DI,D I,All Apps,Yes,deionized abbreviation,20,2026-06-01 21:37:56.386666+00
+1571804b-d16c-478a-9a62-8b683c03cc01,chem113,H₂,H two,All Apps,Yes,hydrogen molecule,26,2026-06-01 21:37:56.386666+00
+1620b68a-de42-4820-8c21-440d9b035256,chem113,2Na + Cl2 -> 2NaCl,two sodium plus C L two yields two sodium chloride,All Apps,Yes,plain-text sodium chloride reaction,62,2026-06-01 21:37:56.386666+00
+1621844c-dead-4fc8-b2b8-e53b349818cd,chem113,Na⁺,sodium ion,All Apps,Yes,sodium ion,46,2026-06-01 21:37:56.386666+00
+1711607e-19f5-43ab-9c90-39ade3b0f75e,chem113,Cl⁻,chloride ion,All Apps,Yes,chloride ion,48,2026-06-01 21:37:56.386666+00
+1726cca8-4707-40f4-b65b-8cee02a426e8,chem113,O-H,O single bond H,All Apps,Yes,plain-text oxygen hydrogen single bond,107,2026-06-01 21:37:56.386666+00
+1783c279-a8b9-4bd0-9190-993aefdfd84c,chem113,HCl,H C L,All Apps,Yes,hydrochloric acid formula,38,2026-06-01 21:37:56.386666+00
+189b9e90-12e6-4b3a-b433-4531e0a83aac,chem113,Effective heat capacity (J/°C),Effective heat capacity in jools per degree Celsius,All Apps,Yes,full phrase with heat capacity unit,1,2026-06-01 21:37:56.386666+00
+1a539b91-08e3-4a51-9c66-62d3194681dd,chem113,mol/L⁻¹,moles per liter,All Apps,Yes,molarity unit with inverse exponent,114,2026-06-01 21:37:56.386666+00
+1b61fbf7-2a95-40a1-8381-f312a27045f7,chem113,1:2,one to two,All Apps,Yes,ratio notation,51,2026-06-01 21:37:56.386666+00
+1c5dfb6b-036f-4c33-98cd-837bb4573d24,chem113,C₈H₁₈,C eight H eighteen,All Apps,Yes,isooctane formula with Unicode subscripts,90,2026-06-01 21:37:56.386666+00
+1f0708a3-ddb1-41ed-b0ba-f4a52b22243e,chem113,ΔH,delta H,All Apps,Yes,enthalpy change symbol,66,2026-06-01 21:37:56.386666+00
+20484be8-0661-4baf-9be0-1b485f12b6b7,chem113,mg,milligrams,All Apps,Yes,milligram symbol,15,2026-06-01 21:37:56.386666+00
+20959b6d-8a32-4cf1-ba46-a9ddce66549f,chem113,J/g°C,jools per gram degree Celsius,All Apps,Yes,specific heat capacity unit,3,2026-06-01 21:37:56.386666+00
+219c1bf5-d45b-466f-82c4-374da3dbbdfa,chem113,2H2 + O2 -> 2H2O,two H two plus O two yields two H two O,All Apps,Yes,plain-text reaction,56,2026-06-01 21:37:56.386666+00
+271078c7-2fb4-415e-91fa-c4fc2abc491f,chem113,kilojoule,kiloh jool,All Apps,Yes,phonetic reading of kilojoule,124,2026-06-01 21:37:56.386666+00
+2a7d14e6-1b6d-41d7-b0c4-342104b7f580,chem113,H3C,H three C,All Apps,Yes,plain-text methyl group notation,94,2026-06-01 21:37:56.386666+00
+2a7e28f7-cd84-4281-ae29-d1fa07b359fb,chem113,Ccalorimeter,capital C of calorimeter,All Apps,No,plain-text heat capacity of the calorimeter,142,2026-06-01 21:37:56.386666+00
+2ae4da96-945e-4e5a-a045-baca2d979256,chem113,cm3,cubic centimeters,All Apps,Yes,plain-text volume unit,121,2026-06-01 21:37:56.386666+00
+2bc1bb67-f326-427d-bd8f-d5303dc35431,chem113,H₂O,H two O,All Apps,Yes,water formula,32,2026-06-01 21:37:56.386666+00
+327aec53-bfd8-4b2c-b6dd-7cb3f66368fe,chem113,kg,kilograms,All Apps,Yes,kilogram symbol,14,2026-06-01 21:37:56.386666+00
+34c3b008-7998-46f0-91f4-e047bb3d3b6b,chem113,H2O2,H two O two,All Apps,Yes,plain-text hydrogen peroxide formula,33,2026-06-01 21:37:56.386666+00
+364d187c-fd8f-4530-abbc-0ecc0bbe86f9,chem113,H2O,H two O,All Apps,Yes,plain-text water formula,31,2026-06-01 21:37:56.386666+00
+3dae0f45-781c-44d4-8ea1-fe8311c6585d,chem113,O2,O two,All Apps,Yes,plain-text oxygen molecule,27,2026-06-01 21:37:56.386666+00
+3ee1d1fe-6f48-4551-950c-b09c1d7bba6f,chem113,g/L,grams per liter,All Apps,Yes,concentration unit,116,2026-06-01 21:37:56.386666+00
+4018883d-1273-4e5c-b71c-f4fcac346dc3,chem113,kJ,killuh jools,All Apps,Yes,"kilojoule symbol, phonetic reading",12,2026-06-01 21:37:56.386666+00
+4019184e-1103-4eb9-b0e1-bbcfba4ff5e7,chem113,m³,cubic meters,All Apps,Yes,volume unit,122,2026-06-01 21:37:56.386666+00
+41bc4137-f63d-4483-b8db-9506b545d83e,chem113,CH₃,C H three,All Apps,Yes,methyl group notation with Unicode subscript,97,2026-06-01 21:37:56.386666+00
+43103c34-3799-43fc-80a9-503ab2a77399,chem113,H₃C,H three C,All Apps,Yes,methyl group notation with Unicode subscript,95,2026-06-01 21:37:56.386666+00
+43480886-f4b0-43c1-becf-979d93b56680,chem113,DI water,D I water,All Apps,Yes,deionized water abbreviation,19,2026-06-01 21:37:56.386666+00
+4368ead4-f116-4936-b1e5-1217ec4d19d8,chem113,J/°C,jools per degree Celsius,All Apps,Yes,heat capacity unit,2,2026-06-01 21:37:56.386666+00
+43de47f0-417d-4f4e-bdbc-8a82c01156fe,chem113,H2,H two,All Apps,Yes,plain-text hydrogen molecule,25,2026-06-01 21:37:56.386666+00
+4438eb95-051b-4f10-8f23-eff3dc42bb08,chem113,mL,milliliters,All Apps,Yes,milliliter symbol,74,2026-06-01 21:37:56.386666+00
+44b83beb-fc8b-4951-bca6-c8abb079647d,chem113,cH2O,c of H two O,All Apps,Yes,plain-text specific heat capacity variable for water,21,2026-06-01 21:37:56.386666+00
+4786055a-1410-472c-af56-d6ff70cd3fc8,chem113,J/mol,jools per mol,All Apps,Yes,molar energy unit,11,2026-06-01 21:37:56.386666+00
+4afe199e-05aa-4c82-b4da-d46d54290a7b,chem113,g/mol,grams per mol,All Apps,Yes,molar mass unit,9,2026-06-01 21:37:56.386666+00
+4b9454c1-761d-4436-942d-8de27daf328f,chem113,O₂,O two,All Apps,Yes,oxygen molecule,28,2026-06-01 21:37:56.386666+00
+4bf577ba-6e7f-470b-bcf9-ad34729143ff,chem113,stoichiometric,stoy key oh metric,All Apps,Yes,chemistry term,78,2026-06-01 21:37:56.386666+00
+4c58052e-e01d-4912-acd3-d125ba21b867,chem113,cm³,cubic centimeters,All Apps,Yes,volume unit,120,2026-06-01 21:37:56.386666+00
+4c8fe73f-c02c-446c-af85-cd1c97b51ca3,chem113,Ag,silver,All Apps,No,element symbol for silver when used in catalyst context,134,2026-06-01 21:37:56.386666+00
+4d8b4058-c9a4-4fc4-a726-afdb5b0ec9ab,chem113,Fe(NO3)3,F E open parenthesis N O three close parenthesis three,All Apps,Yes,plain-text ferric nitrate formula,130,2026-06-01 21:37:56.386666+00
+4edee159-a03a-4ef5-9c04-c535b23a6002,chem113,N2,N two,All Apps,Yes,plain-text nitrogen molecule,29,2026-06-01 21:37:56.386666+00
+51b2258f-d899-47c8-a089-b30a088edd87,chem113,J/g °C,jools per gram degree Celsius,All Apps,Yes,specific heat capacity unit with space,4,2026-06-01 21:37:56.386666+00
+587c204e-a506-4b69-91dd-a116f966d36e,chem113,°F,degrees Fahrenheit,All Apps,Yes,degree Fahrenheit symbol,87,2026-06-01 21:37:56.386666+00
+5a5257e9-7523-4e8e-93b3-7c2be3d24f2c,chem113,÷,divided by,All Apps,Yes,Division symbol,148,2026-06-01 21:37:56.386666+00
+5b6c47ca-d5b4-4e70-83b5-16e453826408,chem113,H₂C,H two C,All Apps,Yes,methylene group notation with Unicode subscript,99,2026-06-01 21:37:56.386666+00
+5df90ddf-5744-4dd1-b321-a7d263c12521,chem113,J/(g·°C),jools per gram degree Celsius,All Apps,Yes,specific heat capacity unit with parentheses and multiplication dot,7,2026-06-01 21:37:56.386666+00
+60525199-696c-4b27-bf84-6dcb47f404d0,chem113,q_reaction,q of reaction,All Apps,Yes,heat released by reaction with underscore,141,2026-06-01 21:37:56.386666+00
+61b1f62a-2afc-4c39-a151-b0acac63172d,chem113,q_calorimeter,q of calorimeter,All Apps,Yes,heat absorbed by the calorimeter with underscore,136,2026-06-01 21:37:56.386666+00
+645307c8-5ccc-4f88-98e5-6c6db111aeea,chem113,msolution,m of solution,All Apps,Yes,plain-text mass of solution,144,2026-06-01 21:37:56.386666+00
+66760cfc-bfbd-4139-aaf0-b22f3b10f3bb,chem113,2:1,two to one,All Apps,Yes,ratio notation,53,2026-06-01 21:37:56.386666+00
+69ad5424-19e0-41d4-a41d-2954edeb8ebd,chem113,min,minutes,All Apps,Yes,minute abbreviation used on axes,85,2026-06-01 21:37:56.386666+00
+6ca61379-1348-4049-9a81-2c707b0fa162,chem113,3:1,three to one,All Apps,Yes,ratio notation,54,2026-06-01 21:37:56.386666+00
+6cda678f-3cf8-4455-ab6a-62d4d4a836dd,chem113,H2C,H two C,All Apps,Yes,plain-text methylene group notation,98,2026-06-01 21:37:56.386666+00
+74ec85db-f2bf-4622-baf0-7beba73263c9,chem113,J,jools,All Apps,Yes,joule symbol,13,2026-06-01 21:37:56.386666+00
+75653dc1-9093-48c5-97a6-6bae8a248dad,chem113,photo-catalyzer,photo catalyzer,All Apps,Yes,hyphenated device name,84,2026-06-01 21:37:56.386666+00
+7734237c-347f-4c1e-bc12-c2b2357f0f44,chem113,NH3,N H three,All Apps,Yes,plain-text ammonia formula,35,2026-06-01 21:37:56.386666+00
+7738f18a-2902-44da-81c0-644441312ad8,chem113,cH2,c of H two,All Apps,Yes,plain-text specific heat capacity variable for hydrogen gas,23,2026-06-01 21:37:56.386666+00
+78911c11-ca31-4a2f-ad9e-30ed1a68e21c,chem113,qcalorimeter,q of calorimeter,All Apps,Yes,plain-text heat absorbed by the calorimeter,135,2026-06-01 21:37:56.386666+00
+792ad6e3-6d29-443b-b834-949e89969404,chem113,H–H,H single bond H,All Apps,Yes,hydrogen single bond using en dash,104,2026-06-01 21:37:56.386666+00
+79ee1c0c-6703-4ac2-bb03-e3c878fe92fe,chem113,–OH,O H group,All Apps,Yes,hydroxyl group with en dash,93,2026-06-01 21:37:56.386666+00
+7e69edcf-d5ce-4e10-ac77-f3278902ea84,chem113,ΔT,delta T,All Apps,Yes,temperature change symbol,67,2026-06-01 21:37:56.386666+00
+803ede28-76c5-40b2-808b-958afb833d95,chem113,isooctane,eye so octane,All Apps,Yes,fuel name,76,2026-06-01 21:37:56.386666+00
+806a7704-aa26-4bb1-a31b-564bcfed164a,chem113,-OH,O H group,All Apps,Yes,hydroxyl group with hyphen,92,2026-06-01 21:37:56.386666+00
+80760910-135b-4be4-aa9a-c2d46742e75a,chem113,mol/L,moles per liter,All Apps,Yes,molarity unit,113,2026-06-01 21:37:56.386666+00
+840a3837-b02f-49bc-9c14-dad226185d4d,chem113,Zn,zinc,All Apps,Yes,zinc chemical symbol,41,2026-06-01 21:37:56.386666+00
+842aca42-3bec-4c1d-94e7-cec6b4c46771,chem113,T₂,T of 2,All Apps,Yes,final temperature variable with Unicode subscript,71,2026-06-01 21:37:56.386666+00
+85d20bc5-1444-48fb-b984-b2e421f78c5a,chem113,Fe(NO₃)₃,F E open parenthesis N O three close parenthesis three,All Apps,Yes,ferric nitrate formula with unicode subscripts,131,2026-06-01 21:37:56.386666+00
+85e505a3-c5cb-4066-8f28-f97e3fe7c097,chem113,T2 = T1 + ΔT,T of 2 equals T of 1 plus delta T,All Apps,Yes,temperature equation as written in plain text,81,2026-06-01 21:37:56.386666+00
+8b7f7eff-b994-4327-a696-e6c8fab1b4a0,chem113,c = q ÷ mΔT,c equals q divided by m delta T,All Apps,Yes,specific heat capacity equation as written,100,2026-06-01 21:37:56.386666+00
+8c8c39a2-481f-4319-b835-eb729d0bcbb4,chem113,q = CΔT,q equals capital C delta T,All Apps,Yes,heat equation using total heat capacity as written,101,2026-06-01 21:37:56.386666+00
+8e34e588-a739-4e97-bbd5-f9912c12e596,chem113,N₂ + O₂ → 2NO,N two plus O two yields two N O,All Apps,Yes,nitrogen monoxide reaction,59,2026-06-01 21:37:56.386666+00
+90a88ad3-9a6e-441e-a402-99b861eb2ce6,chem113,N-H,N single bond H,All Apps,Yes,plain-text nitrogen hydrogen single bond,110,2026-06-01 21:37:56.386666+00
+927e5b30-3927-4d34-8731-a2d906ce7083,chem113,°C,degrees Celsius,All Apps,Yes,degree Celsius symbol,75,2026-06-01 21:37:56.386666+00
+93bfba0d-32ad-49e6-ac2b-242ad7ea5d8e,chem113,N2 + O2 -> 2NO,N two plus O two yields two N O,All Apps,Yes,plain-text nitrogen monoxide reaction,58,2026-06-01 21:37:56.386666+00
+93c573d9-4a13-4f03-b8a4-2f6d2b9b74d2,chem113,kJ/mol,killuh jools per mol,All Apps,Yes,"molar energy unit, phonetic reading",10,2026-06-01 21:37:56.386666+00
+9628b142-b9d9-4b69-9387-e899dcf1d9a9,chem113,Cl₂,C L two,All Apps,Yes,chlorine molecule,44,2026-06-01 21:37:56.386666+00
+9a1f88cf-be46-497d-a973-9d04b74c18d1,chem113,O–H,O single bond H,All Apps,Yes,oxygen hydrogen single bond using en dash,108,2026-06-01 21:37:56.386666+00
+9df6a413-bc57-476f-b923-43fc6dd15737,chem113,T1,T of 1,All Apps,Yes,"plain-text starting temperature variable, read as subscript",68,2026-06-01 21:37:56.386666+00
+9e673e5f-18f3-45f9-a062-015e0d23a917,chem113,m3,cubic meters,All Apps,Yes,plain-text volume unit,123,2026-06-01 21:37:56.386666+00
+9e89cf62-45dc-4a22-9834-ce34a395eeeb,chem113,N=O,N double bond O,All Apps,Yes,nitrogen oxygen double bond,109,2026-06-01 21:37:56.386666+00
+a1777c29-ce44-4013-ac0b-535d8a8b8962,chem113,joules,jools,All Apps,Yes,phonetic reading of joules,73,2026-06-01 21:37:56.386666+00
+a2572e0f-1aa1-4a63-9bf0-1bbda54481eb,chem113,Fe(NO₃)₃·9H₂O,F E open parenthesis N O three close parenthesis three dot nine H two O,All Apps,Yes,ferric nitrate nonahydrate formula with unicode subscripts,133,2026-06-01 21:37:56.386666+00
+a313a2e0-ddcf-496e-a42c-022b86343bcd,chem113,N₂,N two,All Apps,Yes,nitrogen molecule,30,2026-06-01 21:37:56.386666+00
+a6926e01-6560-45c3-a0e2-28af2dcd7e8a,chem113,Na+,sodium ion,All Apps,Yes,plain-text sodium ion,45,2026-06-01 21:37:56.386666+00
+a784e850-c341-4e38-bccd-f3245ba273a9,chem113,q=mcΔT,q equals m c delta T,All Apps,Yes,heat equation without spaces,64,2026-06-01 21:37:56.386666+00
+a80b350e-5560-4a01-ad64-5402d36c908d,chem113,4:1,four to one,All Apps,Yes,ratio notation,55,2026-06-01 21:37:56.386666+00
+a8e8f038-5f6d-4d0b-9e7b-ed9182ea7cad,chem113,microspatula,micro spatula,All Apps,Yes,lab tool,80,2026-06-01 21:37:56.386666+00
+a93cf7ae-ac5a-4d1b-9933-0a70c07ee566,chem113,N₂ + 3H₂ → 2NH₃,N two plus three H two yields two N H three,All Apps,Yes,ammonia reaction,61,2026-06-01 21:37:56.386666+00
+ac237291-5a84-4910-96e9-a8fb72cdc446,chem113,N–H,N single bond H,All Apps,Yes,nitrogen hydrogen single bond using en dash,111,2026-06-01 21:37:56.386666+00
+ac72e625-61c0-4063-9aee-afb002215f69,chem113,cH₂,c of H two,All Apps,Yes,specific heat capacity variable for hydrogen gas with unicode subscript,24,2026-06-01 21:37:56.386666+00
+aeebd0eb-dc2f-4b25-a2d2-6df4d441006a,chem113,MnO₂,M N O two,All Apps,Yes,manganese dioxide formula,40,2026-06-01 21:37:56.386666+00
+aef68c17-05cd-4418-812c-2ff7b0f94410,chem113,Cl2,C L two,All Apps,Yes,plain-text chlorine molecule,43,2026-06-01 21:37:56.386666+00
+af10b19e-9858-41c1-9646-82747a459e83,chem113,H₂O₂,H two O two,All Apps,Yes,hydrogen peroxide formula,34,2026-06-01 21:37:56.386666+00
+b10d8e5b-9786-49aa-aa84-78fbd7fc1f69,chem113,2Na + Cl₂ → 2 NaCl,two sodium plus C L two yields two sodium chloride,All Apps,Yes,sodium chloride reaction,63,2026-06-01 21:37:56.386666+00
+b5baf358-77e8-42b0-a3a0-6c935fe71e86,chem113,qsolution,q of solution,All Apps,Yes,plain-text heat absorbed by the solution,138,2026-06-01 21:37:56.386666+00
+b63cac7d-fe0e-4628-b2a6-67504cdde42e,chem113,OH,O H,All Apps,Yes,hydroxyl group without dash,91,2026-06-01 21:37:56.386666+00
+b6a672dc-f090-4d50-8198-457bf475157c,chem113,Fe(NO3)3·9H2O,F E open parenthesis N O three close parenthesis three dot nine H two O,All Apps,Yes,plain-text ferric nitrate nonahydrate formula,132,2026-06-01 21:37:56.386666+00
+b7d6d990-6a5b-41b7-8b24-c1e1ef971fac,chem113,mg/L,milligrams per liter,All Apps,Yes,concentration unit,117,2026-06-01 21:37:56.386666+00
+b8d1508b-ee53-49d5-b3f5-fb56a435540b,chem113,m_solution,m of solution,All Apps,Yes,mass of solution with underscore,145,2026-06-01 21:37:56.386666+00
+ba90cff2-7754-40f7-b3be-f886ece160c4,chem113,MnO2,M N O two,All Apps,Yes,plain-text manganese dioxide formula,39,2026-06-01 21:37:56.386666+00
+baadfdcc-91d2-4122-b0d7-3d87880ce0ed,chem113,g,grams,All Apps,Yes,gram symbol,16,2026-06-01 21:37:56.386666+00
+bbe040ac-6616-4ee3-9ccc-7f0e34232533,chem113,H-H,H single bond H,All Apps,Yes,plain-text hydrogen single bond,103,2026-06-01 21:37:56.386666+00
+be2751e2-b9ee-404b-b690-687c6349e1f6,chem113,ORS,O R S,All Apps,Yes,Orbital Research Station acronym,17,2026-06-01 21:37:56.386666+00
+be7e7f80-baab-42dc-9334-fa39aa0f0f1c,chem113,joule,jool,All Apps,Yes,phonetic reading of joule,72,2026-06-01 21:37:56.386666+00
+be809270-3121-4d8d-9b76-523c8287bba3,chem113,µg/L,micrograms per liter,All Apps,Yes,concentration unit,118,2026-06-01 21:37:56.386666+00
+bf0499f6-280b-4522-ae01-e7c9cfb6d5ee,chem113,ITE,I T E,All Apps,Yes,Institute for Tele-present Exploration acronym,18,2026-06-01 21:37:56.386666+00
+bfd172e0-80d0-4dfb-a50f-fc2b6e0189de,chem113,O=O,O double bond O,All Apps,Yes,oxygen double bond,105,2026-06-01 21:37:56.386666+00
+bfeae33e-31c2-4262-9414-c64b4adc33d2,chem113,M,moh lurr,All Apps,No,"capital M concentration unit, as in 3 M HCl; phonetic reading for molar",112,2026-06-01 21:37:56.386666+00
+c00b66b2-1ff7-4c93-a30e-04441f8ce202,chem113,qreaction,q of reaction,All Apps,Yes,plain-text heat released by reaction,140,2026-06-01 21:37:56.386666+00
+c211d346-72a8-4747-9cc5-2bda5d4060df,chem113,g/mL,grams per milliliter,All Apps,Yes,density unit,115,2026-06-01 21:37:56.386666+00
+c26f9ef5-6dda-4cac-813d-4f316fdd889e,chem113,J/g,jools per gram,All Apps,Yes,energy per gram unit,8,2026-06-01 21:37:56.386666+00
+c3030a5a-e7d5-4b93-83c4-ca844666904b,chem113,N2 + 3H2 -> 2NH3,N two plus three H two yields two N H three,All Apps,Yes,plain-text ammonia reaction,60,2026-06-01 21:37:56.386666+00
+c370455f-68ce-4608-84bd-24933d111fb8,chem113,2H₂ + O₂ → 2H₂O,two H two plus O two yields two H two O,All Apps,Yes,combustion reaction,57,2026-06-01 21:37:56.386666+00
+c58f4e81-7a10-4994-a347-a774388da2d5,chem113,C_calorimeter,capital C of calorimeter,All Apps,No,heat capacity of the calorimeter with underscore,143,2026-06-01 21:37:56.386666+00
+c5e1feaa-f110-4088-a3b1-963a13b62d58,chem113,H2:O2,H two to O two,All Apps,Yes,plain-text hydrogen-to-oxygen ratio,49,2026-06-01 21:37:56.386666+00
+c6308bc7-0b31-4801-8456-86cb8aa6cdb2,chem113,q = mcΔT,q equals m c delta T,All Apps,Yes,heat equation,65,2026-06-01 21:37:56.386666+00
+c66a6679-0d34-462c-b94a-c95dad3ce5fb,chem113,NH₃,N H three,All Apps,Yes,ammonia formula,36,2026-06-01 21:37:56.386666+00
+ce1caec7-2de9-4ca0-8ac1-52ac3c100600,chem113,°C/min,degrees Celsius per minute,All Apps,Yes,heating slope unit,88,2026-06-01 21:37:56.386666+00
+cecf5103-6221-405d-a0be-dd52f35a1980,chem113,NASA,NASS uh,All Apps,Yes,"NASA pronounced as a word, not as individual letters",126,2026-06-01 21:37:56.386666+00
+cf16a801-2dd4-4dcd-adc5-76ef19bfc200,chem113,J / g°C,jools per gram degree Celsius,All Apps,Yes,specific heat capacity unit with spaced slash,5,2026-06-01 21:37:56.386666+00
+d3cb03b4-d66d-43df-acdf-20f092fee54a,chem113,H20,H two O,All Apps,Yes,likely plain-text water formula typo using zero instead of two,129,2026-06-01 21:37:56.386666+00
+d46c4e2d-2bba-4763-85aa-e139e092c0bd,chem113,HLS,H L S,All Apps,Yes,Human Landing System acronym,127,2026-06-01 21:37:56.386666+00
+d81c9116-cd9f-4cdc-a71e-3331419fc3fd,chem113,rpm,revolutions per minute,All Apps,Yes,stir rate unit,86,2026-06-01 21:37:56.386666+00
+d87f74a1-9a19-40ba-8232-4f67c3eb39b3,chem113,Inconel 718,in co nell seven eighteen,All Apps,Yes,nickel superalloy,77,2026-06-01 21:37:56.386666+00
+d9b304ca-0080-42ce-ad1e-61abb7e7b2cf,chem113,NO,N O,All Apps,Yes,nitrogen monoxide formula,37,2026-06-01 21:37:56.386666+00
+da78b9fe-8cf3-47fd-afb5-059fd469d7b3,chem113,ug/L,micrograms per liter,All Apps,Yes,concentration unit using u for micro,119,2026-06-01 21:37:56.386666+00
+daf81daf-fc8a-473f-a80a-9025ba5ab76b,chem113,csolution,c of solution,All Apps,Yes,plain-text specific heat capacity of solution,146,2026-06-01 21:37:56.386666+00
+db3ada17-a674-4d64-a631-a8ebc17c93b7,chem113,T₂ = T₁ + ΔT,T of 2 equals T of 1 plus delta T,All Apps,Yes,temperature equation with Unicode subscripts,82,2026-06-01 21:37:56.386666+00
+dc4c721c-7c2a-454d-bdcd-4a8392843f23,chem113,T2,T of 2,All Apps,Yes,"plain-text final temperature variable, read as subscript",70,2026-06-01 21:37:56.386666+00
+deeee0f1-f6ee-4ab3-afa4-7c5aa22b8d5c,chem113,J / g °C,jools per gram degree Celsius,All Apps,Yes,specific heat capacity unit with spaced slash and degree,6,2026-06-01 21:37:56.386666+00
+e5b41d9f-f73c-4381-9ca9-38a3735f71cc,chem113,C = mc,capital C equals m c,All Apps,Yes,total heat capacity equation as written,102,2026-06-01 21:37:56.386666+00
+e640ee68-61ce-43ce-bf3a-c8f721be53d2,chem113,CH3,C H three,All Apps,Yes,plain-text methyl group notation,96,2026-06-01 21:37:56.386666+00
+e7a04c3f-3a5d-47ec-a1f8-efec6bc56376,chem113,H₂:O₂,H two to O two,All Apps,Yes,hydrogen-to-oxygen ratio,50,2026-06-01 21:37:56.386666+00
+e97f0cd1-9a97-43c3-adb0-ec3fa6dc2f56,chem113,K2,K two,All Apps,Yes,Collins K2 cloud identifier,83,2026-06-01 21:37:56.386666+00
+ebb33e0b-b75e-47a4-b99e-d2164b7d2947,chem113,N≡N,N triple bond N,All Apps,Yes,nitrogen triple bond,106,2026-06-01 21:37:56.386666+00
+ec7d6ac0-ea9d-4195-8e95-6905fc737613,chem113,piezoelectric,pee ay zo electric,All Apps,Yes,igniter term,79,2026-06-01 21:37:56.386666+00
+f07e323e-5b25-4da0-adf5-82c6a007bd11,chem113,1:1,one to one,All Apps,Yes,ratio notation,52,2026-06-01 21:37:56.386666+00
+f329373c-a7f9-4ca6-b216-aee77940bc63,chem113,c_solution,c of solution,All Apps,Yes,specific heat capacity of solution with underscore,147,2026-06-01 21:37:56.386666+00
+f9aa60bc-bc6a-467a-a6c7-6559d6ff4cc6,chem113,kilojoules,kiloh jools,All Apps,Yes,phonetic reading of kilojoules,125,2026-06-01 21:37:56.386666+00
+fce171f7-ce42-47b6-be72-ba9e4ed24cc5,chem113,Cl-,chloride ion,All Apps,Yes,plain-text chloride ion,47,2026-06-01 21:37:56.386666+00
+fd9310ac-246b-447b-95bd-f0bf6d6272ea,chem113,C8H18,C eight H eighteen,All Apps,Yes,isooctane formula and transmission code,89,2026-06-01 21:37:56.386666+00

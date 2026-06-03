@@ -1,10 +1,20 @@
 // Supabase dictionary CRUD: per-class rules + merged "all" course.
 
 import { createSupabaseClient, loadConfigFromPaths } from "./client.js";
-import { addonEntriesToRows, normalizeRuleRow, normalizeRuleRows, rowClassId, rowsToDic } from "./dictionary-format.js";
+import { addonEntriesToRows, entriesToRuleRows, mergeRuleRowsByPattern, normalizeRuleRow, normalizeRuleRows, rowClassId, rowsToDic, inferRuleType } from "./dictionary-format.js";
 import { loadClassDictionary, loadDictionary, ruleCount } from "../core/dictionary.js";
 
 export const COMBINED_COURSE_ID = "all";
+
+/** Class slugs that merge Supabase rows on the bundled CHEM .dic (Phase 1). */
+const BUNDLED_MERGE_PREFIXES = ["chem"];
+
+export function shouldMergeBundledBase(classSlug) {
+  const slug = String(classSlug ?? "").toLowerCase();
+  return BUNDLED_MERGE_PREFIXES.some((p) => slug.startsWith(p));
+}
+
+const ENTRY_COLUMNS = "class_slug,text,substitution,app,ignore_case,note,position";
 
 const RULE_COLUMNS =
   "class_slug,sort_order,pattern,replacement,case_sensitive,rule_type,comment,updated_at";
@@ -73,14 +83,60 @@ export function mergeRulesForCombined(rows, courseOrder) {
 }
 
 export function guessRuleType(pattern) {
-  if (/[\\^$.*+?[\](){}|]/.test(pattern) && pattern.includes("\\")) return 1;
-  if (/^[A-Za-z][A-Za-z0-9/-]*$/.test(pattern) && pattern.length <= 24) return 2;
-  return 0;
+  return inferRuleType(pattern);
 }
 
 export function createDictionaryApi(config) {
   const client = createSupabaseClient(config);
   let rulesTableState = null;
+  let entriesTableState = null;
+
+  async function probeEntriesTable() {
+    if (entriesTableState) return entriesTableState;
+    try {
+      await client.rest("entries?limit=0&select=class_slug");
+      entriesTableState = { exists: true };
+    } catch (err) {
+      if (isMissingTableError(err)) entriesTableState = { exists: false };
+      else throw err;
+    }
+    return entriesTableState;
+  }
+
+  async function fetchEntriesForClass(classSlug) {
+    const table = await probeEntriesTable();
+    if (!table.exists) return null;
+    try {
+      const rows = await client.rest(
+        `entries?class_slug=eq.${encodeURIComponent(classSlug)}&order=position.asc&select=${ENTRY_COLUMNS}`,
+      );
+      const rules = entriesToRuleRows(rows);
+      return rules.length ? rules : null;
+    } catch (err) {
+      if (isMissingTableError(err)) {
+        entriesTableState = { exists: false };
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  async function fetchAllClassEntries() {
+    const table = await probeEntriesTable();
+    if (!table.exists) return [];
+    try {
+      const rows = await client.rest(
+        `entries?class_slug=neq.${encodeURIComponent(COMBINED_COURSE_ID)}&order=class_slug.asc,position.asc&select=${ENTRY_COLUMNS}`,
+      );
+      return entriesToRuleRows(rows);
+    } catch (err) {
+      if (isMissingTableError(err)) {
+        entriesTableState = { exists: false };
+        return [];
+      }
+      throw err;
+    }
+  }
 
   async function probeRulesTable() {
     if (rulesTableState) return rulesTableState;
@@ -208,8 +264,20 @@ export function createDictionaryApi(config) {
 
   async function fetchRulesWithMeta(classSlug) {
     await probeRulesTable();
+    await probeEntriesTable();
 
     if (classSlug === COMBINED_COURSE_ID) {
+      const allEntryRows = await fetchAllClassEntries();
+      if (allEntryRows.length) {
+        const courses = await listCourses();
+        return {
+          rows: mergeRulesForCombined(allEntryRows, courses.map((c) => c.id)),
+          source: "supabase-entries-merged",
+          rulesTableMissing: false,
+          fromEntries: true,
+        };
+      }
+
       const combinedRows = await queryRulesTable(
         `${ruleFilterColumn()}=eq.${encodeURIComponent(COMBINED_COURSE_ID)}`,
       );
@@ -247,11 +315,24 @@ export function createDictionaryApi(config) {
       return { rows: [], source: "remote-empty", rulesTableMissing: !table.exists };
     }
 
-    const tableRows = await queryRulesTable(
+    const entryRows = (await fetchEntriesForClass(classSlug)) ?? [];
+    const tableRows = (await queryRulesTable(
       `${ruleFilterColumn()}=eq.${encodeURIComponent(classSlug)}`,
-    );
-    if (tableRows?.length) {
-      return { rows: tableRows, source: "supabase", rulesTableMissing: false };
+    )) ?? [];
+
+    if (entryRows.length || tableRows.length) {
+      const merged = mergeRuleRowsByPattern(entryRows, tableRows);
+      const fromEntries = entryRows.length > 0;
+      const fromRules = tableRows.length > 0;
+      let source = "supabase";
+      if (fromEntries && fromRules) source = "supabase-entries+rules";
+      else if (fromEntries) source = "supabase-entries";
+      return {
+        rows: merged,
+        source,
+        rulesTableMissing: false,
+        fromEntries: fromEntries,
+      };
     }
 
     const addonRows = await fetchAddonRules(classSlug);
@@ -267,9 +348,16 @@ export function createDictionaryApi(config) {
   }
 
   async function fetchAllClassRules() {
+    const entryRows = await fetchAllClassEntries();
     const col = ruleFilterColumn();
-    const rows = await queryRulesTable(`${col}=neq.${encodeURIComponent(COMBINED_COURSE_ID)}`);
-    return rows ?? [];
+    const table = await probeRulesTable();
+    const ruleRows = table.exists
+      ? ((await queryRulesTable(`${col}=neq.${encodeURIComponent(COMBINED_COURSE_ID)}`)) ?? [])
+      : [];
+    if (entryRows.length || ruleRows.length) {
+      return mergeRuleRowsByPattern(entryRows, ruleRows);
+    }
+    return [];
   }
 
   async function nextSortOrder(classSlug) {
@@ -372,7 +460,7 @@ export function createDictionaryApi(config) {
   }
 
   async function loadCourseDictionary(classSlug) {
-    const { rows, source, rulesTableMissing } = await fetchRulesWithMeta(classSlug);
+    const { rows, source, rulesTableMissing, fromEntries } = await fetchRulesWithMeta(classSlug);
     if (!rows.length) {
       return {
         ruleCount: 0,
@@ -381,14 +469,17 @@ export function createDictionaryApi(config) {
         skipped: true,
         courseId: classSlug,
         rulesTableMissing,
+        fromEntries: false,
       };
     }
     const raw = rowsToDic(rows);
-    const sourceLabel = `supabase:${classSlug}`;
+    const sourceLabel = fromEntries ? `supabase-entries:${classSlug}` : `supabase:${classSlug}`;
     if (classSlug === COMBINED_COURSE_ID) {
       loadDictionary(raw, sourceLabel);
-    } else {
+    } else if (shouldMergeBundledBase(classSlug)) {
       loadClassDictionary(raw, sourceLabel);
+    } else {
+      loadDictionary(raw, sourceLabel);
     }
     return {
       ruleCount: ruleCount(),
@@ -396,7 +487,111 @@ export function createDictionaryApi(config) {
       source,
       courseId: classSlug,
       rulesTableMissing,
+      fromEntries: Boolean(fromEntries),
+      mergedBundled: classSlug !== COMBINED_COURSE_ID && shouldMergeBundledBase(classSlug),
     };
+  }
+
+  /** Raw Builder rows for one class (Pattern / Spoken). */
+  async function fetchEntryRecords(classSlug) {
+    const table = await probeEntriesTable();
+    if (!table.exists) return [];
+    const rows = await client.rest(
+      `entries?class_slug=eq.${encodeURIComponent(classSlug)}&order=position.asc&select=${ENTRY_COLUMNS}`,
+    );
+    return (rows ?? []).map((r) => ({
+      text: r.text ?? "",
+      substitution: r.substitution ?? "",
+      app: r.app ?? "All Apps",
+      ignore_case: r.ignore_case ?? "Yes",
+      note: r.note ?? "",
+      position: r.position,
+    }));
+  }
+
+  async function fetchClassesWithMeta() {
+    try {
+      return (
+        (await client.rest(
+          "classes?order=sort_order.asc&select=slug,label,file_prefix,sort_order",
+        )) ?? []
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  /** Load all classes and entries for the embedded Dictionary Builder. */
+  async function pullEntriesWorkspace() {
+    const table = await probeEntriesTable();
+    if (!table.exists) {
+      throw new Error(
+        "Supabase entries table not found. Run the Dictionary Builder schema in your project.",
+      );
+    }
+    const classes = (await fetchClassesWithMeta()).filter((c) => c.slug !== COMBINED_COURSE_ID);
+    const raw = await client.rest(
+      `entries?class_slug=neq.${encodeURIComponent(COMBINED_COURSE_ID)}&order=class_slug.asc,position.asc&select=${ENTRY_COLUMNS}`,
+    );
+    const entriesByClass = {};
+    for (const r of raw ?? []) {
+      const slug = r.class_slug;
+      if (!entriesByClass[slug]) entriesByClass[slug] = [];
+      entriesByClass[slug].push({
+        text: r.text ?? "",
+        substitution: r.substitution ?? "",
+        app: r.app ?? "All Apps",
+        ignore_case: r.ignore_case ?? "Yes",
+        note: r.note ?? "",
+      });
+    }
+    return { classes, entriesByClass };
+  }
+
+  /** Replace all entries for a class (Dictionary Builder Save Active Class). */
+  async function saveEntryRecords(classSlug, records) {
+    if (classSlug === COMBINED_COURSE_ID) {
+      throw new Error('Cannot save rows to "All classes". Pick a specific class.');
+    }
+    const table = await probeEntriesTable();
+    if (!table.exists) {
+      throw new Error("entries table not found in Supabase.");
+    }
+    const cleaned = (records ?? [])
+      .map((r) => ({
+        text: String(r.text ?? "").trim(),
+        substitution: String(r.substitution ?? "").trim(),
+        app: String(r.app ?? "All Apps").trim() || "All Apps",
+        ignore_case: String(r.ignore_case ?? "Yes").trim() || "Yes",
+        note: String(r.note ?? "").trim(),
+      }))
+      .filter((r) => r.text && r.substitution);
+
+    await client.rest(`entries?class_slug=eq.${encodeURIComponent(classSlug)}`, {
+      method: "DELETE",
+    });
+
+    if (!cleaned.length) return { count: 0 };
+
+    const body = cleaned.map((r, i) => ({
+      class_slug: classSlug,
+      text: r.text,
+      substitution: r.substitution,
+      app: r.app,
+      ignore_case: r.ignore_case,
+      note: r.note,
+      position: i + 1,
+    }));
+
+    const chunk = 100;
+    for (let i = 0; i < body.length; i += chunk) {
+      await client.rest("entries", {
+        method: "POST",
+        body: body.slice(i, i + chunk),
+        prefer: "return=minimal",
+      });
+    }
+    return { count: body.length };
   }
 
   async function createCourse({ id, label, description }) {
@@ -452,10 +647,17 @@ export function createDictionaryApi(config) {
     loadCourseDictionary,
     createCourse,
     probeRulesTable,
+    probeEntriesTable,
+    fetchEntriesForClass,
+    fetchEntryRecords,
+    fetchClassesWithMeta,
+    pullEntriesWorkspace,
+    saveEntryRecords,
   };
 }
 
 export async function loadSupabaseConfigFromBrowser() {
+  migrateBuilderSupabaseCredentials();
   const stored = getStoredSupabaseConfig();
   const paths =
     typeof location !== "undefined" && location.pathname.includes("/playground/")
@@ -480,6 +682,18 @@ const SUPABASE_CONFIG_STORAGE_KEY = "hearsay-supabase-config";
 const LEGACY_SUPABASE_CONFIG_STORAGE_KEY = "sci-speak-supabase-config";
 const COURSE_STORAGE_KEY = "hearsay-course-id";
 const LEGACY_COURSE_STORAGE_KEY = "sci-speak-course-id";
+/** Dictionary Builder (screenreader repo) localStorage keys — migrated on first HearSay connect. */
+const BUILDER_URL_STORAGE_KEY = "screenReaderBackendUrl";
+const BUILDER_ANON_KEY_STORAGE_KEY = "screenReaderBackendAnonKey";
+
+/** Copy Builder backend credentials into HearSay Connect storage when HearSay has none. */
+export function migrateBuilderSupabaseCredentials() {
+  if (typeof localStorage === "undefined") return;
+  if (getStoredSupabaseConfig()) return;
+  const url = String(localStorage.getItem(BUILDER_URL_STORAGE_KEY) ?? "").trim();
+  const anonKey = String(localStorage.getItem(BUILDER_ANON_KEY_STORAGE_KEY) ?? "").trim();
+  if (url && anonKey) setStoredSupabaseConfig({ url, anonKey });
+}
 
 function migrateStorageKey(fromKey, toKey) {
   if (typeof localStorage === "undefined") return;

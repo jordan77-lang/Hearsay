@@ -260,6 +260,8 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
 
   let lastLoadSource = null;
   let lastClassRuleCount = null;
+  let lastFromEntries = false;
+  let lastMergedBundled = false;
   let rulesTableMissing = false;
 
   function updateMeta() {
@@ -268,7 +270,15 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
     const src = dictionarySource();
     const total = ruleCount();
     let note = "";
-    if (
+    if (lastFromEntries && lastClassRuleCount != null && lastClassRuleCount > 0) {
+      if (lastLoadSource === "supabase-entries+rules") {
+        note = ` (${lastClassRuleCount} from Supabase entries + rules on bundled base)`;
+      } else if (lastMergedBundled && lastClassRuleCount < total) {
+        note = ` (${lastClassRuleCount} from Supabase entries on bundled base)`;
+      } else {
+        note = ` (${lastClassRuleCount} from Supabase entries)`;
+      }
+    } else if (
       courseId !== COMBINED_COURSE_ID &&
       lastClassRuleCount != null &&
       lastClassRuleCount > 0 &&
@@ -306,12 +316,16 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
       const result = await api.loadCourseDictionary(courseId);
       lastLoadSource = result.source ?? null;
       lastClassRuleCount = result.classRuleCount ?? null;
+      lastFromEntries = Boolean(result.fromEntries);
+      lastMergedBundled = Boolean(result.mergedBundled);
       rulesTableMissing = Boolean(result.rulesTableMissing);
       if (result.skipped) {
         const setupHint = rulesTableMissing
-          ? " Run supabase/setup-dictionary-rules.sql in Supabase, then npm run push:dict."
+          ? " Run supabase/setup-dictionary-rules.sql in Supabase, then add rows on the Dictionary page or npm run push:dict."
           : "";
-        showDictError(`No rules for "${courseId}" yet. Push a dictionary or add rules below.${setupHint}`);
+        showDictError(
+          `No pronunciation rows for "${courseId}" yet. Add terms on the Dictionary page (entries table) or push a .dic.${setupHint}`,
+        );
       } else if (rulesTableMissing && lastLoadSource === "addon_defaults") {
         showDictError(
           "Loaded seed rules from classes.addon_defaults. Run supabase/setup-dictionary-rules.sql and npm run push:dict for the full dictionary and editing.",
