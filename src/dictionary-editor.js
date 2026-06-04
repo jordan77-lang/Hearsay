@@ -211,8 +211,8 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
         </details>
         <p class="ss-sub hs-dict-editor-install-hint">
           Downloads the <strong>.nvda-addon</strong> and a <strong>student install PDF</strong> (post both on Canvas).
-          Students open the add-on file to install, then restart NVDA.
-          Quick test in Notepad: <code>kJ/mol</code>, <code>10 mL</code>, <code>J/g°C</code>.
+          Students open the add-on file to install (or NVDA → Tools → Add-on Store → Install from external source), then restart NVDA.
+          Requires NVDA <strong>2026.1+</strong>. Quick test in Notepad: <code>kJ/mol</code>, <code>10 mL</code>, <code>J/g°C</code>.
         </p>
       </section>
 

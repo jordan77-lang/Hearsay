@@ -93,15 +93,30 @@ function normalizePlainDigitSubscripts(s) {
 /**
  * Prepare pasted or typed curriculum text for Sci-Speak analysis.
  * Handles Word/HTML subscripts, unicode scripts, T2→T₂, and qcalorimeter→q_{calorimeter}.
+ * @param {{ skipGluedFractionRepair?: boolean }} [opts]
  */
-export function normalizePastedContent(input) {
+export function normalizePastedContent(input, { skipGluedFractionRepair = false } = {}) {
   let s = String(input ?? "");
-  if (/<sub|<sup|<\/p|<br/i.test(s)) s = normalizeHtmlSubSup(s);
+  if (/docs-internal-guid/i.test(s)) {
+    s = stripHtmlToText(s);
+  } else if (/<sub|<sup|<\/p|<br/i.test(s)) {
+    s = normalizeHtmlSubSup(s);
+  }
   s = normalizeSpreadsheetCellRefs(s);
   s = normalizeMathSymbols(s);
   s = normalizeChemGluedVariables(s);
   s = normalizePlainDigitSubscripts(s);
-  return normalizeWhitespaceCleanup(s);
+  s = normalizeWhitespaceCleanup(s);
+  if (!skipGluedFractionRepair) s = repairFlattenedGdocsFraction(s);
+  return s;
+}
+
+/** Google Docs copy often glues numerator/denominator (e.g. 29 dogs30 rats). */
+export const GLUED_GDOCS_FRAC_RE = /(\d+\s+[^\d\n]+?)(?<=[a-zA-Z])(\d+\s+[^\d\n]+)/g;
+
+/** Insert “divided by” at glued Google Docs fraction boundaries. */
+export function repairFlattenedGdocsFraction(text) {
+  return String(text ?? "").replace(GLUED_GDOCS_FRAC_RE, "$1 divided by $2");
 }
 
 /** Extract plain or HTML from a clipboard paste event. */
@@ -111,4 +126,70 @@ export function pasteDataFromEvent(event) {
   if (html && /<sub|<sup/i.test(html)) return html;
   if (html && /<[a-z]/i.test(html)) return html;
   return plain;
+}
+
+export const GDOCS_CLIPBOARD_TYPE = "application/x-vnd.google-docs-document-slice-clip+wrapped";
+
+/** True when clipboard HTML or MIME type indicates Google Docs. */
+export function isGoogleDocsPaste({ html = "", clipboardTypes = [] } = {}) {
+  if (/docs-internal-guid/i.test(html)) return true;
+  return clipboardTypes.some((t) => t === GDOCS_CLIPBOARD_TYPE);
+}
+
+/** Word chunk ending in letters run into a digit (e.g. "dogs30" from flattened fraction spans). */
+const GLUED_FRAC_CHUNK_RE = /[a-zA-Z]{2,}(?=\d)/;
+
+/**
+ * Heuristic: Google Docs equation copied to clipboard often loses the fraction bar
+ * and merges numerator/denominator into adjacent spans or glued text.
+ * @returns {{ kind: "glued-spans" | "multi-span" } | null}
+ */
+export function detectFlattenedGdocsEquation({ html = "", normalized = "", clipboardTypes = [] } = {}) {
+  if (!isGoogleDocsPaste({ html, clipboardTypes })) return null;
+  const text = String(normalized ?? "").trim();
+  if (!text) return null;
+  if (/\\frac\s*\{/.test(text)) return null;
+  if (/[÷/]/.test(text)) return null;
+
+  if (GLUED_FRAC_CHUNK_RE.test(text)) {
+    return { kind: "glued-spans" };
+  }
+
+  const spanCount = (html.match(/<span\b/gi) || []).length;
+  if (
+    spanCount >= 2 &&
+    /<\/span>\s*<span/i.test(html) &&
+    !/<br\b/i.test(html) &&
+    text.length <= 120 &&
+    !/\n/.test(text)
+  ) {
+    return { kind: "multi-span" };
+  }
+
+  return null;
+}
+
+/** Shown in Screen Reader Lab when a flattened Docs equation paste is detected. */
+export const FLATTENED_GDOCS_EQUATION_NOTICE =
+  "This paste looked like a flattened Google Docs equation — the fraction bar was lost on copy. " +
+  "HearSay inserted “divided by” in the text (your course NVDA dictionary uses the same rule). " +
+  "To preview other fractions here, type \\frac{numerator}{denominator} (for example \\frac{29 dogs}{30 rats}). " +
+  "For a visible numerator and denominator with a horizontal line, build the fraction in Canvas’s equation editor when authoring New Quizzes " +
+  "(or use the Google Docs equation editor for drafts only).";
+
+/** Normalize pasted content and detect flattened Google Docs equations. */
+export function inspectPasteFromEvent(event) {
+  const html = event.clipboardData?.getData("text/html") ?? "";
+  const plain = event.clipboardData?.getData("text/plain") ?? "";
+  const clipboardTypes = event.clipboardData ? [...event.clipboardData.types] : [];
+  const raw = pasteDataFromEvent(event);
+  const preRepair = normalizePastedContent(raw, { skipGluedFractionRepair: true });
+  const flattenedEquation = detectFlattenedGdocsEquation({
+    html,
+    plain,
+    normalized: preRepair,
+    clipboardTypes,
+  });
+  const normalized = repairFlattenedGdocsFraction(preRepair);
+  return { raw, normalized, flattenedEquation };
 }

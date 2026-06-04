@@ -73,7 +73,9 @@ export function buildInstallGuideSections(options, { addonFilename, literalCount
     testIntro: "Open Notepad (Windows key, type Notepad, press Enter). Type each line below and listen.",
     testOutro: "If those sound right, you are ready for Canvas.",
     troubleshooting: [
-      "If nothing happens when you open the file, try the Add-on Store steps in this guide.",
+      "If double-click does nothing, use Add-on Store instead: NVDA → Tools → Add-on Store → Install from external source → choose the .nvda-addon file.",
+      "Make sure NVDA 2026.1 or later is installed (this add-on does not work on older NVDA). Update to NVDA 2026.1.1+ if File Explorer never opens NVDA when you activate the file.",
+      "If NVDA says the package is invalid or incompatible, re-download the file and try again (a partial download can look like a broken zip).",
       "If NVDA says the add-on is not compatible, update NVDA to 2026.1 or newer.",
       "After restart, open Tools → Add-on Store and make sure the add-on is enabled.",
       "If terms still read as symbols (like J slash g), contact your instructor or campus accessibility office. Tell them your NVDA version and the file name above.",

@@ -138,6 +138,8 @@ export function downloadTextFile(filename, content, mimeType = "text/plain;chars
   link.download = filename;
   document.body.appendChild(link);
   link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  setTimeout(() => {
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, 2000);
 }

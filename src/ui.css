@@ -1336,6 +1336,17 @@ mark.ss-hit.low { background: var(--low); }
   font-family: inherit;
   line-height: 1.45;
 }
+.hs-lab-paste-notice {
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--medium, #d29922);
+  border-left-width: 3px;
+  border-radius: 6px;
+  background: rgba(210, 153, 34, 0.12);
+  color: var(--text);
+}
 .hs-lab-paste-actions {
   display: flex;
   gap: 8px;

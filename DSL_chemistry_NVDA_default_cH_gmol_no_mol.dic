@@ -485,5 +485,7 @@ mechanical work\s?=\s?total chemical energy\s?[×x*]\s?efficiency	mechanical wor
 Effective heat capacity \(J/°C\)\s?=\s?\(Mass of H₂O\s?[×x*]\s?cH₂O\)\s?\+\s?\(mass of excess H₂\s?[×x*]\s?cH₂\)	Effective heat capacity in jools per degree Celsius equals mass of H two O times c of H two O plus mass of excess H two times c of H two	0	1
 # full effective heat capacity equation with plain-number formulas
 Effective heat capacity \(J/°C\)\s?=\s?\(Mass of H2O\s?[×x*]\s?cH2O\)\s?\+\s?\(mass of excess H2\s?[×x*]\s?cH2\)	Effective heat capacity in jools per degree Celsius equals mass of H two O times c of H two O plus mass of excess H two times c of H two	0	1
+# Google Docs equation paste: numerator/denominator glued on copy (e.g. 29 dogs30 rats)
+(\d+\s+[^\d\n]+?)(?<=[a-zA-Z])(\d+\s+[^\d\n]+)	\1 divided by \2	0	1
 # Division symbol
 ÷	divided by	0	0

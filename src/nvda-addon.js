@@ -212,8 +212,11 @@ export function downloadBlob(filename, blob) {
   link.download = filename;
   document.body.appendChild(link);
   link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  // Revoke after the browser has started reading the blob (immediate revoke can corrupt downloads).
+  setTimeout(() => {
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, 2000);
 }
 
 /** Gap between back-to-back browser downloads (avoids multi-download warnings). */

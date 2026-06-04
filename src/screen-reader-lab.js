@@ -15,7 +15,11 @@ import {
 import { ruleCount, dictionarySource } from "./core/dictionary.js";
 import { findTokens } from "./core/detect.js";
 import { analyze, toDictionarySpeechByLine, canvasSpokenLinesFromText, formatDictionarySpeechHtmlByLine } from "./core/transform.js";
-import { normalizePastedContent, pasteDataFromEvent } from "./core/paste-normalize.js";
+import {
+  normalizePastedContent,
+  inspectPasteFromEvent,
+  FLATTENED_GDOCS_EQUATION_NOTICE,
+} from "./core/paste-normalize.js";
 import { insertAtCursor } from "./fraction-builder.js";
 import { createHearController } from "./hear-ui.js";
 import { helpTip, bindHelpTips } from "./help-tip.js";
@@ -27,6 +31,8 @@ Calculate q = mcΔT. Report energy in kJ/mol.`;
 
 const HELP = {
   paste: `<p>Paste from Google Docs, Word, or Canvas — HearSay normalizes subscripts and glued variables (<code>qcalorimeter</code>, <code>T2</code>).</p>
+    <p><b>Google Docs equations</b> lose their fraction bar on copy (e.g. <code>29 dogs30 rats</code>). HearSay inserts “divided by” and the course dictionary speaks it the same way.</p>
+    <p>For a visible numerator and denominator with a horizontal line, build the fraction in <b>Canvas’s equation editor</b> for New Quizzes (or the Google Docs equation editor for drafts only — add a spoken cue for students).</p>
     <p><b>With dictionary</b> uses HearSay’s full speech engine (dictionary + term detection), not raw NVDA rule substitution alone.</p>`,
   without: `<p>What students see on screen. NVDA without a course dictionary reads symbols literally (e.g. “J slash g degree C”).</p>`,
   with: `<p>Simulated NVDA speech after your course dictionary rules run — same engine HearSay uses for previews.</p>`,
@@ -85,6 +91,7 @@ export async function mountScreenReaderLab(root, { base = ".." } = {}) {
       <section class="hs-lab-card" aria-labelledby="hs-lab-paste-h">
         <h2 id="hs-lab-paste-h" class="hs-lab-card-title">Paste quiz text ${helpTip(HELP.paste)}</h2>
         <textarea id="hs-lab-input" class="ss-input hs-lab-textarea" rows="8" placeholder="Paste plain text from a New Quiz stem or answer…"></textarea>
+        <p id="hs-lab-paste-notice" class="hs-lab-paste-notice hidden" role="status" aria-live="polite"></p>
         <div class="hs-lab-paste-actions">
           <button type="button" class="ss-btn" id="hs-lab-sample">Load sample</button>
           <button type="button" class="ss-btn" id="hs-lab-clear">Clear</button>
@@ -135,6 +142,17 @@ export async function mountScreenReaderLab(root, { base = ".." } = {}) {
   const changedEl = root.querySelector("#hs-lab-changed");
   const tokenEmpty = root.querySelector("#hs-lab-token-empty");
   const tokenList = root.querySelector("#hs-lab-token-list");
+  const pasteNotice = root.querySelector("#hs-lab-paste-notice");
+
+  function showPasteNotice(message) {
+    if (!message) {
+      pasteNotice.classList.add("hidden");
+      pasteNotice.textContent = "";
+      return;
+    }
+    pasteNotice.textContent = message;
+    pasteNotice.classList.remove("hidden");
+  }
 
   function updateConnectNote() {
     const card = root.querySelector(".hs-lab-card");
@@ -284,19 +302,25 @@ export async function mountScreenReaderLab(root, { base = ".." } = {}) {
     if (classSelect.value) loadDictionaryForCourse(classSelect.value);
   });
 
-  input.addEventListener("input", refreshDebounced);
+  input.addEventListener("input", () => {
+    showPasteNotice(null);
+    refreshDebounced();
+  });
   input.addEventListener("paste", (e) => {
     e.preventDefault();
-    const pasted = pasteDataFromEvent(e);
-    insertAtCursor(input, normalizePastedContent(pasted));
+    const { normalized, flattenedEquation } = inspectPasteFromEvent(e);
+    insertAtCursor(input, normalized);
+    showPasteNotice(flattenedEquation ? FLATTENED_GDOCS_EQUATION_NOTICE : null);
     refreshPreview();
   });
   root.querySelector("#hs-lab-sample").addEventListener("click", () => {
     input.value = SAMPLE;
+    showPasteNotice(null);
     refreshPreview();
   });
   root.querySelector("#hs-lab-clear").addEventListener("click", () => {
     input.value = "";
+    showPasteNotice(null);
     refreshPreview();
   });
 
