@@ -42,7 +42,7 @@ jobs:
           HEARSAY_SUPABASE_URL: ${{ vars.HEARSAY_SUPABASE_URL }}
           HEARSAY_SUPABASE_ANON_KEY: ${{ secrets.HEARSAY_SUPABASE_ANON_KEY }}
           HEARSAY_COURSE_ID: ${{ vars.HEARSAY_COURSE_ID }}
-        run: node tools/build-pages.mjs
+        run: npm run build:pages
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

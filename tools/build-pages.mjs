@@ -1,5 +1,5 @@
 // Assemble static files for GitHub Pages into _site/
-import { cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { join } from "node:path";
 
@@ -15,6 +15,13 @@ execSync("npm run build:user-guide", { stdio: "inherit", cwd: ROOT });
 for (const item of ["index.html", "playground", "dictionary", "lab", "src", "dist", "docs"]) {
   cpSync(join(ROOT, item), join(OUT, item), { recursive: true });
 }
+
+const extensionZip = join(OUT, "dist", "hearsay-chrome-extension.zip");
+if (!existsSync(extensionZip)) {
+  console.error("Missing extension zip after build:", extensionZip);
+  process.exit(1);
+}
+console.log(`Extension zip ready for Pages: ${extensionZip} (${statSync(extensionZip).size} bytes)`);
 
 // Optional Supabase config for read-only auto-load (anon key only — safe to publish with RLS).
 const url = process.env.HEARSAY_SUPABASE_URL?.trim();
