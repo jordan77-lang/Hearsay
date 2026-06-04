@@ -1,7 +1,9 @@
 node_modules/
 _site/
 dist/
+test-document/
 *.pdf
+!docs/HearSay-Author-User-Guide.pdf
 *.docx
 supabase/config.local.json
 supabase/config.public.json

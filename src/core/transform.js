@@ -32,9 +32,17 @@ import {
   wordSuperscriptSpeech,
   gluedToken,
 } from "./vars.js";
-import { applyDictionary, segmentForComposition, withEmptyDictionary } from "./dictionary.js";
+import {
+  applyDictionary,
+  segmentForComposition,
+  ruleCount,
+  lookup,
+  ruleForVisibleToken,
+} from "./dictionary.js";
+import { defaultSrSpeakVisible, defaultSrVisibleSegments, LAB_DEFAULT_SR_PUNCTUATION_LEVEL } from "./default-sr-speech.js";
+import { labSpeechNeedsGap } from "./lab-speech-gap.js";
 import { parseLatex } from "./latex.js";
-import { normalizePastedContent } from "./paste-normalize.js";
+import { normalizeBaselinePaste, normalizePastedContent } from "./paste-normalize.js";
 
 // A dictionary reading is only trustworthy for a token when it consumes the
 // WHOLE token into words. Partial matches (e.g. "H2"->"H two" inside
@@ -332,15 +340,36 @@ function compositionSpoken(seg) {
   return normalizeMathMinusSpeech(applyUnitLexiconToPlainText(seg.spoken ?? seg.text));
 }
 
+/** Insert a space when dictionary segments would otherwise glue (10milliliters, wordperiod). */
+function needsCompositionGap(left, right) {
+  return labSpeechNeedsGap(left, right);
+}
+
+function stitchCompositionSpoken(segments, speakFn) {
+  let out = "";
+  for (const seg of segments) {
+    const spoken = speakFn(seg);
+    const piece = spoken != null && spoken !== "" ? String(spoken) : seg.text ?? "";
+    if (!piece) continue;
+    if (out && needsCompositionGap(out, piece)) out += " ";
+    out += piece;
+  }
+  return out;
+}
+
+/** Normalize hyphens in math to unicode minus for NVDA symbol segmentation. */
+export function normalizeMathMinusVisible(text) {
+  if (!text) return text;
+  let s = String(text);
+  s = s.replace(/(?<=\s)-(?=\s)/g, "\u2212");
+  s = s.replace(/(?<=[0-9Ttvxn])-(?=[0-9Ttvxn])/gi, "\u2212");
+  return s;
+}
+
 /** Speak unicode or ASCII minus in math contexts without breaking chemistry prefixes like -OH. */
 export function normalizeMathMinusSpeech(text) {
   if (!text) return text;
-  let s = String(text).replace(/\u2212/g, " minus ");
-  // Spaced hyphen (typical in pasted equations).
-  s = s.replace(/(?<=\s)-(?=\s)/g, " minus ");
-  // Hyphen between math tokens (e.g. 100-50, T2-T1) — not word hyphens like DI-water.
-  s = s.replace(/(?<=[0-9Ttvxn])-(?=[0-9Ttvxn])/gi, " minus ");
-  return s;
+  return normalizeMathMinusVisible(text).replace(/\u2212/g, " minus ");
 }
 
 function ariaHide(mathml) {
@@ -477,9 +506,7 @@ function canvasSpokenLine(normalized, findings) {
   let spoken = "";
   let cursor = 0;
   const stitch = (chunk) =>
-    segmentForComposition(chunk)
-      .map((s) => compositionSpoken(s))
-      .join("");
+    stitchCompositionSpoken(segmentForComposition(chunk), (seg) => compositionSpoken(seg));
   for (const f of marked) {
     spoken += stitch(normalized.slice(cursor, f.start));
     spoken += f.primarySpoken ?? stitch(normalized.slice(f.start, f.end));
@@ -622,6 +649,7 @@ export function canvasSpokenFromText(text) {
 
 /** One composed spoken string per input line (for line-by-line Hear preview). */
 export function canvasSpokenLinesFromText(text) {
+  if (ruleCount() === 0) return canvasSpokenLinesFromLiteralText(text);
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length === 0) return [];
   return lines.map((line) => {
@@ -652,6 +680,7 @@ export function toDictionarySpeech(text) {
 
 /** Same as toDictionarySpeech but keeps blank lines and one spoken line per input line. */
 export function toDictionarySpeechByLine(text) {
+  if (ruleCount() === 0) return toBaselineSpeechByLine(text);
   const normalized = normalizePastedContent(text);
   const spoken = canvasSpokenLinesFromText(text);
   let i = 0;
@@ -665,61 +694,417 @@ function normSpeech(s) {
   return String(s).replace(/\s+/g, " ").trim().toLowerCase();
 }
 
-function wrapLabSpeech(changed, spoken) {
-  const esc = escapeHtml(spoken);
-  return changed ? `<strong class="hs-lab-speech-changed">${esc}</strong>` : esc;
+/** @typedef {(kind: 'baseline'|'dict', raw: string, spoken: string) => number|null} LabTokenLinkResolver */
+
+/** @type {{ resolve: LabTokenLinkResolver } | null} */
+let activeLabTokenLinkResolver = null;
+
+/** Wire speech-column highlights to flagged-token ids for one preview render. */
+export function setLabTokenLinkResolver(resolver) {
+  activeLabTokenLinkResolver = resolver;
 }
 
-/** Gap text: highlight each segment matched by a composition dictionary rule. */
-function stitchSpeechHtml(chunk) {
-  if (!chunk) return "";
-  return segmentForComposition(chunk)
-    .map((seg) => {
-      const spoken = compositionSpoken(seg);
-      return wrapLabSpeech(seg.spoken !== null, spoken);
+/**
+ * @param {Array<{ id?: number, raw: string, spoken: string, kind: 'baseline'|'dict' }>} tokens
+ */
+export function createLabTokenLinkResolver(tokens) {
+  const list = tokens.map((t, i) => ({ ...t, id: t.id ?? i }));
+  const cursors = { baseline: 0, dict: 0 };
+  return {
+    tokens: list,
+    resolve(kind, raw, spoken) {
+      const lit = String(raw ?? "")
+        .replace(/\s+/g, " ")
+        .trim();
+      const sp = String(spoken ?? "")
+        .replace(/\s+/g, " ")
+        .trim();
+      const start = cursors[kind] ?? 0;
+      for (let i = start; i < list.length; i++) {
+        const t = list[i];
+        if (t.kind === kind && t.raw === lit && t.spoken === sp) {
+          cursors[kind] = i + 1;
+          return t.id;
+        }
+      }
+      return null;
+    },
+  };
+}
+
+/** @param {"plain"|"baseline"|"dict"} kind */
+function wrapLabSpeechKind(kind, spoken, rawDisplay) {
+  const esc = escapeHtml(spoken);
+  if (kind === "dict" || kind === "baseline") {
+    const id = activeLabTokenLinkResolver?.resolve(kind, rawDisplay, spoken);
+    const cls = kind === "dict" ? "hs-lab-speech-dict" : "hs-lab-speech-baseline";
+    if (id != null) {
+      return `<span class="${cls} hs-lab-speech-link" data-lab-token="${id}" role="button" tabindex="0" title="Jump to flagged token">${esc}</span>`;
+    }
+    return `<span class="${cls}">${esc}</span>`;
+  }
+  return esc;
+}
+
+/** Student-visible characters for a normalized analyze slice (no internal brace markup). */
+function labVisibleSlice(text) {
+  let s = normalizeBaselinePaste(text);
+  // analyze() uses q_{calorimeter} markers — show glued text students see.
+  s = s.replace(/([A-Za-z])_\{([A-Za-z][A-Za-z0-9]*)\}/g, "$1$2");
+  return s;
+}
+
+/**
+ * Typical screen reader on plain visible text: number–unit spacing and minus
+ * wording only — no speech dictionary, no HearSay unit lexicon or formula speech.
+ */
+function literalPlainSpeech(text) {
+  if (!text) return "";
+  return normalizeMathMinusSpeech(normalizeNumberUnitSpacing(text));
+}
+
+/** Saved class dictionary pronunciation for a single composed segment. */
+function classDictSegmentSpoken(seg) {
+  if (!seg.spoken) return null;
+  const out = normalizeMathMinusSpeech(String(seg.spoken).replace(/\s+/g, " ").trim());
+  return normSpeech(out) !== normSpeech(seg.text) ? out : null;
+}
+
+/** Default SR: NVDA factory symbols only — no HearSay lexicon or enrich(). */
+function defaultSrVisibleSpeech(rawSlice) {
+  const visible = labVisibleSlice(rawSlice);
+  if (!visible) return "";
+  return defaultSrSpeakVisible(normalizeMathMinusVisible(visible));
+}
+
+function defaultSrLinePlain(line) {
+  const visible = normalizeBaselinePaste(line);
+  if (!visible) return "";
+  return defaultSrSpeakVisible(normalizeMathMinusVisible(visible), LAB_DEFAULT_SR_PUNCTUATION_LEVEL);
+}
+
+/** @typedef {{ html: string, tail: string, afterSpokenSymbol: boolean }} LabHtmlState */
+
+function pushLabSpeech(state, literal, spoken, kind) {
+  const lit = String(literal ?? "");
+  if (!lit.trim()) return state;
+  const leadingWs = /^\s/.test(lit);
+  const litDisplay = lit.replace(/\s+/g, " ").trim();
+  const spokenNorm = String(spoken ?? litDisplay).replace(/\s+/g, " ").trim();
+  const differs = normSpeech(spokenNorm) !== normSpeech(litDisplay);
+  const show = differs ? spokenNorm : litDisplay;
+  if (state.tail && show) {
+    const needsSpace =
+      (leadingWs && !/\s$/.test(state.tail)) ||
+      (differs && kind && !/\s$/.test(state.tail)) ||
+      (state.afterSpokenSymbol && !/\s$/.test(state.tail)) ||
+      labSpeechNeedsGap(state.tail, show);
+    if (needsSpace) {
+      state.html += " ";
+      state.tail += " ";
+    }
+  }
+  if (differs && kind) {
+    state.html += wrapLabSpeechKind(kind, spokenNorm, litDisplay);
+  } else {
+    state.html += escapeHtml(litDisplay);
+  }
+  state.tail += show;
+  state.afterSpokenSymbol = Boolean(differs && kind);
+  return state;
+}
+
+function appendBaselineVisible(state, visible) {
+  const normalized = normalizeMathMinusVisible(String(visible ?? ""));
+  for (const seg of defaultSrVisibleSegments(normalized, LAB_DEFAULT_SR_PUNCTUATION_LEVEL)) {
+    pushLabSpeech(state, seg.display, seg.spoken, seg.changed ? "baseline" : null);
+  }
+  return state;
+}
+
+/** @typedef {{ id?: number, raw: string, spoken: string, kind: 'baseline'|'dict', pattern?: string, hasRule?: boolean }} LabFlaggedToken */
+
+function dictFlaggedMeta(raw) {
+  const rule = ruleForVisibleToken(raw);
+  return { pattern: rule?.pattern ?? raw, hasRule: Boolean(rule) };
+}
+
+function pushLabFlaggedToken(tokens, raw, spoken, kind) {
+  const litDisplay = String(raw ?? "").replace(/\s+/g, " ").trim();
+  const spokenNorm = String(spoken ?? litDisplay).replace(/\s+/g, " ").trim();
+  if (!litDisplay || !kind) return;
+  if (normSpeech(spokenNorm) === normSpeech(litDisplay)) return;
+  /** @type {LabFlaggedToken} */
+  const entry = { raw: litDisplay, spoken: spokenNorm, kind };
+  if (kind === "dict") Object.assign(entry, dictFlaggedMeta(litDisplay));
+  tokens.push(entry);
+}
+
+function collectBaselineVisible(tokens, visible) {
+  for (const seg of defaultSrVisibleSegments(visible, LAB_DEFAULT_SR_PUNCTUATION_LEVEL)) {
+    if (seg.changed) pushLabFlaggedToken(tokens, seg.display, seg.spoken, "baseline");
+  }
+}
+
+function collectDictionaryComposition(tokens, chunk) {
+  const visible = labVisibleSlice(chunk);
+  if (!visible) return;
+  for (const seg of segmentForComposition(visible)) {
+    const classSp = classDictSegmentSpoken(seg);
+    if (classSp) {
+      pushLabFlaggedToken(tokens, seg.text, classSp, "dict");
+    } else {
+      collectBaselineVisible(tokens, seg.text);
+    }
+  }
+}
+
+function collectDictionaryEnrichedFinding(tokens, f, rawSlice) {
+  const visible = labVisibleSlice(rawSlice);
+  if (!visible) return;
+  const dictSp =
+    dictWholeReading(visible) ??
+    (f.type === "described-var" ? dictWholeReading(gluedToken(f.base, f.sub)) : null) ??
+    (f.type === "described-var" ? dictWholeReading(`${f.base}_${f.sub}`) : null);
+  if (dictSp && normSpeech(dictSp) !== normSpeech(visible)) {
+    pushLabFlaggedToken(tokens, visible, dictSp, "dict");
+    return;
+  }
+  const spoken = String(enrich(f).primarySpoken ?? visible)
+    .replace(/\s+/g, " ")
+    .trim();
+  if (normSpeech(spoken) !== normSpeech(visible)) {
+    pushLabFlaggedToken(tokens, visible, spoken, "dict");
+  } else {
+    collectBaselineVisible(tokens, visible);
+  }
+}
+
+function collectDictionaryLineFlaggedTokens(line, tokens) {
+  const pre = normalizeNumberUnitSpacing(line);
+  const { findings, normalizedText } = analyze(pre, findTokens);
+  const marked = canvasMarkedFindings(findings);
+  let cursor = 0;
+  for (const f of marked) {
+    collectDictionaryComposition(tokens, normalizedText.slice(cursor, f.start));
+    collectDictionaryEnrichedFinding(tokens, f, normalizedText.slice(f.start, f.end));
+    cursor = f.end;
+  }
+  collectDictionaryComposition(tokens, normalizedText.slice(cursor));
+}
+
+function collectBaselineLineFlaggedTokens(line, tokens) {
+  const pre = normalizeNumberUnitSpacing(line);
+  const { findings, normalizedText } = analyze(pre, findTokens);
+  const sorted = [...findings].sort((a, b) => a.start - b.start);
+  let cursor = 0;
+  for (const f of sorted) {
+    collectBaselineVisible(tokens, labVisibleSlice(normalizedText.slice(cursor, f.start)));
+    collectBaselineVisible(tokens, labVisibleSlice(normalizedText.slice(f.start, f.end)));
+    cursor = f.end;
+  }
+  collectBaselineVisible(tokens, labVisibleSlice(normalizedText.slice(cursor)));
+}
+
+/**
+ * Tokens in passage order where speech differs from on-screen text.
+ * Blue (baseline) = default NVDA; green (dict) = saved class dictionary (when active).
+ */
+export function labFlaggedSpeechTokens(text, { classDictActive = false } = {}) {
+  const normalized = normalizePastedContent(text);
+  /** @type {LabFlaggedToken[]} */
+  const tokens = [];
+  for (const line of normalized.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    if (classDictActive) {
+      collectDictionaryLineFlaggedTokens(line, tokens);
+    } else {
+      collectBaselineLineFlaggedTokens(line, tokens);
+    }
+  }
+  return tokens.map((t, id) => ({ ...t, id }));
+}
+
+function appendDictionaryComposition(state, chunk) {
+  const visible = labVisibleSlice(chunk);
+  if (!visible) return state;
+  for (const seg of segmentForComposition(visible)) {
+    const classSp = classDictSegmentSpoken(seg);
+    if (classSp) {
+      pushLabSpeech(state, seg.text, classSp, "dict");
+    } else {
+      appendBaselineVisible(state, seg.text);
+    }
+  }
+  return state;
+}
+
+function appendDictionaryEnrichedFinding(state, f, rawSlice) {
+  const visible = labVisibleSlice(rawSlice);
+  if (!visible) return state;
+  const dictSp =
+    dictWholeReading(visible) ??
+    (f.type === "described-var" ? dictWholeReading(gluedToken(f.base, f.sub)) : null) ??
+    (f.type === "described-var" ? dictWholeReading(`${f.base}_${f.sub}`) : null);
+  if (dictSp && normSpeech(dictSp) !== normSpeech(visible)) {
+    pushLabSpeech(state, visible, dictSp, "dict");
+    return state;
+  }
+  const spoken = String(enrich(f).primarySpoken ?? visible)
+    .replace(/\s+/g, " ")
+    .trim();
+  if (normSpeech(spoken) !== normSpeech(visible)) {
+    pushLabSpeech(state, visible, spoken, "dict");
+  } else {
+    appendBaselineVisible(state, visible);
+  }
+  return state;
+}
+
+/** Dictionary column: class rules override default SR; same walk for HTML and Hear. */
+function walkLabDictionaryLine(line) {
+  const pre = normalizeNumberUnitSpacing(line);
+  const { findings, normalizedText } = analyze(pre, findTokens);
+  const marked = canvasMarkedFindings(findings);
+  let state = { html: "", tail: "", afterSpokenSymbol: false };
+  let cursor = 0;
+  for (const f of marked) {
+    appendDictionaryComposition(state, normalizedText.slice(cursor, f.start));
+    appendDictionaryEnrichedFinding(state, f, normalizedText.slice(f.start, f.end));
+    cursor = f.end;
+  }
+  appendDictionaryComposition(state, normalizedText.slice(cursor));
+  return state;
+}
+
+function formatDictionaryLineHtml(line) {
+  return walkLabDictionaryLine(line).html;
+}
+
+/** Plain speech for Lab dictionary column (default SR + class dictionary). */
+export function labDictionaryLinePlain(line) {
+  return walkLabDictionaryLine(line).tail.replace(/\s+/g, " ").trim();
+}
+
+/** Line-by-line Lab dictionary speech — matches the green/blue column and Hear. */
+export function toLabDictionarySpeechByLine(text) {
+  if (ruleCount() === 0) return toDefaultScreenReaderSpeechByLine(text);
+  const normalized = normalizePastedContent(text);
+  return normalized
+    .split(/\r?\n/)
+    .map((line) => (line.trim() ? labDictionaryLinePlain(line) : ""))
+    .join("\n");
+}
+
+function appendBaselineFinding(state, f, rawSlice) {
+  const visible = labVisibleSlice(rawSlice);
+  if (!visible) return state;
+  return appendBaselineVisible(state, visible);
+}
+
+function appendBaselineGap(state, rawSlice) {
+  const visible = labVisibleSlice(rawSlice);
+  if (!visible) return state;
+  return appendBaselineVisible(state, visible);
+}
+
+function formatBaselineGapHtml(chunk) {
+  const state = appendBaselineGap({ html: "", tail: "", afterSpokenSymbol: false }, chunk);
+  return state.html;
+}
+
+function formatBaselineFindingHtml(f, rawSlice) {
+  const state = appendBaselineFinding({ html: "", tail: "", afterSpokenSymbol: false }, f, rawSlice);
+  return state.html;
+}
+
+function formatLabSpeechLineHtml(line, column) {
+  if (column === "dictionary") return formatDictionaryLineHtml(line);
+  const pre = normalizeNumberUnitSpacing(line);
+  const { findings, normalizedText } = analyze(pre, findTokens);
+  const marked = canvasMarkedFindings(findings);
+  let state = { html: "", tail: "", afterSpokenSymbol: false };
+  let cursor = 0;
+  for (const f of marked) {
+    state = appendBaselineGap(state, normalizedText.slice(cursor, f.start));
+    state = appendBaselineFinding(state, f, normalizedText.slice(f.start, f.end));
+    cursor = f.end;
+  }
+  state = appendBaselineGap(state, normalizedText.slice(cursor));
+  return state.html;
+}
+
+/** One line of default screen-reader speech (student-visible characters only). */
+function baselineSpeechFromVisibleLine(line) {
+  const visible = normalizeBaselinePaste(line);
+  return literalPlainSpeech(visible).replace(/\s+/g, " ").trim();
+}
+
+function formatBaselineLineHtml(line) {
+  return formatLabSpeechLineHtml(line, "baseline");
+}
+
+/** One spoken line per input line — typical screen reader (no HearSay expansions). */
+export function canvasSpokenLinesFromLiteralText(text) {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length === 0) return [];
+  return lines.map((line) => baselineSpeechFromVisibleLine(line));
+}
+
+/** Plain speech for Lab “default screen reader” column (literal symbols, no HearSay expansions). */
+export function toBaselineSpeechByLine(text) {
+  const spoken = canvasSpokenLinesFromLiteralText(text);
+  let i = 0;
+  return String(text ?? "")
+    .split(/\r?\n/)
+    .map((line) => (line.trim() ? spoken[i++] ?? "" : ""))
+    .join("\n");
+}
+
+/** Default screen reader speech — matches Lab default column / Hear (line indices preserved). */
+export function toDefaultScreenReaderSpeechByLine(text) {
+  return String(text ?? "")
+    .split(/\r?\n/)
+    .map((line) => (line.trim() ? defaultSrLinePlain(line) : ""))
+    .join("\n");
+}
+
+/** Wrap line HTML for scrollable Lab columns and hear highlighting (data-line = input row index). */
+export function wrapLabSpeechOutputHtml(htmlByLine) {
+  return String(htmlByLine ?? "")
+    .split(/\r?\n/)
+    .map((lineHtml, lineIndex) => {
+      if (!lineHtml.trim()) {
+        return `<div class="hs-lab-output-line hs-lab-output-line-blank" data-line="${lineIndex}"></div>`;
+      }
+      return `<div class="hs-lab-output-line" data-line="${lineIndex}">${lineHtml}</div>`;
     })
     .join("");
 }
 
-/** Enriched token (formula, described-var, …): highlight when dictionary changes primarySpoken. */
-function findingSpeechHtml(f, rawSlice) {
-  const stitchPlain = (c) =>
-    segmentForComposition(c)
-      .map((s) => compositionSpoken(s))
-      .join("");
-  const spoken = f.primarySpoken ?? stitchPlain(rawSlice);
-  const baseline = withEmptyDictionary(() => {
-    const enriched = enrich(f);
-    return enriched.primarySpoken ?? stitchPlain(rawSlice);
-  });
-  return wrapLabSpeech(normSpeech(spoken) !== normSpeech(baseline), spoken);
-}
-
-function formatLabLineHtml(line) {
-  const pre = normalizeNumberUnitSpacing(line);
-  const { findings, normalizedText } = analyze(pre, findTokens);
-  const marked = canvasMarkedFindings(findings);
-  let html = "";
-  let cursor = 0;
-  for (const f of marked) {
-    html += stitchSpeechHtml(normalizedText.slice(cursor, f.start));
-    html += findingSpeechHtml(f, normalizedText.slice(f.start, f.end));
-    cursor = f.end;
-  }
-  html += stitchSpeechHtml(normalizedText.slice(cursor));
-  return html;
+/** Literal default screen-reader column (symbols such as mL stay as printed). */
+export function formatBaselineSpeechHtmlByLine(text) {
+  return wrapLabSpeechOutputHtml(
+    String(text ?? "")
+      .split(/\r?\n/)
+      .map((line) => (line.trim() ? formatBaselineLineHtml(line) : ""))
+      .join("\n"),
+  );
 }
 
 /**
- * Line-by-line dictionary speech with changed pronunciations wrapped in <strong>.
- * Highlights whole dictionary segments (not word-by-word diff).
+ * Line-by-line speech with class dictionary: green = saved class rule;
+ * blue = default screen reader when no class rule applies.
  */
 export function formatDictionarySpeechHtmlByLine(text) {
+  if (ruleCount() === 0) return formatBaselineSpeechHtmlByLine(text);
   const normalized = normalizePastedContent(text);
-  return normalized
-    .split(/\r?\n/)
-    .map((line) => (line.trim() ? formatLabLineHtml(line) : ""))
-    .join("\n");
+  return wrapLabSpeechOutputHtml(
+    normalized
+      .split(/\r?\n/)
+      .map((line) => (line.trim() ? formatDictionaryLineHtml(line) : ""))
+      .join("\n"),
+  );
 }
 
 // Normalize LaTeX for insert / parse (unicode subscripts, chem symbols, operators).

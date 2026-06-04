@@ -4,8 +4,20 @@ import assert from "node:assert/strict";
 import { parseFormula, formulaToSymbolSpeech, formulaToNameSpeech, formulaToMathML } from "../src/core/formula.js";
 import { findTokens } from "../src/core/detect.js";
 import { analyze, toSpokenText, toCanvasHtml, toDictionarySpeech, analyzeEquation, normalizeEquationInsert, canvasSpokenLinesFromText, canvasOutputHearLines } from "../src/core/transform.js";
-import { lookup, applyDictionary, ruleCount, loadDictionary, loadClassDictionary, dictionarySource, previewTermSpeech } from "../src/core/dictionary.js";
+import {
+  lookup,
+  applyDictionary,
+  ruleCount,
+  loadDictionary,
+  loadClassDictionary,
+  loadBundledChemistryDictionary,
+  dictionarySource,
+  previewTermSpeech,
+} from "../src/core/dictionary.js";
 import { DICTIONARY_DIC } from "../src/core/dictionary-data.js";
+
+// Most engine tests assume the bundled CHEM curriculum unless they replace rules explicitly.
+loadBundledChemistryDictionary();
 import { dicToRows, rowsToDic } from "../src/supabase/dictionary-format.js";
 import { normalizeNumberUnitSpacing } from "../src/core/math.js";
 import { parseLatex } from "../src/core/latex.js";
@@ -505,6 +517,13 @@ test("dictionary composition still speaks chem tokens NO and mL", () => {
   assert.match(toDictionarySpeech("The NO gas"), /N O gas/);
   assert.match(toDictionarySpeech("10 mL"), /milliliters/);
   assert.match(toDictionarySpeech("2NO"), /2 N O/);
+});
+
+test("English no and No are not spoken as chem N O", () => {
+  assert.match(toDictionarySpeech("No"), /No/);
+  assert.doesNotMatch(toDictionarySpeech("No"), /\bN O\b/);
+  assert.match(toDictionarySpeech("say no today"), /say no today/i);
+  assert.doesNotMatch(toDictionarySpeech("say no today"), /\bN O\b/);
 });
 
 test("dictionary composition speaks double and single bonds", () => {

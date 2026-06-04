@@ -1,7 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { parseImportText, normalizeImportRows, buildImportTemplateCsv, buildImportTemplateTsv } from "../src/dictionary-import.js";
+import {
+  parseImportText,
+  normalizeImportRows,
+  mergeImportRows,
+  buildImportTemplateCsv,
+  buildImportTemplateTsv,
+  parseImportFile,
+} from "../src/dictionary-import.js";
 
 test("parseImportText maps Pattern and Spoken headers", () => {
   const csv = "Pattern,Spoken,Note\nΔT,delta T,heat\n";
@@ -29,7 +36,25 @@ test("import template CSV parses with Pattern and Spoken headers", () => {
   assert.equal(rows[0].ignore_case, "Yes");
 });
 
-test("import template TSV parses", () => {
+test("parseImportFile rejects non-CSV files", async () => {
+  const tsvFile = { name: "terms.tsv" };
+  await assert.rejects(parseImportFile(tsvFile), /\.csv files from the ChatGPT Dictionary project/);
+});
+
+test("import template TSV still parses when read as TSV text (legacy)", () => {
   const rows = normalizeImportRows(parseImportText(buildImportTemplateTsv(), "tsv"));
   assert.equal(rows.length, 2);
+});
+
+test("mergeImportRows keeps existing and overrides by pattern", () => {
+  const merged = mergeImportRows(
+    [
+      { text: "mL", substitution: "old", ignore_case: "Yes" },
+      { text: "NO", substitution: "nitric oxide", ignore_case: "No" },
+    ],
+    [{ text: "mL", substitution: "milliliters", ignore_case: "Yes" }],
+  );
+  assert.equal(merged.length, 2);
+  assert.equal(merged.find((r) => r.text === "mL").substitution, "milliliters");
+  assert.equal(merged.find((r) => r.text === "NO").substitution, "nitric oxide");
 });

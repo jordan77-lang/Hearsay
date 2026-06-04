@@ -3,7 +3,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { entriesToRuleRows, rowsToDic, inferRuleType, mergeRuleRowsByPattern } from "../src/supabase/dictionary-format.js";
+import {
+  entriesToRuleRows,
+  ruleRowsToEntryRows,
+  rowsToDic,
+  inferRuleType,
+  mergeRuleRowsByPattern,
+} from "../src/supabase/dictionary-format.js";
 import {
   shouldMergeBundledBase,
   mergeRulesForCombined,
@@ -13,8 +19,33 @@ import {
   clearStoredSupabaseConfig,
   getStoredSupabaseConfig,
 } from "../src/supabase/dictionary-api.js";
-import { loadClassDictionary, loadDictionary, lookup, ruleCount } from "../src/core/dictionary.js";
+import { loadBareClassDictionary, loadDictionary, lookup, ruleCount } from "../src/core/dictionary.js";
 import { toDictionarySpeech } from "../src/core/transform.js";
+
+test("ruleRowsToEntryRows maps dictionary_rules back to editor rows", () => {
+  const entries = ruleRowsToEntryRows([
+    {
+      class_slug: "chem116",
+      pattern: "ΔT",
+      replacement: "delta T",
+      case_sensitive: false,
+      rule_type: 0,
+      comment: "heat",
+    },
+    {
+      class_slug: "chem116",
+      pattern: "(?<=\\d)mL",
+      replacement: "milliliters",
+      case_sensitive: 0,
+      rule_type: 1,
+    },
+  ]);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].text, "ΔT");
+  assert.equal(entries[0].substitution, "delta T");
+  assert.equal(entries[0].ignore_case, "Yes");
+  assert.equal(entries[0].note, "heat");
+});
 
 test("entriesToRuleRows maps Dictionary Builder columns", () => {
   const rows = entriesToRuleRows([
@@ -44,14 +75,20 @@ test("entriesToRuleRows maps Dictionary Builder columns", () => {
   assert.equal(rows[1].case_sensitive, true);
 });
 
-test("shouldMergeBundledBase applies to chem classes only", () => {
-  assert.equal(shouldMergeBundledBase("chem113"), true);
-  assert.equal(shouldMergeBundledBase("chem116"), true);
+test("shouldMergeBundledBase applies to demo dictionary only", () => {
+  assert.equal(shouldMergeBundledBase("demo"), true);
+  assert.equal(shouldMergeBundledBase("chem113"), false);
   assert.equal(shouldMergeBundledBase("bio181"), false);
 });
 
+test("empty chem class stays empty without bundled demo base", () => {
+  loadBareClassDictionary("chem116-empty");
+  assert.equal(ruleCount(), 0);
+  assert.notEqual(lookup("mL"), "milliliters");
+});
+
 test("chem113 entries CSV loads and overrides bundled speech", () => {
-  const csvPath = join(process.cwd(), "entries_rows.csv");
+  const csvPath = join(process.cwd(), "test/fixtures/entries_rows.csv");
   const raw = readFileSync(csvPath, "utf8");
   const lines = raw.trim().split(/\r?\n/).slice(1);
   const entries = lines.map((line) => {
@@ -80,10 +117,10 @@ test("chem113 entries CSV loads and overrides bundled speech", () => {
   assert.equal(rules.length, 148);
 
   const dic = rowsToDic(rules);
-  loadClassDictionary(dic, "supabase-entries:chem113");
-  assert.ok(ruleCount() > 200, "bundled base plus entries");
+  loadDictionary(dic, "supabase-entries:chem113");
+  assert.ok(ruleCount() >= 148, "class rows plus pinned helpers only");
+  assert.ok(ruleCount() < 220, "does not merge offline demo base");
   assert.equal(lookup("q_solution"), "q of solution");
-  assert.equal(toDictionarySpeech("q = mcΔT"), "q equals m c delta T");
 });
 
 test("mergeRulesForCombined works with entry-shaped rows", () => {

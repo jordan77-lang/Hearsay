@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>HearSay — ChatGPT Dictionary Project Guide</title>
+  <style>
+    :root { --navy: #183a5c; --accent: #2563eb; --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; }
+    * { box-sizing: border-box; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; font-size: 11pt; line-height: 1.5; color: var(--ink); max-width: 7.5in; margin: 0 auto; padding: 0.6in 0.75in; }
+    h1 { font-size: 20pt; color: var(--navy); margin: 0 0 0.25em; border-bottom: 3px solid var(--accent); padding-bottom: 0.2em; }
+    h2 { font-size: 14pt; color: var(--navy); margin: 1.4em 0 0.4em; page-break-after: avoid; }
+    h3 { font-size: 11.5pt; margin: 1em 0 0.35em; page-break-after: avoid; }
+    p { margin: 0.5em 0; }
+    .sub { color: var(--muted); font-size: 10pt; margin-bottom: 1.2em; }
+    .callout { background: #eff6ff; border-left: 4px solid var(--accent); padding: 0.65em 0.9em; margin: 0.8em 0; font-size: 10.5pt; }
+    .warn { background: #fffbeb; border-left-color: #d97706; }
+    table { width: 100%; border-collapse: collapse; margin: 0.6em 0; font-size: 10pt; }
+    th, td { border: 1px solid var(--line); padding: 0.35em 0.5em; text-align: left; vertical-align: top; }
+    th { background: #f1f5f9; }
+    code, pre { font-family: Consolas, "Courier New", monospace; font-size: 9.5pt; background: #f8fafc; }
+    pre { padding: 0.6em; border: 1px solid var(--line); overflow-x: auto; white-space: pre-wrap; }
+    ul, ol { margin: 0.4em 0; padding-left: 1.4em; }
+    li { margin: 0.25em 0; }
+    .page-break { page-break-before: always; }
+    @media print {
+      body { padding: 0.5in; }
+      a { color: var(--ink); text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>HearSay Class Pronunciation Dictionary</h1>
+<p class="sub">Full reference for ChatGPT Project · Instructors · Import into HearSay Dictionary Builder<br />
+Site: <strong>https://jordan77-lang.github.io/Hearsay/dictionary/</strong></p>
+
+<div class="callout">
+<strong>Purpose.</strong> This PDF is the <strong>detailed playbook</strong>. ChatGPT’s Instructions field is limited to 8,000 characters — use the short <code>INSTRUCTIONS-FOR-CHATGPT-PROJECT.txt</code> there and attach <strong>this document as PDF</strong> for full rules, discipline guides, and examples.
+</div>
+
+<h2>1. Set up the ChatGPT project</h2>
+<ol>
+  <li>Create a new <strong>Project</strong> in ChatGPT (or a custom GPT).</li>
+  <li>Save <strong>this guide as PDF</strong> and attach it under <strong>Project files / Knowledge</strong> (required).</li>
+  <li>Copy <code>INSTRUCTIONS-FOR-CHATGPT-PROJECT.txt</code> (under 8,000 characters) into <strong>Instructions</strong>.</li>
+  <li>Optional: attach <code>hearsay-dictionary-template.csv</code>.</li>
+  <li>Name the project <strong>HearSay Pronunciation Dictionary Builder</strong>.</li>
+</ol>
+
+<h2>2. What HearSay expects (import format)</h2>
+<p>HearSay Dictionary page → <strong>Template CSV</strong> or <strong>Import</strong>. The file must be UTF-8 CSV (or TSV) with a header row and these columns:</p>
+
+<table>
+  <thead>
+    <tr><th>Column</th><th>Required</th><th>Meaning</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Pattern</strong></td><td>Yes</td><td>Text as it appears in course materials — the misread token or phrase.</td></tr>
+    <tr><td><strong>Spoken</strong></td><td>Yes</td><td>What NVDA should say instead (plain words, no markup).</td></tr>
+    <tr><td><strong>Note</strong></td><td>No</td><td>Instructor reminder (source slide, lab, week).</td></tr>
+    <tr><td><strong>Ignore case</strong></td><td>No</td><td><code>Yes</code> (default) or <code>No</code>.</td></tr>
+  </tbody>
+</table>
+
+<p>Alternate header names accepted: <code>Text</code> / <code>Substitution</code>, <code>Term</code> / <code>Pronunciation</code>. Prefer <strong>Pattern</strong> and <strong>Spoken</strong>.</p>
+
+<h3>Example CSV</h3>
+<pre>Pattern,Spoken,Note,Ignore case
+ΔT,delta T,temperature change,Yes
+mL,milliliters,volume unit,Yes
+J/g°C,jools per gram degree Celsius,specific heat capacity unit,Yes
+kJ/mol,killuh jools per mol,molar energy unit,Yes
+H2O,H two O,water formula,Yes
+qsolution,q of solution,heat absorbed by solution,Yes</pre>
+
+<h2>3. Accuracy: no hallucinations, ask when unsure</h2>
+<div class="callout warn">
+<strong>Wrong audio hurts students.</strong> The ChatGPT project must not invent terms or guess pronunciations for names, jargon, or ambiguous symbols.
+</div>
+<h3>Ground every row</h3>
+<ul>
+  <li><strong>Pattern</strong> must appear in pasted course text, an explicit instructor list, or be labeled “suggested — confirm before import.”</li>
+  <li><strong>Spoken</strong> must follow instructor choice, stated department convention, or a standard you explain (e.g. “H two O” for H2O).</li>
+  <li>Do not bulk-fill hundreds of generic STEM rows the instructor did not ask for.</li>
+</ul>
+<h3>When pronunciation is unknown</h3>
+<ol>
+  <li>Do <strong>not</strong> put a guessed Spoken value in the final CSV.</li>
+  <li>Offer <strong>2–4 options</strong> in chat with brief rationale (e.g. art-history name, Italian term, acronym).</li>
+  <li>Ask: “Which should students hear? Reply A, B, or C (or type your own).”</li>
+  <li>Add the row to the CSV <strong>only after</strong> the instructor chooses.</li>
+  <li>If they cannot decide, omit the row and tell them to add it manually in HearSay later.</li>
+</ol>
+<h3>Always clarify first</h3>
+<ul>
+  <li>Proper nouns (artists, species, places)</li>
+  <li>Ambiguous abbreviations (MS, IV, BA)</li>
+  <li>Institutional / lab-specific coinages</li>
+  <li>Regional preferences (joules vs jools)</li>
+</ul>
+
+<h2>4. Project files vs instructor PDF (who uploads what)</h2>
+
+<h3>Project owner uploads once (ChatGPT → Project → Files)</h3>
+<ul>
+  <li><strong>This guide as PDF</strong> — full rules (required)</li>
+  <li><strong>hearsay-dictionary-template.csv</strong> — column format (required)</li>
+  <li><strong>example-output-snippet.csv</strong> — style reference (recommended)</li>
+  <li>Put <code>INSTRUCTIONS-FOR-CHATGPT-PROJECT.txt</code> in the <strong>Instructions</strong> field only — not as a project file</li>
+</ul>
+
+<h3>Instructor uploads each course (in the chat)</h3>
+<ul>
+  <li><strong>Course PDF</strong> — syllabus, lab manual, slide export, textbook chapter</li>
+  <li>Optional: pasted quiz text if the PDF is scanned/image-only or equations extract badly</li>
+</ul>
+
+<p>HearSay does <strong>not</strong> read PDFs today. ChatGPT is the PDF-scan step; HearSay is the import, edit, test, and NVDA export step.</p>
+
+<h2>5. PDF-first workflow (end to end)</h2>
+<ol>
+  <li>Instructor opens the project and <strong>attaches the course PDF</strong> (or pastes text).</li>
+  <li>ChatGPT <strong>scans for pronunciation risks</strong>: abbreviations, units, formulas, symbols, subscripts, proper nouns, field jargon — not every English word.</li>
+  <li>ChatGPT shows a <strong>draft term list</strong> in chat (with page refs). Uncertain terms get <strong>2–4 pronunciation options</strong>; instructor picks before CSV.</li>
+  <li>ChatGPT delivers <strong>confirmed CSV only</strong>.</li>
+  <li>Instructor saves CSV (e.g. <code>chem113-pronunciations.csv</code>).</li>
+  <li>HearSay → <strong>Dictionary</strong> → ☁ Connect → <strong>Import</strong> → ▶ review rows → <strong>Save class</strong>.</li>
+  <li>Refine in HearSay over the term; use <strong>Screen Reader Lab</strong> to test plain quiz text.</li>
+  <li><strong>Download for students</strong> → NVDA add-on + install PDF (NVDA <strong>2026.1+</strong>).</li>
+  <li>Students install once; test in Notepad: <code>kJ/mol</code>, <code>10 mL</code>, <code>J/g°C</code>.</li>
+</ol>
+
+<h3>What to scan for in a PDF</h3>
+<table>
+  <thead><tr><th>Look for</th><th>Example</th><th>Often misread as</th></tr></thead>
+  <tbody>
+    <tr><td>Units</td><td>mL, g, mol, J/g°C</td><td>letters/symbols literally</td></tr>
+    <tr><td>Formulas</td><td>H2O, NaCl, CuSO4</td><td>word fragments</td></tr>
+    <tr><td>Greek / symbols</td><td>ΔT, μL, →</td><td>unknown symbol</td></tr>
+    <tr><td>Variables</td><td>T2, qsolution</td><td>English words</td></tr>
+    <tr><td>Acronyms</td><td>DI, ORS, NADH</td><td>spelled wrong</td></tr>
+    <tr><td>Names / jargon</td><td>artist names, Latin terms</td><td>guess — offer choices</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warn">
+<strong>PDF extraction limits.</strong> Image-only PDFs, equations, and fraction layouts may not extract cleanly. Ask for a text paste of quiz stems or export from Canvas/Word. Do not invent terms that are not in the document.
+</div>
+
+<div class="callout warn">
+<strong>Google Docs equations</strong> do not copy correctly into HearSay. Fractions lose the horizontal bar and may glue together (e.g. <code>29 dogs30 rats</code>). Instructors should use <strong>Canvas equation editor</strong> for student-facing fractions, or add explicit spoken cues in plain text. The Screen Reader Lab can preview plain-text speech.
+</div>
+
+<h2 class="page-break">6. How to write Pattern and Spoken</h2>
+
+<h3>6.1 Pattern = “what the computer sees”</h3>
+<ul>
+  <li>Copy from real stems, not from memory.</li>
+  <li>Include symbols exactly: <code>J/g°C</code>, not “joules per gram C”.</li>
+  <li>Add separate rows for variants: <code>DI water</code>, <code>DIwater</code>, <code>DI-water</code>.</li>
+  <li>Subscripts in plain text: <code>T2</code>, <code>T₂</code>, <code>qcalorimeter</code>, <code>q_solution</code> — each may need its own row.</li>
+</ul>
+
+<h3>6.2 Spoken = “what the ear should hear”</h3>
+<ul>
+  <li>Lowercase prose unless capitalization matters.</li>
+  <li>Separate words with spaces: <code>jools per gram degree Celsius</code>.</li>
+  <li>Chemical formulas: letter + count: <code>H two O</code>, <code>C U S O 4</code>.</li>
+  <li>Variables: <code>T of 2</code>, <code>q of solution</code>, <code>capital C of calorimeter</code>.</li>
+  <li>Greek: <code>delta T</code>, <code>delta H</code>.</li>
+  <li>Avoid IPA symbols in Spoken unless testing with a specific voice; use phonetic English.</li>
+</ul>
+
+<h3>6.3 Ignore case</h3>
+<p>Use <strong>Yes</strong> for units, formulas, and symbols. Use <strong>No</strong> when case distinguishes terms (e.g. capital <code>M</code> for molarity in “3 M HCl” → spoken <code>moh lurr</code>).</p>
+
+<h2>7. Discipline-specific guidance (for the ChatGPT model)</h2>
+
+<h3>Chemistry &amp; physics</h3>
+<table>
+  <thead><tr><th>Pattern type</th><th>Example pattern</th><th>Example spoken</th></tr></thead>
+  <tbody>
+    <tr><td>Energy</td><td>kJ/mol</td><td>killuh jools per mol</td></tr>
+    <tr><td>Compound unit</td><td>J/g°C</td><td>jools per gram degree Celsius</td></tr>
+    <tr><td>Volume</td><td>mL</td><td>milliliters</td></tr>
+    <tr><td>Formula</td><td>NaCl</td><td>sodium chloride</td></tr>
+    <tr><td>Formula (letters)</td><td>CuSO4</td><td>C U S O 4</td></tr>
+    <tr><td>State</td><td>(aq)</td><td>open parenthesis aqueous close parenthesis</td></tr>
+    <tr><td>Variable</td><td>qsolution</td><td>q of solution</td></tr>
+    <tr><td>Reaction</td><td>→</td><td>yields</td></tr>
+  </tbody>
+</table>
+<p>Chemistry classes in HearSay can merge <strong>bundled regex rules</strong> for units after numbers (e.g. <code>10 mL</code>). Instructor CSV should still list important literals and phrases.</p>
+
+<h3>Biology</h3>
+<ul>
+  <li>Latin species names: slow phonetic English (<code>Homo sapiens</code> → <code>HO mo SAP ee enz</code> — confirm with instructor).</li>
+  <li>Gene / allele notation: avoid breaking English words; only pattern real tokens from materials.</li>
+  <li>Units: μL, g, mL same as chemistry.</li>
+  <li>Pathway acronyms: spell (<code>NADH</code> → <code>N A D H</code>).</li>
+</ul>
+
+<h3>Mathematics</h3>
+<ul>
+  <li>Prefer Canvas equation editor for stacked fractions.</li>
+  <li>Plain text: <code>x^2</code> → <code>x squared</code>; <code>Δx</code> → <code>delta x</code>.</li>
+  <li>Parentheses: spoken <code>open parenthesis</code> / <code>close parenthesis</code> when symbols are skipped.</li>
+  <li>Do not pattern entire equations unless they appear verbatim and misread.</li>
+</ul>
+
+<h3>Art history</h3>
+<ul>
+  <li>Artist names and titles: offer 2–4 spoken options; add to CSV only after instructor picks.</li>
+  <li>Movements and periods: confirm pronunciation (e.g. Baroque) — do not guess.</li>
+</ul>
+
+<h3>Music theory</h3>
+<ul>
+  <li>Italian terms and dynamics: offer options or ask instructor preference.</li>
+  <li>Chords and Roman numerals: context matters — clarify before CSV.</li>
+</ul>
+
+<h3>Sample “pick a pronunciation” prompt for instructors</h3>
+<pre>The term "Caravaggio" appears in my Week 4 reading. Give me 3 spoken options
+for NVDA and ask me to choose before adding it to the CSV.</pre>
+
+<h2 class="page-break">8. Prompts instructors can use in the project</h2>
+
+<h3>Start from a course PDF (preferred)</h3>
+<pre>I teach [COURSE NAME]. Discipline: [chemistry / biology / etc.].
+Students use NVDA on Windows. I attached our [syllabus / lab manual / slides] PDF.
+Scan it for pronunciation risks (units, formulas, symbols, acronyms, jargon, names).
+Show a draft term list with page refs. Offer 2–4 spoken options for anything uncertain.
+After I confirm choices, output one HearSay CSV (Pattern, Spoken, Note, Ignore case).</pre>
+
+<h3>Start from pasted text</h3>
+<pre>I teach [COURSE NAME]. Discipline: [chemistry / biology / etc.].
+Students use NVDA on Windows. Build a HearSay import CSV (Pattern, Spoken, Note, Ignore case).
+Here is sample text from my quiz:
+[PASTE TEXT]</pre>
+
+<h3>Expand an existing list</h3>
+<pre>Add rows for these terms only. Output full updated CSV with header.
+Terms: kJ/mol, J/g°C, qcalorimeter, DI water, ΔT
+[PASTE ANY EXTRA CONTEXT]</pre>
+
+<h3>Review for gaps</h3>
+<pre>Review this CSV for missing chemistry units, subscripts, and Greek letters.
+Suggest up to 15 new rows. Output complete CSV.
+[PASTE CURRENT CSV]</pre>
+
+<h2>9. Quality checklist (ChatGPT before delivery)</h2>
+<ul>
+  <li>Header row exactly: Pattern, Spoken, Note, Ignore case</li>
+  <li>No blank Pattern or Spoken cells</li>
+  <li>Every Pattern grounded in instructor text or explicit approval</li>
+  <li>Uncertain terms confirmed via choices — not guessed in CSV</li>
+  <li>Spoken is natural TTS English, not abbreviations unless intentional</li>
+  <li>No regex in Pattern unless instructor is advanced</li>
+  <li>Includes test phrases for student Notepad check</li>
+  <li>Notes cite source when possible</li>
+  <li>Short summary: how many rows from paste vs confirmed choices vs omitted pending</li>
+</ul>
+
+<h2>10. What ChatGPT should not do</h2>
+<ul>
+  <li>Output HearSay HTML, Canvas markup, or NVDA .dic files unless explicitly asked.</li>
+  <li>Promise fixes inside Google Docs equation objects.</li>
+  <li>Replace institution-wide accessibility process — dictionary supplements good authoring.</li>
+  <li>Use IPA in Spoken column without instructor approval.</li>
+  <li>Guess pronunciations for proper nouns or ambiguous symbols</li>
+  <li>Present uncertain terms as final CSV rows without instructor choice</li>
+  <li>Invent terms that never appeared in course materials</li>
+</ul>
+
+<h2>11. After import on HearSay</h2>
+<ol>
+  <li>Use ▶ on rows to hear preview (Web Speech approximates NVDA; real test is NVDA).</li>
+  <li>Use Screen Reader Lab to paste plain quiz text and compare with/without dictionary.</li>
+  <li>Export NVDA add-on; bump version each term.</li>
+  <li>Post add-on + student install PDF on Canvas.</li>
+</ol>
+
+<p class="sub" style="margin-top:2em;">HearSay · Pronunciation dictionary for screen-reader students · Template columns match Dictionary Builder import.</p>
+
+</body>
+</html>

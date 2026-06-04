@@ -1,17 +1,54 @@
 // Supabase dictionary CRUD: per-class rules + merged "all" course.
 
 import { createSupabaseClient, loadConfigFromPaths } from "./client.js";
-import { addonEntriesToRows, entriesToRuleRows, mergeRuleRowsByPattern, normalizeRuleRow, normalizeRuleRows, rowClassId, rowsToDic, inferRuleType } from "./dictionary-format.js";
-import { loadClassDictionary, loadDictionary, ruleCount } from "../core/dictionary.js";
+import {
+  addonEntriesToRows,
+  entriesToRuleRows,
+  mergeRuleRowsByPattern,
+  normalizeRuleRow,
+  normalizeRuleRows,
+  rowClassId,
+  rowsToDic,
+  inferRuleType,
+  ruleRowsToEntryRows,
+} from "./dictionary-format.js";
+import {
+  loadBareClassDictionary,
+  loadBundledChemistryDictionary,
+  loadClassDictionary,
+  loadDictionary,
+  ruleCount,
+} from "../core/dictionary.js";
+import { notifySupabaseConnectionChanged } from "../dictionary-sync.js";
 
 export const COMBINED_COURSE_ID = "all";
 
-/** Class slugs that merge Supabase rows on the bundled CHEM .dic (Phase 1). */
-const BUNDLED_MERGE_PREFIXES = ["chem"];
+/** Built-in bundled chemistry sample — works offline; not stored in Supabase. */
+export const DEMO_DICTIONARY_ID = "demo";
+export const DEMO_DICTIONARY_LABEL = "Demo dictionary (sample chemistry)";
+
+export function isDemoDictionaryId(classSlug) {
+  return String(classSlug ?? "") === DEMO_DICTIONARY_ID;
+}
+
+/** True for real Supabase classes (not demo, not combined "all"). */
+export function isDeletableClassSlug(classSlug) {
+  const slug = String(classSlug ?? "").trim();
+  return Boolean(slug && slug !== COMBINED_COURSE_ID && !isDemoDictionaryId(slug));
+}
+
+/** True only for the offline demo dictionary — real classes use their own rows only. */
+export function includesBundledBaseByDefault(classSlug) {
+  return shouldMergeBundledBase(classSlug);
+}
 
 export function shouldMergeBundledBase(classSlug) {
-  const slug = String(classSlug ?? "").toLowerCase();
-  return BUNDLED_MERGE_PREFIXES.some((p) => slug.startsWith(p));
+  return isDemoDictionaryId(classSlug);
+}
+
+/** @deprecated alias — bundled merge is demo-only */
+export function shouldMergeBundledForClass(classSlug, _classRuleCount = 0) {
+  return shouldMergeBundledBase(classSlug);
 }
 
 const ENTRY_COLUMNS = "class_slug,text,substitution,app,ignore_case,note,position";
@@ -459,28 +496,40 @@ export function createDictionaryApi(config) {
     return { count: merged.length };
   }
 
-  async function loadCourseDictionary(classSlug) {
-    const { rows, source, rulesTableMissing, fromEntries } = await fetchRulesWithMeta(classSlug);
-    if (!rows.length) {
+  async function loadCourseDictionary(classSlug, { mergeBundled } = {}) {
+    if (isDemoDictionaryId(classSlug)) {
+      loadBundledChemistryDictionary("demo");
       return {
-        ruleCount: 0,
+        ruleCount: ruleCount(),
+        classRuleCount: 0,
+        source: "demo",
+        skipped: false,
+        courseId: classSlug,
+        rulesTableMissing: false,
+        fromEntries: false,
+        mergedBundled: true,
+        mergeBundled: true,
+      };
+    }
+
+    const { rows, source, rulesTableMissing, fromEntries } = await fetchRulesWithMeta(classSlug);
+    const sourceLabel = fromEntries ? `supabase-entries:${classSlug}` : `supabase:${classSlug}`;
+    if (!rows.length) {
+      loadBareClassDictionary(`${sourceLabel}-empty`);
+      return {
+        ruleCount: ruleCount(),
         classRuleCount: 0,
         source: "remote-empty",
         skipped: true,
         courseId: classSlug,
         rulesTableMissing,
         fromEntries: false,
+        mergedBundled: false,
+        mergeBundled: false,
       };
     }
     const raw = rowsToDic(rows);
-    const sourceLabel = fromEntries ? `supabase-entries:${classSlug}` : `supabase:${classSlug}`;
-    if (classSlug === COMBINED_COURSE_ID) {
-      loadDictionary(raw, sourceLabel);
-    } else if (shouldMergeBundledBase(classSlug)) {
-      loadClassDictionary(raw, sourceLabel);
-    } else {
-      loadDictionary(raw, sourceLabel);
-    }
+    loadDictionary(raw, sourceLabel);
     return {
       ruleCount: ruleCount(),
       classRuleCount: rows.length,
@@ -488,7 +537,8 @@ export function createDictionaryApi(config) {
       courseId: classSlug,
       rulesTableMissing,
       fromEntries: Boolean(fromEntries),
-      mergedBundled: classSlug !== COMBINED_COURSE_ID && shouldMergeBundledBase(classSlug),
+      mergedBundled: false,
+      mergeBundled: false,
     };
   }
 
@@ -521,6 +571,33 @@ export function createDictionaryApi(config) {
     }
   }
 
+  /** When entries is empty, show legacy dictionary_rules rows in the editor until Save class. */
+  async function hydrateEntriesFromLegacyRules(entriesByClass, classes) {
+    const legacyClassSlugs = [];
+    await probeRulesTable();
+    if (!rulesTableState?.exists) return { entriesByClass, legacyClassSlugs };
+    const col = ruleFilterColumn();
+    const ruleRows =
+      (await queryRulesTable(`${col}=neq.${encodeURIComponent(COMBINED_COURSE_ID)}`)) ?? [];
+    const bySlug = new Map();
+    for (const row of ruleRows) {
+      const slug = rowClassId(row);
+      if (!slug || slug === COMBINED_COURSE_ID) continue;
+      if (!bySlug.has(slug)) bySlug.set(slug, []);
+      bySlug.get(slug).push(row);
+    }
+    for (const c of classes) {
+      const slug = c.slug;
+      if ((entriesByClass[slug]?.length ?? 0) > 0) continue;
+      const legacy = ruleRowsToEntryRows(bySlug.get(slug) ?? []);
+      if (legacy.length) {
+        entriesByClass[slug] = legacy;
+        legacyClassSlugs.push(slug);
+      }
+    }
+    return { entriesByClass, legacyClassSlugs };
+  }
+
   /** Load all classes and entries for the embedded Dictionary Builder. */
   async function pullEntriesWorkspace() {
     const table = await probeEntriesTable();
@@ -545,7 +622,12 @@ export function createDictionaryApi(config) {
         note: r.note ?? "",
       });
     }
-    return { classes, entriesByClass };
+    const hydrated = await hydrateEntriesFromLegacyRules(entriesByClass, classes);
+    return {
+      classes,
+      entriesByClass: hydrated.entriesByClass,
+      legacyClassSlugs: hydrated.legacyClassSlugs,
+    };
   }
 
   /** Replace all entries for a class (Dictionary Builder Save Active Class). */
@@ -600,7 +682,9 @@ export function createDictionaryApi(config) {
       .toLowerCase()
       .replace(/[^a-z0-9_-]+/g, "-")
       .replace(/^-+|-+$/g, "");
-    if (!slug || slug === COMBINED_COURSE_ID) throw new Error("Invalid class id.");
+    if (!slug || slug === COMBINED_COURSE_ID || isDemoDictionaryId(slug)) {
+      throw new Error("Invalid class id.");
+    }
 
     const displayLabel = label || slug;
 
@@ -636,6 +720,82 @@ export function createDictionaryApi(config) {
     return { id: slug, label: displayLabel, sort_order };
   }
 
+  /** Update class metadata (label, file_prefix, addon_defaults) in Supabase. */
+  async function updateClassMeta(classSlug, { label, file_prefix, addon_defaults } = {}) {
+    const slug = String(classSlug ?? "").trim();
+    if (!isDeletableClassSlug(slug)) {
+      throw new Error("Cannot update this class.");
+    }
+    const body = {};
+    if (label != null) body.label = String(label).trim();
+    if (file_prefix != null) body.file_prefix = String(file_prefix).trim();
+    if (addon_defaults != null) body.addon_defaults = addon_defaults;
+    if (!Object.keys(body).length) return { slug };
+
+    try {
+      await client.rest(`classes?slug=eq.${encodeURIComponent(slug)}`, {
+        method: "PATCH",
+        body,
+        prefer: "return=minimal",
+      });
+      return { slug, ...body };
+    } catch (err) {
+      const courseBody = {};
+      if (label != null) courseBody.label = String(label).trim();
+      if (Object.keys(courseBody).length) {
+        await client.rest(`courses?id=eq.${encodeURIComponent(slug)}`, {
+          method: "PATCH",
+          body: courseBody,
+          prefer: "return=minimal",
+        });
+        return { slug, ...courseBody };
+      }
+      throw err;
+    }
+  }
+
+  async function deleteCourse(classSlug) {
+    const slug = String(classSlug ?? "").trim();
+    if (!isDeletableClassSlug(slug)) {
+      throw new Error("Cannot delete this class.");
+    }
+
+    const entriesTable = await probeEntriesTable();
+    if (entriesTable.exists) {
+      await client.rest(`entries?class_slug=eq.${encodeURIComponent(slug)}`, {
+        method: "DELETE",
+        prefer: "return=minimal",
+      });
+    }
+
+    const rulesTable = await probeRulesTable();
+    if (rulesTable.exists) {
+      const col = ruleFilterColumn();
+      await client.rest(`dictionary_rules?${col}=eq.${encodeURIComponent(slug)}`, {
+        method: "DELETE",
+        prefer: "return=minimal",
+      });
+    }
+
+    try {
+      await client.rest(`classes?slug=eq.${encodeURIComponent(slug)}`, {
+        method: "DELETE",
+        prefer: "return=minimal",
+      });
+    } catch (err) {
+      try {
+        await client.rest(`courses?id=eq.${encodeURIComponent(slug)}`, {
+          method: "DELETE",
+          prefer: "return=minimal",
+        });
+      } catch {
+        throw err;
+      }
+    }
+
+    return { id: slug };
+  }
+
   return {
     client,
     listCourses,
@@ -646,6 +806,8 @@ export function createDictionaryApi(config) {
     rebuildCombinedDictionary,
     loadCourseDictionary,
     createCourse,
+    updateClassMeta,
+    deleteCourse,
     probeRulesTable,
     probeEntriesTable,
     fetchEntriesForClass,
@@ -731,14 +893,16 @@ export function setStoredSupabaseConfig({ url, anonKey }) {
       anonKey: String(anonKey ?? "").trim(),
     }),
   );
+  notifySupabaseConnectionChanged();
 }
 
 export function clearStoredSupabaseConfig() {
   if (typeof localStorage === "undefined") return;
   localStorage.removeItem(SUPABASE_CONFIG_STORAGE_KEY);
+  notifySupabaseConnectionChanged();
 }
 
-export function getStoredCourseId(fallback = "chem113") {
+export function getStoredCourseId(fallback = DEMO_DICTIONARY_ID) {
   if (typeof localStorage === "undefined") return fallback;
   return (
     localStorage.getItem(COURSE_STORAGE_KEY) ||
@@ -754,10 +918,22 @@ export function setStoredCourseId(courseId) {
 }
 
 export async function tryLoadRemoteDictionary(config, courseId) {
-  if (!config?.url || !config?.anonKey) {
-    return { ok: false, reason: "no-config" };
+  const id = courseId ?? config?.courseId ?? getStoredCourseId();
+  if (isDemoDictionaryId(id)) {
+    loadBundledChemistryDictionary("demo");
+    return {
+      ok: true,
+      courseId: id,
+      source: "demo",
+      ruleCount: ruleCount(),
+      classRuleCount: 0,
+      mergedBundled: true,
+      config,
+    };
   }
-  const id = courseId ?? config.courseId ?? getStoredCourseId();
+  if (!config?.url || !config?.anonKey) {
+    return { ok: false, reason: "no-config", courseId: id };
+  }
   try {
     const api = createDictionaryApi(config);
     const result = await api.loadCourseDictionary(id);

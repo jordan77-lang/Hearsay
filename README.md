@@ -1,6 +1,6 @@
 # HearSay
 
-An authoring assistant that helps course authors make **Canvas content**
+An authoring assistant that helps course authors make **course content**
 pronounceable by screen readers — **without requiring students to edit their own
 screen-reader dictionaries.**
 
@@ -75,9 +75,9 @@ spoken). HearSay loads **`entries` first** when you reload a class. Legacy
 on top. CHEM classes (`chem113`, …) still merge on the bundled `.dic` base;
 other class slugs use Supabase rows only.
 
-**Site pages:** [Canvas Translate](playground/) (paste, hear, copy Canvas HTML), [Dictionary](dictionary/)
-(embedded Builder: edit `entries`, import CSV, Advanced NVDA/JAWS/VoiceOver exports),
-and landing [index.html](index.html). Connect once per browser — legacy
+**Site pages:** [Dictionary](dictionary/) (edit `entries`, import CSV, NVDA/JAWS/VoiceOver exports),
+[Screen Reader Lab](lab/) (test plain quiz speech), and landing [index.html](index.html).
+Canvas Translate (`playground/`) remains in the repo but is hidden from the UI until re-enabled in `src/site-config.js`. Connect once per browser — legacy
 [external Builder](https://jordan77-lang.github.io/screenreader/dictionary-builder.html)
 credentials (`screenReaderBackendUrl` / `screenReaderBackendAnonKey`) migrate to HearSay automatically.
 
@@ -109,7 +109,7 @@ npm run push:dict
 | `npm run push:dict` | Upload `.dic` → Supabase (service role) |
 | `npm run pull:dict` | Download Supabase → `.dic` + rebuild bundled JS |
 | `npm run sync:dict` | Rebuild combined `all` dictionary (service role) |
-| `npm run serve` | Local dev at `http://localhost:8123/` (Canvas Translate at `/playground/`) |
+| `npm run serve` | Local dev at `http://localhost:8123/` |
 
 **Local dev:** `supabase/config.local.json` can auto-load URL + anon key so you
 do not have to paste them every time. The **Chrome extension zip** does not
@@ -153,22 +153,20 @@ Canvas `</>` editor) or the accessible-text version.
 
 ```
 manifest.json            Chrome extension (MV3) manifest
-src/
-  core/
-    lexicon.js           Chemistry data: elements, units, symbols, states
-    formula.js           Chemical-formula parser + spoken/MathML renderers
-    detect.js            Offset-aware detection engine (non-overlapping)
-    transform.js         Findings -> suggestions, analyze(), spoken-text builder
-  speech.js              Web Speech API wrapper (before/after preview)
-  ui.js / ui.css         Shared UI (used by side panel + playground)
-  background.js          Opens the side panel on toolbar click
-  sidepanel.html/.js     Extension side panel (+ "pull selection from page")
-playground/index.html    Standalone demo (no install needed)
-test/engine.test.mjs     Node tests for the engine
+playground/              Canvas Translate (hidden from nav; set SHOW_CANVAS_TRANSLATE in site-config)
+lab/                     Screen Reader Lab (raw vs dictionary speech)
+dictionary/              Class dictionary editor + NVDA export
+src/                     App logic (core engine, UI, Supabase, lab, dictionary)
+tools/                   build-dictionary, build-pages, pack-extension, serve, Supabase CLI
+test/                    Node test suite; test/fixtures/ sample Supabase export CSV
+docs/chatgpt-dictionary-project/  Instructor ChatGPT project files (optional)
 ```
 
-The engine has **no dependencies** and runs unchanged in the extension, the
-playground, and Node.
+The engine has **no npm dependencies** and runs unchanged in the extension,
+Lab, Dictionary, extension side panel, and Node tests.
+
+`npm run build:doc` regenerates `test-document/index.html` locally (gitignored)
+for manual screen-reader listening checks.
 
 ---
 
@@ -208,18 +206,27 @@ npm run build:pages
 npm run serve
 ```
 
-Open `http://localhost:8123/` for the landing page, or `http://localhost:8123/playground/` for Canvas Translate.
+Open `http://localhost:8123/` for the landing page, **Screen Reader Lab** at `/lab/`, or **Dictionary** at `/dictionary/`.
 
 ### Web app
 
-Open **Canvas Translate** from the landing page, or `/playground/`. Click **Load sample** and **Analyze**.
+Use **Screen Reader Lab** and **Dictionary** from the landing page. Canvas Translate (`/playground/`) is available for development when enabled in `src/site-config.js`.
 
 ### Chrome extension
 
-1. Download `dist/hearsay-chrome-extension.zip` from the landing page (or run `npm run pack:extension`).
-2. Extract the zip, then visit `chrome://extensions`, enable **Developer mode**.
-3. **Load unpacked** → select the extracted folder.
-4. Click the HearSay toolbar icon; use **Pull selection from page** in Canvas.
+Requires **Chrome 116+** (Manifest V3 side panel).
+
+Download **`dist/hearsay-chrome-extension.zip`** from the site.
+
+1. Extract the zip to a folder you will keep (must contain `manifest.json` at the top level).
+2. Open `chrome://extensions` → **Developer mode** → **Load unpacked** → select that extracted folder (not the .zip).
+3. Pin HearSay and open the **side panel** from the toolbar icon.
+4. **☁ Connect** once (Supabase URL + anon key — stored in the extension).
+5. Side panel: **Screen Reader Lab** (paste / **Pull from page**) and **Dictionary** (edit terms, NVDA export). **Save class** reloads the in-memory dictionary for that class in Lab (website: also across open tabs). In the extension, Lab reloads when that tab is open; otherwise open Lab once after saving.
+
+**Pull from page** reads the course tab you have open (not the welcome tab). Click that page first, select text, then Pull.
+
+After you change extension files locally, run `npm run pack:extension` again and use **Load unpacked** on the same extracted folder (or re-extract the new zip).
 
 ### Tests
 

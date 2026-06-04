@@ -87,6 +87,10 @@ drop policy if exists "courses anon update" on public.courses;
 create policy "courses anon update"
   on public.courses for update to anon using (id <> 'all') with check (id <> 'all');
 
+drop policy if exists "courses anon delete" on public.courses;
+create policy "courses anon delete"
+  on public.courses for delete to anon using (id <> 'all');
+
 drop policy if exists "courses auth write" on public.courses;
 create policy "courses auth write"
   on public.courses for all to authenticated using (true) with check (true);

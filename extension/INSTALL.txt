@@ -1,0 +1,10 @@
+HearSay Chrome extension — install (Windows / Mac)
+
+1. Extract hearsay-chrome-extension.zip to a folder you will keep (manifest.json must be at the top level).
+2. chrome://extensions → Developer mode ON → Load unpacked → select that extracted folder (not the .zip).
+3. Pin HearSay → open the side panel → Connect once in the panel.
+4. Lab tab: Pull from page on your course site. Dictionary tab: edit + NVDA export.
+
+Optional: INSTALL.bat (Windows) or INSTALL-Mac.command (Mac) opens chrome://extensions and this folder.
+
+Pull reads the course tab you have open — click that tab first, not the welcome tab.

@@ -1,9 +1,9 @@
 // Export class entries for NVDA, JAWS, and Apple VoiceOver.
 
-import { buildMergedExportDic } from "./core/dictionary.js";
+import { buildMergedExportDic, mergeBundledWithClassRules } from "./core/dictionary.js";
 import { DICTIONARY_DIC } from "./core/dictionary-data.js";
 import { parseDicLine } from "./supabase/dictionary-format.js";
-import { shouldMergeBundledBase } from "./supabase/dictionary-api.js";
+import { shouldMergeBundledBase, shouldMergeBundledForClass } from "./supabase/dictionary-api.js";
 
 function sanitize(value) {
   return String(value ?? "").trim();
@@ -70,7 +70,8 @@ export function buildNvdaDic(rows, { regexEntries = [] } = {}) {
     const note = sanitize(row.note);
     if (note) output.push(`# ${note}`);
     const caseSensitive = normalizeIgnoreCase(row.ignore_case) === "No" ? 1 : 0;
-    output.push(`${text}\t${replacement}\t${caseSensitive}\t${estimateNvdaType(text)}`);
+    const type = row.rule_type != null ? Number(row.rule_type) : estimateNvdaType(text);
+    output.push(`${text}\t${replacement}\t${caseSensitive}\t${type}`);
   }
   for (const entry of regexEntries) {
     for (const c of entry.comments ?? []) output.push(`# ${c}`);
@@ -79,6 +80,11 @@ export function buildNvdaDic(rows, { regexEntries = [] } = {}) {
     );
   }
   return output.join("\r\n");
+}
+
+/** Pronunciation rows in the offline chem demo base (export merge, not regex). */
+export function bundledExportRowCount() {
+  return mergeBundledWithClassRules([]).length;
 }
 
 /** Regex-only entries from bundled chem .dic (type 1). */
@@ -109,11 +115,11 @@ export function bundledRegexEntries() {
   return entries;
 }
 
-/** NVDA regex rules: Supabase addon_defaults first, else bundled chem fallback. */
-export function resolveExportRegexEntries(classSlug, addonDefaults) {
+/** NVDA regex rules: addon_defaults first; bundled chem fallback only when merging demo base. */
+export function resolveExportRegexEntries(classSlug, addonDefaults, { useBundledFallback = true } = {}) {
   const fromAddon = addonDefaults?.nvdaRegexEntries ?? [];
   if (fromAddon.length) return fromAddon;
-  if (shouldMergeBundledBase(classSlug)) return bundledRegexEntries();
+  if (useBundledFallback && shouldMergeBundledBase(classSlug)) return bundledRegexEntries();
   return [];
 }
 
@@ -121,11 +127,15 @@ export function resolveExportRegexEntries(classSlug, addonDefaults) {
  * Full .dic for student install: merges bundled chem base when applicable.
  * @param {Array<{text,substitution,ignore_case,note}>} rows
  */
-export function buildExportNvdaDic(rows, { classSlug, regexEntries = [], mergeBundled } = {}) {
-  const useBundled = mergeBundled ?? shouldMergeBundledBase(classSlug);
+export function buildExportNvdaDic(rows, { classSlug, regexEntries = [], mergeBundled = false } = {}) {
+  const useBundled =
+    mergeBundled && shouldMergeBundledForClass(classSlug, (rows ?? []).filter((r) => r.text && r.substitution).length);
   if (useBundled) {
     const classOnly = buildNvdaDic(rows);
-    return buildMergedExportDic(classOnly);
+    const merged = buildMergedExportDic(classOnly);
+    if (!regexEntries.length) return merged;
+    const regexBlock = buildNvdaDic([], { regexEntries });
+    return `${merged}\r\n${regexBlock}`;
   }
   return buildNvdaDic(rows, { regexEntries });
 }

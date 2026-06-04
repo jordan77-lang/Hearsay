@@ -1,4 +1,4 @@
-// Import CSV/TSV rows for Dictionary Builder (Pattern / Spoken columns).
+// Import CSV rows from the ChatGPT Dictionary project (Pattern / Spoken / Note / Ignore case).
 
 function sanitize(value) {
   return String(value ?? "").trim();
@@ -118,6 +118,20 @@ export function buildImportTemplateCsv() {
 }
 
 /** Same columns as CSV, tab-separated (for Excel paste or TSV import). */
+/** Merge import into existing rows; imported patterns override matching text. */
+export function mergeImportRows(existing, imported) {
+  const byPattern = new Map();
+  for (const r of existing ?? []) {
+    const key = sanitize(r.text);
+    if (key) byPattern.set(key, r);
+  }
+  for (const r of imported ?? []) {
+    const key = sanitize(r.text);
+    if (key) byPattern.set(key, r);
+  }
+  return [...byPattern.values()];
+}
+
 export function buildImportTemplateTsv() {
   const header = ["Pattern", "Spoken", "Note", "Ignore case"];
   const samples = [
@@ -127,14 +141,24 @@ export function buildImportTemplateTsv() {
   return [header.join("\t"), ...samples.map((row) => row.join("\t"))].join("\r\n");
 }
 
+export function isHearSayImportCsvFile(file) {
+  const name = String(file?.name ?? "").toLowerCase();
+  return name.endsWith(".csv");
+}
+
 export function parseImportFile(file) {
-  const name = file.name.toLowerCase();
-  const format = name.endsWith(".tsv") ? "tsv" : "csv";
+  if (!isHearSayImportCsvFile(file)) {
+    return Promise.reject(
+      new Error(
+        "Import only supports .csv files from the ChatGPT Dictionary project (Pattern, Spoken, Note, Ignore case).",
+      ),
+    );
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const parsed = parseImportText(String(reader.result ?? ""), format);
+        const parsed = parseImportText(String(reader.result ?? ""), "csv");
         const normalized = normalizeImportRows(parsed);
         if (!normalized.length) {
           reject(new Error("No valid rows. Need Pattern/Text and Spoken/Substitution columns."));

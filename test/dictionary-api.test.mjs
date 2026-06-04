@@ -5,6 +5,10 @@ import {
   mergeRulesForCombined,
   guessRuleType,
   COMBINED_COURSE_ID,
+  DEMO_DICTIONARY_ID,
+  isDemoDictionaryId,
+  isDeletableClassSlug,
+  includesBundledBaseByDefault,
 } from "../src/supabase/dictionary-api.js";
 import { addonEntriesToRows } from "../src/supabase/dictionary-format.js";
 
@@ -21,6 +25,21 @@ test("mergeRulesForCombined dedupes by pattern across classes", () => {
   assert.equal(merged[0].pattern, "J/g°C");
   assert.equal(merged[0].replacement, "jools per gram degree Celsius");
   assert.equal(merged[2].pattern, "kPa");
+});
+
+test("demo dictionary id is offline-only", () => {
+  assert.equal(DEMO_DICTIONARY_ID, "demo");
+  assert.equal(isDemoDictionaryId("demo"), true);
+  assert.equal(isDemoDictionaryId("chem113"), false);
+  assert.equal(includesBundledBaseByDefault("chem113"), false);
+  assert.equal(includesBundledBaseByDefault("demo"), true);
+});
+
+test("isDeletableClassSlug blocks demo and combined", () => {
+  assert.equal(isDeletableClassSlug("chem113"), true);
+  assert.equal(isDeletableClassSlug("demo"), false);
+  assert.equal(isDeletableClassSlug(COMBINED_COURSE_ID), false);
+  assert.equal(isDeletableClassSlug(""), false);
 });
 
 test("guessRuleType picks whole word vs regex vs anywhere", () => {

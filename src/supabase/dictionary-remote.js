@@ -8,4 +8,8 @@ export {
   setStoredSupabaseConfig,
   clearStoredSupabaseConfig,
   COMBINED_COURSE_ID,
+  DEMO_DICTIONARY_ID,
+  DEMO_DICTIONARY_LABEL,
+  isDemoDictionaryId,
+  includesBundledBaseByDefault,
 } from "./dictionary-api.js";

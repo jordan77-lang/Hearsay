@@ -3,25 +3,51 @@
 import { mountSiteNav } from "./site-nav.js";
 import { openCloudSettingsModal } from "./supabase/cloud-settings.js";
 import {
+  isSupabaseConnected,
+  requireSupabaseConnection,
+  supabaseConnectMessage,
+} from "./supabase/connect-guard.js";
+import {
   createDictionaryApi,
   loadSupabaseConfigFromBrowser,
-  getStoredSupabaseConfig,
   setStoredSupabaseConfig,
   clearStoredSupabaseConfig,
   getStoredCourseId,
   setStoredCourseId,
   COMBINED_COURSE_ID,
+  DEMO_DICTIONARY_ID,
+  DEMO_DICTIONARY_LABEL,
+  isDemoDictionaryId,
+  isDeletableClassSlug,
+  shouldMergeBundledBase,
 } from "./supabase/dictionary-api.js";
-import { parseImportFile, buildImportTemplateCsv, buildImportTemplateTsv } from "./dictionary-import.js";
+import { DICTIONARY_DIC } from "./core/dictionary-data.js";
+import { dicToRows, entriesToRuleRows, rowsToDic } from "./supabase/dictionary-format.js";
+import { loadBareClassDictionary, loadBundledChemistryDictionary, loadEditorPreviewDictionary } from "./core/dictionary.js";
+import {
+  parseImportFile,
+  mergeImportRows,
+  buildImportTemplateCsv,
+} from "./dictionary-import.js";
+import { openStarterPronunciationsModal } from "./starter-pronunciations.js";
 import { filterRowIndices, parseSearchTerms } from "./dictionary-search.js";
-import { buildAppleCsv, buildJawsTsv, buildExportNvdaDic, buildNvdaDic, resolveExportRegexEntries, downloadTextFile } from "./dictionary-export.js";
+import {
+  buildAppleCsv,
+  buildJawsTsv,
+  buildExportNvdaDic,
+  buildNvdaDic,
+  bundledExportRowCount,
+  resolveExportRegexEntries,
+  downloadTextFile,
+} from "./dictionary-export.js";
 import {
   resolveAddonOptions,
   downloadNvdaAddon,
+  preloadNvdaAddonDeps,
   defaultAddonDefaults,
   countRegexInDic,
 } from "./nvda-addon.js";
-import { shouldMergeBundledBase } from "./supabase/dictionary-api.js";
+import { notifyDictionaryUpdated, onDictionaryUpdated } from "./dictionary-sync.js";
 import { helpTip, bindHelpTips } from "./help-tip.js";
 import { previewTermSpeech } from "./core/dictionary.js";
 import { createHearController } from "./hear-ui.js";
@@ -54,72 +80,116 @@ function suggestClassId(label) {
 }
 
 const HELP = {
-  pattern: `<p><b>Pattern</b> is the exact text in your course (as students see it in Canvas).</p>
+  pattern: `<p><b>Pattern</b> is the exact text in your course (as students see it on screen).</p>
     <p>Examples: <code>ΔT</code>, <code>mL</code>, <code>J/g°C</code>. The screen reader replaces each match with <b>Spoken</b>.</p>`,
   spoken: `<p><b>Spoken</b> is how you want a screen reader to say the pattern.</p>
     <p>Used in the Screen Reader Lab and saved to Supabase for your class dictionary.</p>`,
   note: `<p><b>Note</b> is optional — a reminder for authors only.</p>
     <p>Included in NVDA export files as a comment line; students never hear it.</p>`,
   case: `<p><b>Ignore case</b> is the NVDA dictionary setting for whether capitalization must match.</p>
+    <p>Chemistry classes still include bundled rules like uppercase <b>NO</b> (nitric oxide). English <b>no</b> / <b>No</b> are not changed. To override a bundled token, add a row with the same <b>Pattern</b> (for example <code>NO</code> → <code>no</code>).</p>
     <ul>
       <li><b>Yes</b> — <code>ml</code> and <code>mL</code> both match pattern <code>mL</code></li>
       <li><b>No</b> — only the exact capitalization in <b>Pattern</b> matches</li>
     </ul>`,
-  class: `<p><b>Class</b> is the course dictionary (e.g. CHEM 113). Rows save to that class in Supabase <code>entries</code>.</p>
-    <p><b>Pull</b> reloads from the cloud. <b>Save class</b> writes your table to Supabase. Unsaved edits are lost if you pull without saving.</p>
-    <p><b>+ Add class</b> creates a new empty class in Supabase, then switches to it.</p>`,
+  class: `<p><b>Demo dictionary</b> is a read-only offline sample. Pick your class after you connect.</p>
+    <p><b>Class</b> stores rows in Supabase <code>entries</code> (e.g. CHEM 113 / chem113).</p>
+    <p><b>Pull</b> reloads from the cloud. Table edits save automatically to Supabase and refresh <b>Screen Reader Lab</b>.</p>
+    <p><b>Save class</b> saves all rows again and refreshes the lab. <b>Edit class</b> updates the display name and file prefix.</p>
+    <p><b>+ Add class</b> / <b>Delete class</b> manage classes in Supabase.</p>`,
+  editClass: `<p>Update how this class appears in the dropdown and in exported file names.</p>
+    <ul>
+      <li><b>Display name</b> — shown in the course list (e.g. <code>CHEM 114</code>)</li>
+      <li><b>File prefix</b> — used in NVDA export file names (e.g. <code>chem114</code>)</li>
+      <li><b>Class id</b> — permanent slug in Supabase; cannot be changed here</li>
+    </ul>`,
   addClass: `<p>Create a new class in Supabase so you can add pronunciations for another course.</p>
     <ul>
       <li><b>Display name</b> — shown in the dropdown (e.g. <code>CHEM 114</code>)</li>
       <li><b>Class id</b> — short slug, letters/numbers only (e.g. <code>chem114</code>). Used in URLs and file names.</li>
     </ul>
-    <p>The new class starts empty. Add terms, then <b>Save class</b>.</p>`,
-  addTerm: `<p>Add one pronunciation row, then <b>Save class</b> to store it in Supabase.</p>
-    <p><b>▶ Hear</b> previews speech using your class dictionary plus this row (before you add or save).</p>
-    <p><b>Import</b> or download a template to add many rows at once from a spreadsheet.</p>`,
-  terms: `<p>All terms for the active class. Edit cells inline, then <b>Save class</b>.</p>
+    <p>After create, pick starter terms or <b>Start empty</b> — you will be asked to confirm saving the new class to Supabase.</p>`,
+  terms: `<p>All terms for the active class. Each edit saves automatically to Supabase and updates <b>Screen Reader Lab</b>.</p>
     <ul>
-      <li><b>Pattern</b> — text to match in Canvas</li>
+      <li><b>Pattern</b> — text to match in course materials</li>
       <li><b>Spoken</b> — pronunciation</li>
       <li><b>Note</b> — author comment (optional)</li>
       <li><b>Ignore case</b> — Yes or No</li>
-      <li><b>▶</b> hear row · <b>✕</b> delete</li>
+      <li><b>▶</b> hear row · <b>✕</b> delete (confirms, then saves)</li>
     </ul>`,
   search: `<p>Filter the table. Several words = <b>all</b> must appear (anywhere in the chosen fields).</p>
     <p><b>↑ ↓</b> or Enter / Shift+Enter jump between matches. <b>Clear</b> resets the filter.</p>`,
-  import: `<p><b>Template CSV/TSV</b> — blank file with the right columns and sample rows.</p>
-    <p><b>Import</b> — load a spreadsheet into this table (merged on top). Click <b>Save class</b> to push to Supabase.</p>`,
+  import: `<p><b>Template CSV</b> — same columns as the ChatGPT Dictionary project: Pattern, Spoken, Note, Ignore case.</p>
+    <p><b>Import</b> — load a <code>.csv</code> from ChatGPT (not TSV or Excel), then confirm saving to Supabase.</p>`,
   advanced: `<p>Optional files for NVDA, JAWS, or Apple VoiceOver dictionary tools.</p>`,
-  students: `<p><b>Download for students</b> builds install files from the current class table.</p>
-    <p><b>NVDA add-on</b> (recommended): one install for Windows students. Requires NVDA <b>2026.1+</b>.</p>
-    <p><b>Regex rules</b> handle chemistry units after numbers (e.g. <code>10 mL</code>, <code>J/g°C</code>). Chemistry classes merge the bundled regex set automatically.</p>
-    <p>Bump <b>Version</b> before each redistribution so students can update.</p>`,
+  students: `<p><b>NVDA add-on</b> (recommended): students usually <b>double-click</b> the file to install (NVDA <b>2026.1+</b>, Windows). The PDF also explains <b>Install from external source</b> in the Add-on Store if double-click fails.</p>
+    <p>Each class uses <b>only its own saved rows</b>. Use <b>Demo dictionary</b> in Screen Reader Lab to preview the offline chemistry sample. Preview your class in <b>Screen Reader Lab</b> before you share files.</p>
+    <p><b>Regex rules</b> cover units after numbers (e.g. <code>10 mL</code>). Bump <b>Version</b> when you redistribute an update.</p>`,
   connect: `<p>Your team Supabase <b>URL</b> and <b>anon key</b>. Stored in this browser only (same credentials as the legacy Dictionary Builder).</p>`,
 };
 
 /**
  * @param {HTMLElement} root
- * @param {{ base?: string, onDictionarySaved?: () => void }} opts
+ * @param {{ base?: string, context?: 'web'|'extension', onDictionarySaved?: () => void, onNavigate?: (view: 'lab'|'dictionary') => void }} opts
  */
-export async function mountDictionaryEditor(root, { base = "..", onDictionarySaved } = {}) {
+export async function mountDictionaryEditor(root, {
+  base = "..",
+  context = "web",
+  onDictionarySaved,
+  onNavigate,
+} = {}) {
+  const isExtension = context === "extension";
   let config = await loadSupabaseConfigFromBrowser();
   let api = config?.url && config?.anonKey ? createDictionaryApi(config) : null;
   let classProfiles = [];
   let entriesByClass = {};
+  let legacyEntrySlugs = new Set();
   let activeSlug = getStoredCourseId();
-  if (activeSlug === COMBINED_COURSE_ID) activeSlug = "chem113";
+  if (activeSlug === COMBINED_COURSE_ID) activeSlug = DEMO_DICTIONARY_ID;
   let filter = "";
   let searchField = "all";
   let searchHitIndex = -1;
   let statusMsg = "";
   let saving = false;
+  let savedRowsSnapshot = "[]";
+
+  function cloneRows(rows) {
+    return rows.map((r) => ({ ...r }));
+  }
+
+  function rememberSavedSnapshot(rows = getActiveRows()) {
+    savedRowsSnapshot = JSON.stringify(cloneRows(rows));
+  }
+
+  function notifyEditorSync(detail = {}) {
+    notifyDictionaryUpdated({ ...detail, source: "editor" });
+  }
+
+  function confirmSaveClass(actionDescription) {
+    const prof = getActiveProfile();
+    const label = prof?.label || activeSlug;
+    const rowCount = getActiveRows().filter(
+      (r) => String(r.text ?? "").trim() && String(r.substitution ?? "").trim(),
+    ).length;
+    const detail =
+      actionDescription ??
+      `This saves ${rowCount} pronunciation row${rowCount === 1 ? "" : "s"} for this class.`;
+    return window.confirm(
+      `Save "${label}" to Supabase?\n\n${detail}\n\n` +
+        "This updates the shared class dictionary for all authors and students using this class.",
+    );
+  }
 
   root.innerHTML = `
-    <div class="hs-site-nav-mount"></div>
+    ${isExtension ? "" : '<div class="hs-site-nav-mount"></div>'}
     <main class="ss-wrap hs-dict-editor">
-      <header class="hs-dict-editor-head">
-        <h1 class="ss-title hs-dict-editor-title">Dictionary ${helpTip("<p>Edit pronunciations for one class. After you <b>Save class</b>, export an NVDA add-on for students or test in the <b>Screen Reader Lab</b>.</p><p>Use <b>Pull</b> to reload from Supabase; <b>▶ Hear</b> to test before saving.</p>")}</h1>
-        <p class="ss-sub">Edit class pronunciations · save to Supabase · export NVDA add-ons for students</p>
+      <header class="hs-dict-editor-head ss-page-header">
+        <h1 class="ss-title hs-dict-editor-title">Dictionary ${helpTip("<p>Start with the <b>demo dictionary</b> offline, or connect and pick your class.</p><p><b>Save class</b> updates Supabase and refreshes <b>Screen Reader Lab</b> for that class. <b>▶ Hear</b> tests a row before save.</p>")}</h1>
+        <p class="ss-sub">Connect → edit your class → save → export the NVDA add-on and PDF for students.${
+          isExtension
+            ? ` Test speech in <button type="button" class="hs-inline-link hs-ext-nav-link" data-hs-ext-nav="lab">Screen Reader Lab</button>.`
+            : ""
+        }</p>
       </header>
 
       <section class="hs-dict-editor-card hs-dict-editor-connect" aria-labelledby="hs-dict-ed-connect-h">
@@ -130,19 +200,39 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
         <p id="hs-dict-ed-connect-note" class="ss-sub hs-dict-editor-connect-note"></p>
       </section>
 
-      <section class="hs-dict-editor-card" aria-label="Class and save">
+      <section class="hs-dict-editor-card" aria-label="Class, add terms, and import">
         <h2 class="hs-dict-editor-card-title hs-dict-editor-card-title-inline">Class ${helpTip(HELP.class)}</h2>
         <div class="hs-dict-editor-actions">
           <label class="hs-dict-editor-field hs-dict-editor-field-class">
             <span class="hs-dict-editor-label">Course</span>
             <select id="hs-dict-ed-class" class="ss-btn" disabled></select>
           </label>
+          <button type="button" class="ss-btn" id="hs-dict-ed-edit-class" disabled title="Edit display name and file prefix">Edit class</button>
           <button type="button" class="ss-btn" id="hs-dict-ed-add-class-toggle" disabled>+ Add class</button>
+          <button type="button" class="ss-btn ss-btn-danger" id="hs-dict-ed-delete-class" disabled title="Permanently delete this class from Supabase">Delete class</button>
           <div class="hs-dict-editor-action-btns">
             <button type="button" class="ss-btn" id="hs-dict-ed-pull" disabled title="Reload all classes from Supabase">Pull</button>
             <button type="button" class="ss-btn primary" id="hs-dict-ed-save" disabled>Save class</button>
           </div>
           <p id="hs-dict-ed-status" class="hs-dict-editor-status ss-type" aria-live="polite"></p>
+        </div>
+        <div id="hs-dict-ed-edit-class-panel" class="hs-dict-editor-new-class hidden" aria-labelledby="hs-dict-ed-edit-class-h">
+          <h3 id="hs-dict-ed-edit-class-h" class="hs-dict-editor-subtitle">Edit class ${helpTip(HELP.editClass)}</h3>
+          <div class="hs-dict-editor-new-class-row">
+            <label class="hs-dict-editor-field">
+              <span class="hs-dict-editor-label">Display name</span>
+              <input type="text" id="hs-dict-ed-edit-class-label" class="ss-input hs-dict-inline-input" placeholder="e.g. CHEM 114" autocomplete="off" />
+            </label>
+            <label class="hs-dict-editor-field">
+              <span class="hs-dict-editor-label">File prefix</span>
+              <input type="text" id="hs-dict-ed-edit-class-prefix" class="ss-input hs-dict-inline-input" placeholder="e.g. chem114" autocomplete="off" spellcheck="false" />
+            </label>
+            <p class="hs-dict-editor-class-id-note ss-type">Class id: <code id="hs-dict-ed-edit-class-slug"></code> (cannot change)</p>
+            <div class="hs-dict-editor-add-btns">
+              <button type="button" class="ss-btn primary" id="hs-dict-ed-save-class-meta">Save class info</button>
+              <button type="button" class="ss-btn" id="hs-dict-ed-cancel-edit-class">Cancel</button>
+            </div>
+          </div>
         </div>
         <div id="hs-dict-ed-new-class" class="hs-dict-editor-new-class hidden" aria-labelledby="hs-dict-ed-new-class-h">
           <h3 id="hs-dict-ed-new-class-h" class="hs-dict-editor-subtitle">New class ${helpTip(HELP.addClass)}</h3>
@@ -161,6 +251,41 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
             </div>
           </div>
         </div>
+        <div class="hs-dict-editor-class-workspace">
+          <h3 class="hs-dict-editor-subtitle">Add pronunciation</h3>
+          <div class="hs-dict-editor-add-row">
+            <label class="hs-dict-editor-field">
+              ${fieldLabel("Pattern", HELP.pattern)}
+              <input type="text" id="hs-dict-ed-new-pattern" class="ss-input hs-dict-inline-input" placeholder="e.g. ΔT" autocomplete="off" />
+            </label>
+            <label class="hs-dict-editor-field">
+              ${fieldLabel("Spoken", HELP.spoken)}
+              <input type="text" id="hs-dict-ed-new-spoken" class="ss-input hs-dict-inline-input" placeholder="e.g. delta T" autocomplete="off" />
+            </label>
+            <label class="hs-dict-editor-field hs-dict-editor-field-note">
+              ${fieldLabel("Note", HELP.note)}
+              <input type="text" id="hs-dict-ed-new-note" class="ss-input hs-dict-inline-input" placeholder="optional" autocomplete="off" />
+            </label>
+            <label class="hs-dict-editor-field hs-dict-editor-field-case">
+              ${fieldLabel("Ignore case", HELP.case)}
+              <select id="hs-dict-ed-new-case" class="ss-btn hs-dict-case-select" aria-label="Ignore case for new term">
+                <option value="Yes" selected>Yes</option>
+                <option value="No">No</option>
+              </select>
+            </label>
+            <div class="hs-dict-editor-add-btns">
+              <button type="button" class="ss-btn primary" id="hs-dict-ed-add">Add</button>
+              <button type="button" class="ss-btn" id="hs-dict-ed-hear" title="Hear before saving">▶ Hear</button>
+            </div>
+          </div>
+          <p id="hs-dict-ed-add-error" class="ss-dict-error hidden" role="alert"></p>
+          <div class="hs-dict-editor-import-group" aria-label="Import">
+            <span class="hs-dict-editor-import-label">${fieldLabel("Import CSV", HELP.import)}</span>
+            <button type="button" class="ss-btn" id="hs-dict-ed-template-csv">Template CSV</button>
+            <button type="button" class="ss-btn" id="hs-dict-ed-import-btn">Import CSV</button>
+            <input type="file" id="hs-dict-ed-import" accept=".csv,text/csv" hidden />
+          </div>
+        </div>
         <p id="hs-dict-ed-error" class="ss-dict-error hidden" role="alert"></p>
       </section>
 
@@ -168,7 +293,7 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
         <h2 id="hs-dict-ed-download-h" class="hs-dict-editor-card-title hs-dict-editor-card-title-inline">
           Download for students ${helpTip(HELP.students)}
         </h2>
-        <p class="ss-sub">Students install once per course. Plain Canvas New Quizzes text reads correctly — no special HTML.</p>
+        <p class="ss-sub">Share the <b>.nvda-addon</b> file and install PDF. Most students double-click to install; the PDF includes Add-on Store → <b>Install from external source</b> if needed.</p>
         <p id="hs-dict-ed-regex-status" class="hs-dict-editor-regex-status ss-type" aria-live="polite"></p>
         <div class="hs-dict-editor-export-btns">
           <button type="button" class="ss-btn primary" id="hs-dict-ed-export-addon">NVDA add-on (.nvda-addon)</button>
@@ -209,48 +334,6 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
             </label>
           </div>
         </details>
-        <p class="ss-sub hs-dict-editor-install-hint">
-          Downloads the <strong>.nvda-addon</strong> and a <strong>student install PDF</strong> (post both on Canvas).
-          Students open the add-on file to install (or NVDA → Tools → Add-on Store → Install from external source), then restart NVDA.
-          Requires NVDA <strong>2026.1+</strong>. Quick test in Notepad: <code>kJ/mol</code>, <code>10 mL</code>, <code>J/g°C</code>.
-        </p>
-      </section>
-
-      <section class="hs-dict-editor-card" aria-labelledby="hs-dict-ed-add-h">
-        <h2 id="hs-dict-ed-add-h" class="hs-dict-editor-card-title hs-dict-editor-card-title-inline">Add term ${helpTip(HELP.addTerm)}</h2>
-        <div class="hs-dict-editor-add-row">
-          <label class="hs-dict-editor-field">
-            ${fieldLabel("Pattern", HELP.pattern)}
-            <input type="text" id="hs-dict-ed-new-pattern" class="ss-input hs-dict-inline-input" placeholder="e.g. ΔT" autocomplete="off" />
-          </label>
-          <label class="hs-dict-editor-field">
-            ${fieldLabel("Spoken", HELP.spoken)}
-            <input type="text" id="hs-dict-ed-new-spoken" class="ss-input hs-dict-inline-input" placeholder="e.g. delta T" autocomplete="off" />
-          </label>
-          <label class="hs-dict-editor-field hs-dict-editor-field-note">
-            ${fieldLabel("Note", HELP.note)}
-            <input type="text" id="hs-dict-ed-new-note" class="ss-input hs-dict-inline-input" placeholder="optional" autocomplete="off" />
-          </label>
-          <label class="hs-dict-editor-field hs-dict-editor-field-case">
-            ${fieldLabel("Ignore case", HELP.case)}
-            <select id="hs-dict-ed-new-case" class="ss-btn hs-dict-case-select" aria-label="Ignore case for new term">
-              <option value="Yes" selected>Yes</option>
-              <option value="No">No</option>
-            </select>
-          </label>
-          <div class="hs-dict-editor-add-btns">
-            <button type="button" class="ss-btn primary" id="hs-dict-ed-add">Add</button>
-            <button type="button" class="ss-btn" id="hs-dict-ed-hear" title="Hear before saving">▶ Hear</button>
-          </div>
-        </div>
-        <p id="hs-dict-ed-add-error" class="ss-dict-error hidden" role="alert"></p>
-        <div class="hs-dict-editor-import-group" aria-label="Import">
-          <span class="hs-dict-editor-import-label">${fieldLabel("Spreadsheet", HELP.import)}</span>
-          <button type="button" class="ss-btn" id="hs-dict-ed-template-csv">Template CSV</button>
-          <button type="button" class="ss-btn" id="hs-dict-ed-template-tsv">Template TSV</button>
-          <button type="button" class="ss-btn" id="hs-dict-ed-import-btn">Import</button>
-          <input type="file" id="hs-dict-ed-import" accept=".csv,.tsv,text/csv,text/tab-separated-values" hidden />
-        </div>
       </section>
 
       <section class="hs-dict-editor-card hs-dict-editor-terms" aria-labelledby="hs-dict-ed-terms-h">
@@ -303,7 +386,7 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
       </section>
     </main>`;
 
-  mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+  if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
   bindHelpTips(root);
 
   const connectNote = root.querySelector("#hs-dict-ed-connect-note");
@@ -332,10 +415,17 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
   const searchFieldSelect = root.querySelector("#hs-dict-ed-search-field");
   const connectSection = root.querySelector(".hs-dict-editor-connect");
   const addClassToggleBtn = root.querySelector("#hs-dict-ed-add-class-toggle");
+  const editClassBtn = root.querySelector("#hs-dict-ed-edit-class");
+  const deleteClassBtn = root.querySelector("#hs-dict-ed-delete-class");
   const newClassPanel = root.querySelector("#hs-dict-ed-new-class");
+  const editClassPanel = root.querySelector("#hs-dict-ed-edit-class-panel");
+  const editClassLabelInput = root.querySelector("#hs-dict-ed-edit-class-label");
+  const editClassPrefixInput = root.querySelector("#hs-dict-ed-edit-class-prefix");
+  const editClassSlugEl = root.querySelector("#hs-dict-ed-edit-class-slug");
   const newClassLabelInput = root.querySelector("#hs-dict-ed-new-class-label");
   const newClassIdInput = root.querySelector("#hs-dict-ed-new-class-id");
   let newClassIdManual = false;
+  let addonSaveTimer = null;
   const hear = createHearController();
   preloadSpeech();
 
@@ -375,7 +465,27 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
     addErrorEl.classList.remove("hidden");
   }
 
-  function tryAddNewTerm() {
+  function guardSupabase(feature, { alert = false } = {}) {
+    const ok = requireSupabaseConnection({
+      feature,
+      api,
+      alert,
+      onConnect: openSettings,
+    });
+    if (!ok) showClassError(supabaseConnectMessage(feature));
+    return ok;
+  }
+
+  function guardEditableClass(feature) {
+    if (isDemoDictionaryId(activeSlug)) {
+      showClassError("Demo dictionary is read-only. Connect Supabase and select your class to edit.");
+      return false;
+    }
+    return guardSupabase(feature);
+  }
+
+  async function tryAddNewTerm() {
+    if (!guardEditableClass("Adding terms")) return false;
     const { pattern, spoken, note, ignore_case } = readNewEntryForm();
     if (!pattern && !spoken) {
       showAddError("Enter Pattern and Spoken to add a term.");
@@ -389,16 +499,33 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
       showAddError("Enter Spoken text to add this term.");
       return false;
     }
+    if (
+      !confirmSaveClass(`Add "${pattern}" → "${spoken}" and save this class.`)
+    ) {
+      return false;
+    }
     showAddError("");
+    const before = getActiveRows();
     const list = [
       { text: pattern, substitution: spoken, app: "All Apps", ignore_case, note },
-      ...getActiveRows(),
+      ...before,
     ];
     setActiveRows(list);
     clearNewEntryForm();
     renderTable();
-    setStatus(`${list.length} rows (unsaved)`);
-    return true;
+    const saved = await saveActiveClass({
+      skipConfirm: true,
+      actionDescription: `Added "${pattern}".`,
+    });
+    if (!saved) {
+      setActiveRows(before);
+      root.querySelector("#hs-dict-ed-new-pattern").value = pattern;
+      root.querySelector("#hs-dict-ed-new-spoken").value = spoken;
+      root.querySelector("#hs-dict-ed-new-note").value = note;
+      root.querySelector("#hs-dict-ed-new-case").value = ignore_case;
+      renderTable();
+    }
+    return saved;
   }
 
   function setStatus(msg) {
@@ -406,19 +533,55 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
     statusEl.textContent = msg;
   }
 
+  function getDemoEntryRows() {
+    return dicToRows(DICTIONARY_DIC, DEMO_DICTIONARY_ID)
+      .filter((r) => (r.rule_type ?? 0) !== 1)
+      .map((r) => ({
+        text: r.pattern,
+        substitution: r.replacement,
+        ignore_case: r.case_sensitive ? "No" : "Yes",
+        note: "",
+        app: "All Apps",
+      }));
+  }
+
+  function applyDemoWorkspace() {
+    entriesByClass[DEMO_DICTIONARY_ID] = getDemoEntryRows();
+    loadBundledChemistryDictionary("demo");
+  }
+
   function updateConnectNote() {
-    const signedIn = Boolean(getStoredSupabaseConfig());
+    const signedIn = isSupabaseConnected();
+    const demo = isDemoDictionaryId(activeSlug);
     connectNote.textContent = signedIn
-      ? "Connected — Save writes to Supabase for the active class."
-      : "Connect with your team Supabase URL and anon key.";
+      ? demo
+        ? "Connected — demo dictionary is read-only. Select your class to edit and save terms."
+        : "Connected — edits save automatically to Supabase for the active class."
+      : demo
+        ? "Not connected — browsing the offline demo. Use ☁ Connect to edit and save your classes."
+        : "Not connected — use ☁ Connect before saving or editing class terms.";
     connectSection?.classList.toggle("is-connected", signedIn);
-    classSelect.disabled = !signedIn;
-    pullBtn.disabled = !signedIn || saving;
-    saveBtn.disabled = !signedIn || saving;
-    addClassToggleBtn.disabled = !signedIn || saving;
+    connectSection?.classList.toggle("needs-connect", !signedIn);
+    classSelect.disabled = false;
+    pullBtn.disabled = saving || demo;
+    saveBtn.disabled = saving || demo;
+    saveBtn.title = signedIn ? "Save all rows to Supabase" : supabaseConnectMessage("Saving this class");
+    pullBtn.title = signedIn ? "Reload all classes from Supabase" : supabaseConnectMessage("Pulling from Supabase");
+    addClassToggleBtn.disabled = saving;
+    addClassToggleBtn.title = signedIn ? "Create a new class" : supabaseConnectMessage("Creating a class");
+    editClassBtn.disabled = saving || demo;
+    editClassBtn.title = signedIn ? "Edit display name and file prefix" : supabaseConnectMessage("Editing class info");
+    deleteClassBtn.disabled = saving || demo || !isDeletableClassSlug(activeSlug);
+    root.querySelector("#hs-dict-ed-add")?.toggleAttribute("disabled", demo);
+    root.querySelector("#hs-dict-ed-hear")?.toggleAttribute("disabled", demo);
+    for (const sel of ["#hs-dict-ed-new-pattern", "#hs-dict-ed-new-spoken", "#hs-dict-ed-new-note", "#hs-dict-ed-new-case"]) {
+      root.querySelector(sel)?.toggleAttribute("disabled", demo);
+    }
+    root.querySelector("#hs-dict-ed-import-btn")?.toggleAttribute("disabled", demo);
   }
 
   function showNewClassPanel(show) {
+    if (show) showEditClassPanel(false);
     newClassPanel.classList.toggle("hidden", !show);
     addClassToggleBtn.setAttribute("aria-expanded", show ? "true" : "false");
     if (!show) {
@@ -430,8 +593,168 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
     }
   }
 
+  function populateEditClassForm() {
+    const prof = getActiveProfile();
+    editClassLabelInput.value = prof?.label || activeSlug;
+    editClassPrefixInput.value = prof?.file_prefix || activeSlug;
+    editClassSlugEl.textContent = activeSlug;
+  }
+
+  function showEditClassPanel(show) {
+    if (show) showNewClassPanel(false);
+    editClassPanel.classList.toggle("hidden", !show);
+    editClassBtn.setAttribute("aria-expanded", show ? "true" : "false");
+    if (show) {
+      populateEditClassForm();
+      editClassLabelInput.focus();
+    }
+  }
+
+  function previewActiveDictionary() {
+    if (isDemoDictionaryId(activeSlug)) return;
+    const rows = getActiveRows().filter(
+      (r) => String(r.text ?? "").trim() && String(r.substitution ?? "").trim(),
+    );
+    applyLocalDictionaryPreview(activeSlug, rows);
+  }
+
+  async function saveClassMeta() {
+    if (saving || !guardEditableClass("Editing class info")) return false;
+    const label = editClassLabelInput.value.trim();
+    const file_prefix = editClassPrefixInput.value.trim();
+    if (!label) {
+      showClassError("Enter a display name.");
+      return false;
+    }
+    if (!file_prefix) {
+      showClassError("Enter a file prefix.");
+      return false;
+    }
+
+    saving = true;
+    updateConnectNote();
+    showClassError("");
+    setStatus("Saving class info…");
+    try {
+      await api.updateClassMeta(activeSlug, { label, file_prefix });
+      const prof = getActiveProfile();
+      if (prof) {
+        prof.label = label;
+        prof.file_prefix = file_prefix;
+      }
+      renderClassSelect();
+      classSelect.value = activeSlug;
+      syncAddonForm();
+      updateExportMeta();
+      showEditClassPanel(false);
+      setStatus(`Updated class info · ${label} (${activeSlug})`);
+      notifyEditorSync({ classSlug: activeSlug });
+      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+      return true;
+    } catch (err) {
+      showClassError(err.message ?? String(err));
+      setStatus("");
+      return false;
+    } finally {
+      saving = false;
+      updateConnectNote();
+    }
+  }
+
+  async function saveAddonDefaults() {
+    if (saving || !guardEditableClass("Saving add-on settings")) return false;
+    const prof = getActiveProfile();
+    const existing = prof?.addon_defaults && typeof prof.addon_defaults === "object"
+      ? prof.addon_defaults
+      : {};
+    const addon_defaults = {
+      ...existing,
+      ...readAddonFormFields(),
+      nvdaRegexEntries: existing.nvdaRegexEntries ?? [],
+    };
+    try {
+      await api.updateClassMeta(activeSlug, { addon_defaults });
+      if (prof) prof.addon_defaults = addon_defaults;
+      updateExportMeta();
+      notifyEditorSync({ classSlug: activeSlug });
+      return true;
+    } catch (err) {
+      showClassError(err.message ?? String(err));
+      return false;
+    }
+  }
+
+  function scheduleAddonSave() {
+    if (addonSaveTimer) clearTimeout(addonSaveTimer);
+    addonSaveTimer = setTimeout(() => {
+      addonSaveTimer = null;
+      void saveAddonDefaults();
+    }, 500);
+  }
+
+  function applyLocalDictionaryPreview(slug, rows) {
+    if (!rows.length) {
+      loadBareClassDictionary(`local-empty:${slug}`);
+    } else {
+      const ruleRows = entriesToRuleRows(
+        rows.map((r, i) => ({ ...r, class_slug: slug, position: i + 1 })),
+      );
+      loadEditorPreviewDictionary(rowsToDic(ruleRows), `local:${slug}`);
+    }
+  }
+
+  async function deleteActiveClass() {
+    if (saving || !isDeletableClassSlug(activeSlug)) return;
+    if (!guardSupabase("Deleting a class")) return;
+    const prof = getActiveProfile();
+    const label = prof?.label || activeSlug;
+    const rowCount = getActiveRows().length;
+    const ok = window.confirm(
+      `Delete class "${label}" (${activeSlug}) from Supabase?\n\n` +
+        `This permanently removes the class and ${rowCount} pronunciation row(s) ` +
+        `(and any legacy dictionary_rules). This cannot be undone.\n\n` +
+        `Are you sure?`,
+    );
+    if (!ok) return;
+
+    saving = true;
+    updateConnectNote();
+    showClassError("");
+    setStatus("Deleting class…");
+    try {
+      await api.deleteCourse(activeSlug);
+      const deletedSlug = activeSlug;
+      classProfiles = classProfiles.filter((c) => c.slug !== deletedSlug);
+      delete entriesByClass[deletedSlug];
+      legacyEntrySlugs?.delete?.(deletedSlug);
+      activeSlug =
+        classProfiles.find((c) => isDeletableClassSlug(c.slug))?.slug ?? DEMO_DICTIONARY_ID;
+      setStoredCourseId(activeSlug);
+      renderClassSelect();
+      classSelect.value = activeSlug;
+      showNewClassPanel(false);
+      showEditClassPanel(false);
+      if (isDemoDictionaryId(activeSlug)) {
+        applyDemoWorkspace();
+      } else {
+        await api.loadCourseDictionary(activeSlug);
+      }
+      renderTable();
+      syncAddonForm();
+      setStatus(`Deleted ${label} (${deletedSlug})`);
+      notifyEditorSync({ classSlug: activeSlug, deleted: deletedSlug });
+      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+    } catch (err) {
+      showClassError(err.message ?? String(err));
+      setStatus("");
+    } finally {
+      saving = false;
+      updateConnectNote();
+    }
+  }
+
   async function createNewClass() {
-    if (!api || saving) return;
+    if (saving || !guardSupabase("Creating a class")) return;
     const label = newClassLabelInput.value.trim();
     const idRaw = newClassIdInput.value.trim() || suggestClassId(label);
     if (!label) {
@@ -439,7 +762,7 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
       return;
     }
     const id = suggestClassId(idRaw) || idRaw;
-    if (!id || id === COMBINED_COURSE_ID) {
+    if (!id || id === COMBINED_COURSE_ID || isDemoDictionaryId(id)) {
       showClassError("Class id must be letters and numbers (e.g. chem114).");
       return;
     }
@@ -467,10 +790,45 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
       renderClassSelect();
       classSelect.value = activeSlug;
       renderTable();
-      await api.loadCourseDictionary(activeSlug);
       showNewClassPanel(false);
-      setStatus(`Created class ${created.label} (${created.id}) · 0 terms`);
-      mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+      openStarterPronunciationsModal({
+        classLabel: created.label,
+        sourceClasses: classProfiles
+          .filter((c) => c.slug !== created.id)
+          .map((c) => ({
+            slug: c.slug,
+            label: c.label,
+            rows: entriesByClass[c.slug] ?? [],
+          })),
+        onAdd: async (rows) => {
+          setActiveRows(rows);
+          renderTable();
+          updateExportMeta();
+          applyLocalDictionaryPreview(created.id, rows);
+          const detail = rows.length
+            ? `Save ${rows.length} starter term${rows.length === 1 ? "" : "s"} to the new class.`
+            : "Save an empty dictionary for the new class.";
+          if (!confirmSaveClass(detail)) {
+            setStatus(
+              `Created ${created.label} (${created.id}) · ${rows.length} term(s) not saved yet — use Save class`,
+            );
+            return;
+          }
+          await saveActiveClass({ skipConfirm: true, actionDescription: detail });
+        },
+        onSkip: async () => {
+          setActiveRows([]);
+          renderTable();
+          applyLocalDictionaryPreview(created.id, []);
+          const detail = "Save an empty dictionary for the new class.";
+          if (!confirmSaveClass(detail)) {
+            setStatus(`Created ${created.label} (${created.id}) · empty dictionary not saved yet`);
+            return;
+          }
+          await saveActiveClass({ skipConfirm: true, actionDescription: detail });
+        },
+      });
+      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
     } catch (err) {
       showClassError(err.message ?? String(err));
       setStatus("");
@@ -502,7 +860,9 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
 
   function getExportRegexEntries() {
     if (!mergeRegexCheckbox.checked) return [];
-    return resolveExportRegexEntries(activeSlug, getActiveAddonDefaults());
+    const classRows = getActiveRows().length;
+    const useBundledFallback = isDemoDictionaryId(activeSlug);
+    return resolveExportRegexEntries(activeSlug, getActiveAddonDefaults(), { useBundledFallback });
   }
 
   function syncAddonForm() {
@@ -518,13 +878,19 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
 
   function updateExportMeta() {
     const regex = getExportRegexEntries();
-    const label = getActiveProfile()?.label || activeSlug;
+    const label = isDemoDictionaryId(activeSlug)
+      ? DEMO_DICTIONARY_LABEL
+      : getActiveProfile()?.label || activeSlug;
     if (!regexStatusEl) return;
-    if (shouldMergeBundledBase(activeSlug)) {
-      regexStatusEl.textContent = `NVDA regex (${label}): ${regex.length} available (bundled chemistry set)`;
+    const classRows = getActiveRows().length;
+    const regexPart = `${regex.length} regex rule(s)`;
+    let rowPart;
+    if (isDemoDictionaryId(activeSlug)) {
+      rowPart = "demo sample (offline)";
     } else {
-      regexStatusEl.textContent = `NVDA regex (${label}): ${regex.length} loaded`;
+      rowPart = classRows === 0 ? "no class rows yet" : `${classRows} class row(s) in export`;
     }
+    regexStatusEl.textContent = `Export (${label}): ${rowPart}; ${regexPart}`;
     regexStatusEl.classList.toggle("is-warn", regex.length === 0);
   }
 
@@ -540,10 +906,16 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
   }
 
   function buildStudentNvdaDic(rows) {
-    if (shouldMergeBundledBase(activeSlug)) {
-      return buildExportNvdaDic(rows, { classSlug: activeSlug });
+    const regexEntries = mergeRegexCheckbox.checked ? getExportRegexEntries() : [];
+    const slug = isDemoDictionaryId(activeSlug) ? "chem113" : activeSlug;
+    if (isDemoDictionaryId(activeSlug)) {
+      return buildExportNvdaDic(rows, {
+        classSlug: slug,
+        regexEntries,
+        mergeBundled: true,
+      });
     }
-    return buildNvdaDic(rows, { regexEntries: getExportRegexEntries() });
+    return buildNvdaDic(rows, { regexEntries });
   }
 
   function getFilePrefix() {
@@ -595,6 +967,7 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
   }
 
   function renderTable({ scrollToHit = false } = {}) {
+    const readOnly = isDemoDictionaryId(activeSlug);
     const rows = getActiveRows();
     const indices = filteredIndices(rows);
     const hasFilter = parseSearchTerms(filter).length > 0;
@@ -608,14 +981,18 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
       emptyEl.classList.remove("hidden");
       emptyEl.textContent = hasFilter
         ? "No terms match your search. Try different words or change the field filter."
-        : "No rows yet. Connect, pull from cloud, or add a term.";
+        : readOnly
+          ? "Demo dictionary has no literal rows to show."
+          : "No rows yet. Connect, pull from cloud, or add a term.";
       scrollEl?.classList.toggle("is-empty", true);
       return;
     }
     if (!indices.length) {
       tbody.innerHTML = "";
       emptyEl.classList.remove("hidden");
-      emptyEl.textContent = "No rows yet. Connect, pull from cloud, or add a term.";
+      emptyEl.textContent = readOnly
+        ? "Demo dictionary has no literal rows to show."
+        : "No rows yet. Connect, pull from cloud, or add a term.";
       scrollEl?.classList.toggle("is-empty", true);
       return;
     }
@@ -632,50 +1009,81 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
       .map((rowIdx, displayIdx) => {
         const r = rows[rowIdx];
         const isHit = displayIdx === activeHit;
+        const ro = readOnly ? " disabled readonly" : "";
         return `<tr data-idx="${rowIdx}" class="${isHit ? "is-search-active" : ""}">
           <td class="hs-dict-col-num">${displayIdx + 1}</td>
-          <td><input class="ss-input hs-dict-cell" data-field="text" value="${escapeAttr(r.text)}" aria-label="Pattern row ${displayIdx + 1}" /></td>
-          <td><input class="ss-input hs-dict-cell" data-field="substitution" value="${escapeAttr(r.substitution)}" aria-label="Spoken row ${displayIdx + 1}" /></td>
-          <td class="hs-dict-col-note"><input class="ss-input hs-dict-cell" data-field="note" value="${escapeAttr(r.note ?? "")}" aria-label="Note row ${displayIdx + 1}" /></td>
+          <td><input class="ss-input hs-dict-cell" data-field="text" value="${escapeAttr(r.text)}" aria-label="Pattern row ${displayIdx + 1}"${ro} /></td>
+          <td><input class="ss-input hs-dict-cell" data-field="substitution" value="${escapeAttr(r.substitution)}" aria-label="Spoken row ${displayIdx + 1}"${ro} /></td>
+          <td class="hs-dict-col-note"><input class="ss-input hs-dict-cell" data-field="note" value="${escapeAttr(r.note ?? "")}" aria-label="Note row ${displayIdx + 1}"${ro} /></td>
           <td class="hs-dict-col-case">
-            <select class="ss-btn hs-dict-cell hs-dict-case-select" data-field="ignore_case" aria-label="Ignore case row ${displayIdx + 1}">
+            <select class="ss-btn hs-dict-cell hs-dict-case-select" data-field="ignore_case" aria-label="Ignore case row ${displayIdx + 1}"${readOnly ? " disabled" : ""}>
               <option value="Yes"${r.ignore_case !== "No" ? " selected" : ""}>Yes</option>
               <option value="No"${r.ignore_case === "No" ? " selected" : ""}>No</option>
             </select>
           </td>
           <td class="hs-dict-col-actions">
             <button type="button" class="ss-btn hs-dict-icon-btn hs-dict-ed-hear" data-idx="${rowIdx}" title="Hear this term">▶</button>
-            <button type="button" class="ss-btn hs-dict-icon-btn hs-dict-ed-del" data-idx="${rowIdx}" title="Delete row">✕</button>
+            ${readOnly ? "" : `<button type="button" class="ss-btn hs-dict-icon-btn hs-dict-ed-del" data-idx="${rowIdx}" title="Delete row">✕</button>`}
           </td></tr>`;
       })
       .join("");
+
+    if (readOnly) return;
 
     tbody.querySelectorAll(".hs-dict-cell").forEach((el) => {
       const field = el.dataset.field;
       const tr = el.closest("tr");
       const idx = Number(tr?.dataset.idx);
-      el.addEventListener("change", () => {
+      el.addEventListener("change", async () => {
+        const list = getActiveRows();
+        if (!list[idx]) return;
+        const before = cloneRows(list);
+        list[idx] = { ...list[idx], [field]: el.value };
+        setActiveRows(list);
+        previewActiveDictionary();
+        const label = field === "text" ? "Pattern" : field === "substitution" ? "Spoken" : field;
+        const saved = await saveActiveClass({
+          skipConfirm: true,
+          actionDescription: `Updated ${label} on row ${idx + 1}.`,
+        });
+        if (!saved) {
+          setActiveRows(before);
+          renderTable();
+          setStatus(`${before.length} row(s) · save failed — reverted change`);
+        }
+      });
+      el.addEventListener("input", () => {
         const list = getActiveRows();
         if (!list[idx]) return;
         list[idx] = { ...list[idx], [field]: el.value };
-        setActiveRows(list);
+        previewActiveDictionary();
       });
-      if (field === "text" || field === "substitution") {
-        el.addEventListener("input", () => {
-          const list = getActiveRows();
-          if (!list[idx]) return;
-          list[idx] = { ...list[idx], [field]: el.value };
-        });
-      }
     });
 
     tbody.querySelectorAll(".hs-dict-ed-del").forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         const idx = Number(btn.dataset.idx);
-        const list = getActiveRows().filter((_, i) => i !== idx);
-        setActiveRows(list);
+        const list = getActiveRows();
+        const removed = list[idx];
+        if (!removed) return;
+        if (
+          !confirmSaveClass(
+            `Delete "${removed.text}" and save this class (${list.length - 1} row${list.length - 1 === 1 ? "" : "s"} remaining).`,
+          )
+        ) {
+          return;
+        }
+        const next = list.filter((_, i) => i !== idx);
+        setActiveRows(next);
         renderTable();
-        setStatus(`${list.length} rows (unsaved)`);
+        const saved = await saveActiveClass({
+          skipConfirm: true,
+          actionDescription: `Deleted "${removed.text}".`,
+        });
+        if (!saved) {
+          setActiveRows(list);
+          renderTable();
+        }
       });
     });
 
@@ -711,44 +1119,58 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
   }
 
   function renderClassSelect() {
-    const options = classProfiles.length
-      ? classProfiles
-      : [{ slug: activeSlug, label: activeSlug, file_prefix: activeSlug }];
-    classSelect.innerHTML = options
+    const demoOpt = `<option value="${DEMO_DICTIONARY_ID}"${activeSlug === DEMO_DICTIONARY_ID ? " selected" : ""}>${escapeHtml(DEMO_DICTIONARY_LABEL)}</option>`;
+    const classOpts = classProfiles
+      .filter((c) => c.slug !== COMBINED_COURSE_ID && !isDemoDictionaryId(c.slug))
       .map(
         (c) =>
           `<option value="${escapeAttr(c.slug)}"${c.slug === activeSlug ? " selected" : ""}>${escapeHtml(c.label || c.slug)}</option>`,
       )
       .join("");
+    classSelect.innerHTML = demoOpt + classOpts;
   }
 
   async function pullWorkspace() {
-    if (!api) return;
+    if (!guardSupabase("Pulling from Supabase")) return;
     showClassError("");
     setStatus("Loading…");
     try {
-      const { classes, entriesByClass: byClass } = await api.pullEntriesWorkspace();
+      const { classes, entriesByClass: byClass, legacyClassSlugs = [] } =
+        await api.pullEntriesWorkspace();
       classProfiles = classes;
       entriesByClass = byClass;
-      if (!classProfiles.some((c) => c.slug === activeSlug)) {
-        activeSlug = classProfiles[0]?.slug ?? activeSlug;
+      legacyEntrySlugs = new Set(legacyClassSlugs);
+      if (
+        !isDemoDictionaryId(activeSlug) &&
+        !classProfiles.some((c) => c.slug === activeSlug)
+      ) {
+        activeSlug = DEMO_DICTIONARY_ID;
         setStoredCourseId(activeSlug);
       }
       renderClassSelect();
+      if (isDemoDictionaryId(activeSlug)) {
+        applyDemoWorkspace();
+      } else {
+        await api.loadCourseDictionary(activeSlug);
+      }
       renderTable();
       syncAddonForm();
-      await api.loadCourseDictionary(activeSlug);
       const n = getActiveRows().length;
-      setStatus(`Loaded ${classProfiles.length} class(es) · ${n} rows in ${activeSlug}`);
-      mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+      const legacyNote = legacyEntrySlugs.has(activeSlug)
+        ? " · from legacy dictionary_rules — Save class to copy into entries"
+        : "";
+      setStatus(`Loaded ${classProfiles.length} class(es) · ${n} row(s) in ${activeSlug}${legacyNote}`);
+      rememberSavedSnapshot();
+      notifyEditorSync({ classSlug: activeSlug });
+      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
     } catch (err) {
       showClassError(err.message ?? String(err));
       setStatus("");
     }
   }
 
-  async function saveActiveClass() {
-    if (!api || saving) return;
+  async function saveActiveClass({ skipConfirm = false, actionDescription } = {}) {
+    if (saving || !guardEditableClass("Saving terms")) return false;
     const rows = getActiveRows()
       .map((r) => ({
         text: String(r.text ?? "").trim(),
@@ -759,20 +1181,35 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
       }))
       .filter((r) => r.text && r.substitution);
 
+    if (!skipConfirm && !confirmSaveClass(actionDescription)) return false;
+
     saving = true;
     updateConnectNote();
     showClassError("");
     setStatus("Saving…");
     try {
+      applyLocalDictionaryPreview(activeSlug, rows);
       const { count } = await api.saveEntryRecords(activeSlug, rows);
       setActiveRows(rows);
+      rememberSavedSnapshot(rows);
+      legacyEntrySlugs.delete(activeSlug);
       await api.loadCourseDictionary(activeSlug);
       setStatus(`Saved ${count} row(s) to Supabase · ${activeSlug}`);
-      mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+      notifyEditorSync({ classSlug: activeSlug });
       onDictionarySaved?.({ classSlug: activeSlug, count });
+      return true;
     } catch (err) {
+      try {
+        const rows = JSON.parse(savedRowsSnapshot);
+        if (Array.isArray(rows)) {
+          setActiveRows(rows);
+          renderTable();
+        }
+      } catch (_) {}
       showClassError(err.message ?? String(err));
       setStatus("");
+      return false;
     } finally {
       saving = false;
       updateConnectNote();
@@ -796,22 +1233,44 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
         api = config?.url && config?.anonKey ? createDictionaryApi(config) : null;
         classProfiles = [];
         entriesByClass = {};
+        activeSlug = DEMO_DICTIONARY_ID;
+        setStoredCourseId(activeSlug);
+        applyDemoWorkspace();
         updateConnectNote();
         renderClassSelect();
         renderTable();
-        setStatus("");
+        setStatus(`${getDemoEntryRows().length} demo terms (read-only)`);
         showClassError("");
-        mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+        if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
       },
     });
   }
 
   root.querySelector("#hs-dict-ed-cloud").addEventListener("click", openSettings);
   pullBtn.addEventListener("click", pullWorkspace);
-  saveBtn.addEventListener("click", saveActiveClass);
+  saveBtn.addEventListener("click", () => {
+    void saveActiveClass();
+  });
 
   addClassToggleBtn.addEventListener("click", () => {
+    if (!guardSupabase("Creating a class")) return;
     showNewClassPanel(newClassPanel.classList.contains("hidden"));
+  });
+  editClassBtn.addEventListener("click", () => {
+    if (!guardEditableClass("Editing class info")) return;
+    showEditClassPanel(editClassPanel.classList.contains("hidden"));
+  });
+  root.querySelector("#hs-dict-ed-save-class-meta").addEventListener("click", () => {
+    void saveClassMeta();
+  });
+  root.querySelector("#hs-dict-ed-cancel-edit-class").addEventListener("click", () => {
+    showEditClassPanel(false);
+  });
+  editClassLabelInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") void saveClassMeta();
+  });
+  editClassPrefixInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") void saveClassMeta();
   });
   newClassLabelInput.addEventListener("input", () => {
     if (!newClassIdManual) newClassIdInput.value = suggestClassId(newClassLabelInput.value);
@@ -819,6 +1278,7 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
   newClassIdInput.addEventListener("input", () => {
     newClassIdManual = newClassIdInput.value.trim().length > 0;
   });
+  deleteClassBtn.addEventListener("click", deleteActiveClass);
   root.querySelector("#hs-dict-ed-create-class").addEventListener("click", createNewClass);
   root.querySelector("#hs-dict-ed-cancel-class").addEventListener("click", () => showNewClassPanel(false));
   newClassLabelInput.addEventListener("keydown", (e) => {
@@ -829,18 +1289,34 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
   });
 
   classSelect.addEventListener("change", async () => {
-    activeSlug = classSelect.value;
+    showEditClassPanel(false);
+    const nextSlug = classSelect.value;
+    if (!isDemoDictionaryId(nextSlug) && !guardSupabase("Loading your class")) {
+      classSelect.value = activeSlug;
+      return;
+    }
+    activeSlug = nextSlug;
     setStoredCourseId(activeSlug);
+    updateConnectNote();
     syncAddonForm();
+    updateExportMeta();
+    if (isDemoDictionaryId(activeSlug)) {
+      applyDemoWorkspace();
+      renderTable();
+      setStatus(`${getActiveRows().length} demo terms (read-only)`);
+      return;
+    }
     renderTable();
     if (api) {
       try {
         await api.loadCourseDictionary(activeSlug);
+        notifyEditorSync({ classSlug: activeSlug });
       } catch {
-        /* preview falls back to bundled rules */
+        /* keep prior in-memory rules */
       }
     }
     const n = getActiveRows().length;
+    rememberSavedSnapshot();
     setStatus(`${n} row(s) · ${activeSlug}`);
   });
 
@@ -864,14 +1340,14 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
   });
 
   root.querySelector("#hs-dict-ed-add").addEventListener("click", () => {
-    tryAddNewTerm();
+    void tryAddNewTerm();
   });
 
   for (const sel of ["#hs-dict-ed-new-pattern", "#hs-dict-ed-new-spoken"]) {
     root.querySelector(sel).addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        tryAddNewTerm();
+        void tryAddNewTerm();
       }
     });
   }
@@ -908,25 +1384,51 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
   root.querySelector("#hs-dict-ed-template-csv").addEventListener("click", () => {
     downloadTextFile("hearsay-dictionary-template.csv", buildImportTemplateCsv(), "text/csv;charset=utf-8");
   });
-  root.querySelector("#hs-dict-ed-template-tsv").addEventListener("click", () => {
-    downloadTextFile(
-      "hearsay-dictionary-template.tsv",
-      buildImportTemplateTsv(),
-      "text/tab-separated-values;charset=utf-8",
-    );
-  });
   root.querySelector("#hs-dict-ed-import-btn").addEventListener("click", () => importInput.click());
   importInput.addEventListener("change", async () => {
     const file = importInput.files?.[0];
     importInput.value = "";
     if (!file) return;
+    if (!guardEditableClass("Importing terms")) return;
     try {
       const imported = await parseImportFile(file);
-      const merged = [...imported, ...getActiveRows()];
-      setActiveRows(merged);
+      if (!imported.length) {
+        showAddError("No rows found in that file. Check Pattern and Spoken columns.");
+        return;
+      }
+      const existing = getActiveRows();
+      const addToExisting = window.confirm(
+        `Import ${imported.length} row(s) from "${file.name}".\n\n` +
+          `OK = Add to dictionary (${existing.length} existing row(s) kept; matching Pattern updates)\n` +
+          `Cancel = Replace all rows instead`,
+      );
+      let nextRows;
+      let modeLabel;
+      if (addToExisting) {
+        nextRows = mergeImportRows(existing, imported);
+        modeLabel = "merged";
+      } else {
+        const replace = window.confirm(
+          `Replace all ${existing.length} row(s) in this class with ${imported.length} imported row(s)?\n\n` +
+            `OK = Replace entire table\nCancel = Cancel import`,
+        );
+        if (!replace) {
+          setStatus("Import cancelled.");
+          return;
+        }
+        nextRows = imported;
+        modeLabel = "replaced";
+      }
+      setActiveRows(nextRows);
       renderTable();
-      setStatus(`Imported ${imported.length} row(s) · ${merged.length} total (unsaved)`);
       showAddError("");
+      const saved = await saveActiveClass({
+        skipConfirm: true,
+        actionDescription: `Imported ${imported.length} row(s) (${modeLabel}) · ${nextRows.length} total.`,
+      });
+      if (!saved) {
+        setStatus(`Imported ${imported.length} row(s) (${modeLabel}) · not saved — use Save class or Pull to revert`);
+      }
     } catch (err) {
       showAddError(err.message ?? String(err));
     }
@@ -975,6 +1477,8 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
     downloadTextFile(`${prefix}.dic`, buildStudentNvdaDic(rows), "text/plain;charset=utf-8");
   });
 
+  preloadNvdaAddonDeps();
+
   root.querySelector("#hs-dict-ed-export-addon").addEventListener("click", async () => {
     const rows = exportRows();
     if (!rows.length) {
@@ -991,6 +1495,8 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
     }
 
     showClassError("");
+    const addonBtn = root.querySelector("#hs-dict-ed-export-addon");
+    addonBtn.disabled = true;
     setStatus("Building NVDA add-on…");
     try {
       const options = resolveAddonOptions(readAddonFormFields(), getActiveAddonDefaults());
@@ -1002,24 +1508,65 @@ export async function mountDictionaryEditor(root, { base = "..", onDictionarySav
         literalCount: rows.length,
         regexCount,
       });
-      setStatus(`Exported ${result.filename}${result.pdfFilename ? ` + ${result.pdfFilename}` : ""}`);
+      setStatus(`Downloaded ${result.filename}${result.pdfFilename ? ` + ${result.pdfFilename}` : ""}`);
       window.alert(result.message);
     } catch (err) {
-      showClassError(err.message ?? String(err));
+      const msg = err?.message ?? String(err);
+      showClassError(msg || "Add-on download failed. Check the browser console and allow downloads for this site.");
       setStatus("");
+      console.error("NVDA add-on export failed:", err);
+    } finally {
+      addonBtn.disabled = false;
     }
   });
 
   updateConnectNote();
   renderClassSelect();
   syncAddonForm();
-  renderTable();
+  updateExportMeta();
+
+  for (const el of [
+    addonIdInput,
+    addonVersionInput,
+    addonSummaryInput,
+    addonAuthorInput,
+    addonDictNameInput,
+    addonDictDisplayInput,
+  ]) {
+    el?.addEventListener("change", scheduleAddonSave);
+  }
+
+  if (isDemoDictionaryId(activeSlug)) {
+    applyDemoWorkspace();
+    renderTable();
+    setStatus(`${getActiveRows().length} demo terms (read-only)`);
+  } else {
+    renderTable();
+  }
 
   if (api) {
     await pullWorkspace();
-  } else {
-    setStatus("Connect to load class dictionaries from Supabase.");
+  } else if (!isDemoDictionaryId(activeSlug)) {
+    activeSlug = DEMO_DICTIONARY_ID;
+    setStoredCourseId(activeSlug);
+    applyDemoWorkspace();
+    renderClassSelect();
+    renderTable();
+    updateConnectNote();
+    setStatus(`${getActiveRows().length} demo terms (read-only)`);
   }
 
-  return { pullWorkspace, saveActiveClass, getActiveSlug: () => activeSlug };
+  const unsubDictionarySync = onDictionaryUpdated(({ classSlug, source }) => {
+    if (source === "editor") return;
+    if (isDemoDictionaryId(activeSlug) || !api) return;
+    if (classSlug && classSlug !== activeSlug) return;
+    void pullWorkspace();
+  });
+
+  return {
+    pullWorkspace,
+    saveActiveClass,
+    getActiveSlug: () => activeSlug,
+    destroy: () => unsubDictionarySync(),
+  };
 }

@@ -10,6 +10,7 @@ import { openFractionBuilder, insertAtCursor } from "./fraction-builder.js";
 import { openScriptEditor } from "./script-editor.js";
 import { openEquationEditor } from "./equation-editor.js";
 import { mountDictionaryPanel } from "./supabase/dictionary-ui.js";
+import { supabaseConnectMessage } from "./supabase/connect-guard.js";
 import { normalizePastedContent, pasteDataFromEvent } from "./core/paste-normalize.js";
 import { helpTip, bindHelpTips } from "./help-tip.js";
 
@@ -46,62 +47,76 @@ const SAMPLE =
   "where \u0394T = T\u2082 \u2212 T\u2081. The effective heat capacity is 2.0 J/\u00b0C and q = \\frac{14J}{23g}. " +
   "Dissolve CuSO4\u00b75H2O, then compare 2H2 + O2 \u2192 2H2O at 80\u00b0C with \u0394H = \u2212286 kJ/mol.";
 
-export function mountApp(root, { initialText, dictionarySync, supabaseConfig: configFromCaller } = {}) {
+export function mountApp(root, {
+  initialText,
+  dictionarySync,
+  supabaseConfig: configFromCaller,
+  context = "web",
+} = {}) {
+  const isExtension = context === "extension";
   root.innerHTML = `
-    <div class="ss-wrap">
-      <h1 class="ss-title">Canvas Translate</h1>
-      <p class="ss-sub">Paste authored content. HearSay flags tokens screen readers
-        mispronounce, lets you hear the result, and builds Canvas-ready HTML.</p>
+    <div class="ss-wrap${isExtension ? " ss-wrap-extension" : ""}">
+      ${
+        isExtension
+          ? `<p class="ss-sub hs-ext-panel-lead">Hear pronunciation previews and flagged terms. Use <strong>Dictionary</strong> on the HearSay website to edit terms and export student NVDA add-ons.</p>`
+          : `<header class="ss-page-header">
+        <h1 class="ss-title">Canvas Translate</h1>
+        <p class="ss-sub">Paste course text, hear how it reads, and copy Canvas-safe HTML for screen readers.</p>
+      </header>`
+      }
 
-      <div class="ss-workflow-steps" aria-label="Workflow">
-        <span><span class="ss-wf-num">1</span>Pick dictionary <a class="hs-inline-link" href="../dictionary/">(edit terms)</a></span>
-        <span aria-hidden="true">→</span>
-        <span><span class="ss-wf-num">2</span>Paste &amp; edit text</span>
-        <span aria-hidden="true">→</span>
-        <span><span class="ss-wf-num">3</span>Hear &amp; review</span>
-        <span aria-hidden="true">→</span>
-        <span><span class="ss-wf-num">4</span>Copy Canvas HTML</span>
-        ${helpTip(`<p><b>Typical workflow</b></p><ul>
-          <li><b>Course dictionary</b> — choose a class (or All classes) to load pronunciation rules from Supabase, or use the bundled dictionary offline.</li>
-          <li><b>Paste text</b> — curriculum from Word or Canvas; HearSay normalizes subscripts and flags risky tokens.</li>
-          <li><b>Hear (your dictionary)</b> — previews how a screen reader should read it with your class rules.</li>
-          <li><b>Copy Canvas HTML</b> — paste into Canvas’s HTML editor for students.</li>
-          <li><b>Add rules</b> — save new pronunciations to Supabase for your class (select a class, not All).</li>
-        </ul>`)}
+      <div class="ss-workflow-steps${isExtension ? " hidden" : ""}" aria-label="Workflow">
+        <div class="ss-workflow-step"><span class="ss-wf-num">1</span><span>Dictionary — pick class below ${helpTip(`<p>Load your class from Supabase or use the bundled CHEM dictionary offline. <a href="../dictionary/">Edit terms</a> on the Dictionary page.</p>`)}</span></div>
+        <div class="ss-workflow-step"><span class="ss-wf-num">2</span><span>Paste &amp; edit</span></div>
+        <div class="ss-workflow-step"><span class="ss-wf-num">3</span><span>Hear &amp; review findings</span></div>
+        <div class="ss-workflow-step"><span class="ss-wf-num">4</span><span>Copy Canvas HTML</span></div>
       </div>
 
       <div id="ss-dict-mount"></div>
 
-      <label class="ss-sr-only" for="ss-input">Content to analyze</label>
-      <div class="ss-findings-head" style="margin:12px 0 4px">
-        <h2 class="ss-title" style="font-size:14px;margin:0">Your text</h2>
-        ${helpTip(`<p>Paste or type curriculum here. Pasting from Word or Google Docs keeps line breaks and converts subscripts when possible (<code>T2</code> → <code>T₂</code>, <code>qcalorimeter</code> → <code>q_{calorimeter}</code>).</p>
-          <p>Analysis runs automatically as you type. Click <b>Analyze</b> to refresh manually.</p>`)}
-      </div>
-      <textarea id="ss-input" class="ss-input" spellcheck="false"></textarea>
-      <p class="ss-sub ss-input-hint">Tip: use <b>Subscript</b> / <b>Superscript</b> to mark scripts explicitly (e.g. <code>q_{calorimeter}</code>, <code>T₂</code>).
-        Plain words like “compare” stay as-is. Also: <b>Insert fraction</b> or <b>Insert equation</b>.</p>
+      <section class="ss-section" aria-labelledby="ss-input-h">
+        <div class="ss-findings-head">
+          <h2 id="ss-input-h" class="ss-title">Your text</h2>
+          ${helpTip(`<p>Paste or type curriculum here. Pasting from Word or Google Docs keeps line breaks and converts subscripts when possible (<code>T2</code> → <code>T₂</code>, <code>qcalorimeter</code> → <code>q_{calorimeter}</code>).</p>
+            <p>Analysis runs automatically as you type. Click <b>Analyze</b> to refresh manually.</p>`)}
+        </div>
+        <label class="ss-sr-only" for="ss-input">Content to analyze</label>
+        <textarea id="ss-input" class="ss-input" spellcheck="false" placeholder="Paste a quiz stem, lab paragraph, or slide text…"></textarea>
+        <p class="ss-sub ss-input-hint">Use <b>Subscript</b> / <b>Superscript</b> for explicit scripts (<code>q_{calorimeter}</code>, <code>T₂</code>). <b>Insert fraction</b> or <b>Insert equation</b> for math.</p>
 
-      <div class="ss-controls">
-        <button class="ss-btn primary" id="ss-analyze">Analyze</button>
-        <button class="ss-btn" id="ss-insert-eq" title="Type an equation and insert at the cursor">\u2211 Insert equation</button>
-        <button class="ss-btn" id="ss-insert-frac" title="Build a fraction at the cursor">\u2044 Insert fraction</button>
-        <button class="ss-btn" id="ss-insert-sub" title="Add a subscript at the cursor">x\u2099 Subscript</button>
-        <button class="ss-btn" id="ss-insert-sup" title="Add a superscript at the cursor">x\u00b2 Superscript</button>
-        <button class="ss-btn" id="ss-hear-orig" title="How TTS reads the raw text">\u25b6 Hear original</button>
-        <button class="ss-btn" id="ss-hear-dict" title="What your course dictionary says to a screen reader">\u25b6 Hear (your dictionary)</button>
-        ${helpTip(`<p><b>Hear original</b> — browser TTS reading the raw text (before dictionary rules).</p>
-          <p><b>Hear (your dictionary)</b> — simulates composed speech using the loaded class or bundled dictionary. Multi-line text is read <b>one line at a time</b> with a pause between lines.</p>
-          <p><b>Hear this output</b> (below) — reads the Canvas-ready spoken stream the same way.</p>
-          <p>In Canvas, students can move paragraph-by-paragraph (each line is its own paragraph) with their screen reader&rsquo;s next-paragraph command.</p>`)}
-        <button class="ss-btn" id="ss-sample">Load sample</button>
-        <span id="ss-speech-note" class="ss-type"></span>
-      </div>
+        <div class="ss-toolbar">
+          <div class="ss-toolbar-group">
+            <span class="ss-toolbar-label">Edit</span>
+            <button class="ss-btn primary" id="ss-analyze">Analyze</button>
+            <button class="ss-btn" id="ss-insert-eq" title="Type an equation and insert at the cursor">\u2211 Equation</button>
+            <button class="ss-btn" id="ss-insert-frac" title="Build a fraction at the cursor">\u2044 Fraction</button>
+            <button class="ss-btn" id="ss-insert-sub" title="Add a subscript at the cursor">Subscript</button>
+            <button class="ss-btn" id="ss-insert-sup" title="Add a superscript at the cursor">Superscript</button>
+            <button class="ss-btn" id="ss-sample">Load sample</button>
+          </div>
+          <div class="ss-toolbar-group">
+            <span class="ss-toolbar-label">Listen</span>
+            <button class="ss-btn" id="ss-hear-orig" title="How TTS reads the raw text">\u25b6 Hear original</button>
+            <button class="ss-btn" id="ss-hear-dict" title="What your course dictionary says to a screen reader">\u25b6 Hear dictionary</button>
+            ${helpTip(`<p><b>Hear original</b> — browser TTS before dictionary rules.</p>
+              <p><b>Hear dictionary</b> — your class rules, one line at a time.</p>
+              <p><b>Hear this output</b> (below) — the Canvas spoken stream.</p>`)}
+            <span id="ss-speech-note" class="ss-type"></span>
+          </div>
+        </div>
+      </section>
 
       <div class="ss-summary" id="ss-summary" aria-live="polite"></div>
       <div class="ss-preview" id="ss-preview" aria-hidden="true"></div>
 
-      <section class="ss-canvas" aria-labelledby="ss-canvas-h">
+      <section class="ss-section ss-canvas${isExtension ? " ss-canvas-extension" : ""}" aria-labelledby="ss-canvas-h">
+        ${
+          isExtension
+            ? `<details class="hs-ext-canvas-details">
+          <summary class="ss-title hs-ext-canvas-summary">Canvas HTML output (optional)</summary>
+          <div class="hs-ext-canvas-details-body">`
+            : ""
+        }
         <div class="ss-findings-head">
           <h2 id="ss-canvas-h" class="ss-title" style="font-size:14px;margin:0">Canvas-ready output</h2>
           ${helpTip(`<p>Generates HTML for Canvas’s <b>&lt;/&gt;</b> HTML editor.</p>
@@ -128,9 +143,10 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
         <div class="ss-render" id="ss-render"></div>
         <div class="ss-type" style="margin-top:6px">HTML to paste into Canvas:</div>
         <pre class="ss-canvas-code" id="ss-canvas-code"></pre>
+        ${isExtension ? `</div></details>` : ""}
       </section>
 
-      <section class="ss-findings-section" aria-labelledby="ss-findings-h">
+      <section class="ss-section ss-findings-section" aria-labelledby="ss-findings-h">
         <div class="ss-findings-head">
           <h2 id="ss-findings-h" class="ss-title" style="font-size:14px;margin:0">Pronunciation findings</h2>
           <span id="ss-findings-count" class="ss-type"></span>
@@ -269,6 +285,14 @@ export function mountApp(root, { initialText, dictionarySync, supabaseConfig: co
   findingsEl.addEventListener("click", (e) => {
     const saveBtn = e.target.closest(".ss-save-dict");
     if (saveBtn && dictPanel) {
+      if (!dictPanel.isConnected?.()) {
+        window.alert(supabaseConnectMessage("Saving to the class dictionary"));
+        return;
+      }
+      if (!dictPanel.canSaveRules?.()) {
+        window.alert("Pick a specific class (not All classes) before saving dictionary rules.");
+        return;
+      }
       dictPanel.saveFindingToDictionary({
         raw: saveBtn.dataset.pattern,
         primarySpoken: saveBtn.dataset.spoken,

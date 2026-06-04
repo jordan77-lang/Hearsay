@@ -12,17 +12,52 @@ let voicesCache = [];
 let pendingSpeakTimer = null;
 let voicesListenerAttached = false;
 const stateListeners = new Set();
+const pauseListeners = new Set();
+let speechPaused = false;
+
+/** @type {null | {
+ *   expanded: Array<{ text: string, lineIndex?: number }>,
+ *   index: number,
+ *   rate: number,
+ *   voiceURI: string | null,
+ *   pauseMs: number,
+ *   onend: (() => void) | null,
+ *   onChunkStart: ((chunk: unknown, i: number) => void) | null,
+ *   onboundary: ((event: SpeechSynthesisEvent) => void) | null,
+ *   waitingBetweenChunks: boolean,
+ * }} */
+let activeQueue = null;
 
 function notifySpeechState(playing) {
   for (const fn of stateListeners) fn(playing);
 }
 
-/** True while speech is pending, speaking, or queued. */
+function notifyPauseState(paused) {
+  for (const fn of pauseListeners) fn(paused);
+}
+
+function finishActiveQueue(onEnd) {
+  const end = onEnd ?? activeQueue?.onend;
+  activeQueue = null;
+  speechPaused = false;
+  notifyPauseState(false);
+  notifySpeechState(false);
+  end?.();
+}
+
+/** True while speech is pending, speaking, queued, or paused mid-playback. */
 export function isSpeechActive() {
   if (pendingSpeakTimer != null) return true;
+  if (activeQueue) return true;
+  if (speechPaused) return true;
   if (!speechSupported()) return false;
   const synth = window.speechSynthesis;
   return synth.speaking || synth.pending;
+}
+
+/** True while playback is paused (utterance or between queued chunks). */
+export function isSpeechPaused() {
+  return speechPaused;
 }
 
 /** Subscribe to speech active/inactive changes. Returns an unsubscribe function. */
@@ -30,6 +65,13 @@ export function subscribeSpeechState(fn) {
   stateListeners.add(fn);
   fn(isSpeechActive());
   return () => stateListeners.delete(fn);
+}
+
+/** Subscribe to pause/resume changes. Returns an unsubscribe function. */
+export function subscribeSpeechPauseState(fn) {
+  pauseListeners.add(fn);
+  fn(isSpeechPaused());
+  return () => pauseListeners.delete(fn);
 }
 
 export function loadVoices() {
@@ -69,8 +111,46 @@ export function cancelSpeech() {
     window.clearTimeout(pendingSpeakTimer);
     pendingSpeakTimer = null;
   }
+  activeQueue = null;
+  speechPaused = false;
+  notifyPauseState(false);
   window.speechSynthesis.cancel();
   notifySpeechState(false);
+}
+
+/** Pause current Hear playback (utterance or between queued lines). */
+export function pauseSpeech() {
+  if (!speechSupported() || speechPaused || !isSpeechActive()) return;
+  speechPaused = true;
+  if (pendingSpeakTimer != null) {
+    window.clearTimeout(pendingSpeakTimer);
+    pendingSpeakTimer = null;
+    if (activeQueue) activeQueue.waitingBetweenChunks = true;
+  }
+  const synth = window.speechSynthesis;
+  if (synth.speaking && !synth.paused) synth.pause();
+  notifyPauseState(true);
+}
+
+/** Resume paused Hear playback. */
+export function resumeSpeech() {
+  if (!speechSupported() || !speechPaused) return;
+  speechPaused = false;
+  const synth = window.speechSynthesis;
+  if (synth.paused) {
+    synth.resume();
+  } else if (activeQueue?.waitingBetweenChunks) {
+    activeQueue.waitingBetweenChunks = false;
+    speakNextFromQueue();
+  }
+  notifyPauseState(false);
+}
+
+/** Toggle pause; returns true when paused after the call. */
+export function toggleSpeechPause() {
+  if (speechPaused) resumeSpeech();
+  else pauseSpeech();
+  return speechPaused;
 }
 
 function synthIsSpeaking() {
@@ -95,6 +175,9 @@ function cancelSpeechForRestart() {
     window.clearTimeout(pendingSpeakTimer);
     pendingSpeakTimer = null;
   }
+  activeQueue = null;
+  speechPaused = false;
+  notifyPauseState(false);
   const wasSpeaking = synthIsSpeaking();
   if (wasSpeaking) window.speechSynthesis.cancel();
   return wasSpeaking;
@@ -150,7 +233,7 @@ function scheduleSpeak(run) {
 
 function speakUtterance(
   text,
-  { rate = 0.9, voiceURI = null, onend = null, onerror = null, clipGuard = false } = {},
+  { rate = 0.9, voiceURI = null, onend = null, onerror = null, onboundary = null, clipGuard = false } = {},
 ) {
   const synth = window.speechSynthesis;
   if (clipGuard && needsChromeClipGuard()) speakSilentWarmup(synth, voiceURI);
@@ -160,6 +243,7 @@ function speakUtterance(
   const v = voiceFromCache(voiceURI);
   if (v) u.voice = v;
   u.text = text;
+  if (onboundary) u.onboundary = onboundary;
   u.onend = () => onend?.();
   u.onerror = () => (onerror ?? onend)?.();
   synth.speak(u);
@@ -200,48 +284,79 @@ export function speak(text, { rate = 0.9, voiceURI = null, onend = null } = {}) 
   return null;
 }
 
+function speakNextFromQueue() {
+  if (!activeQueue || speechPaused) return;
+  const q = activeQueue;
+  if (q.index >= q.expanded.length) {
+    finishActiveQueue();
+    return;
+  }
+  const chunk = q.expanded[q.index];
+  const clipGuard = q.index === 0;
+  const chunkIndex = q.index;
+  q.index += 1;
+  q.waitingBetweenChunks = false;
+  q.onChunkStart?.(chunk, chunkIndex);
+  speakUtterance(chunk.text, {
+    rate: q.rate,
+    voiceURI: q.voiceURI,
+    clipGuard,
+    onboundary: q.onboundary,
+    onend: () => {
+      if (!activeQueue) return;
+      if (q.index >= q.expanded.length) {
+        finishActiveQueue();
+        return;
+      }
+      if (speechPaused) {
+        q.waitingBetweenChunks = true;
+        return;
+      }
+      pendingSpeakTimer = window.setTimeout(() => {
+        pendingSpeakTimer = null;
+        speakNextFromQueue();
+      }, q.pauseMs);
+    },
+    onerror: () => finishActiveQueue(),
+  });
+}
+
 /** Speak each chunk in order with a short pause between lines (for multi-line preview). */
-export function speakQueued(chunks, { rate = 0.9, pauseMs = 450, voiceURI = null, onend = null } = {}) {
+export function speakQueued(
+  chunks,
+  { rate = 0.9, pauseMs = 450, voiceURI = null, onend = null, onChunkStart = null, onboundary = null } = {},
+) {
   if (!speechSupported()) return null;
-  const lines = expandSpeechChunks(chunks);
-  if (!lines.length) return null;
+  const normalized = (Array.isArray(chunks) ? chunks : [chunks]).map((chunk) => {
+    if (chunk && typeof chunk === "object" && "text" in chunk) return chunk;
+    return { text: String(chunk ?? "").trim() };
+  });
+  const lines = normalized
+    .map((chunk) => ({ ...chunk, text: String(chunk.text ?? "").replace(/\s+/g, " ").trim() }))
+    .filter((chunk) => chunk.text);
+  const expanded = lines.flatMap((chunk) =>
+    splitSpeechChunks(chunk.text).map((text) => ({ ...chunk, text })),
+  );
+  if (!expanded.length) return null;
 
   const hadActiveSpeech = cancelSpeechForRestart();
+  speechPaused = false;
+  notifyPauseState(false);
+  activeQueue = {
+    expanded,
+    index: 0,
+    rate,
+    voiceURI,
+    pauseMs,
+    onend,
+    onChunkStart,
+    onboundary,
+    waitingBetweenChunks: false,
+  };
   notifySpeechState(true);
 
-  let index = 0;
-  function speakNext() {
-    if (index >= lines.length) {
-      notifySpeechState(false);
-      return;
-    }
-    const line = lines[index];
-    const clipGuard = index === 0;
-    index++;
-    speakUtterance(line, {
-      rate,
-      voiceURI,
-      clipGuard,
-      onend: () => {
-        if (index >= lines.length) {
-          notifySpeechState(false);
-          onend?.();
-          return;
-        }
-        pendingSpeakTimer = window.setTimeout(() => {
-          pendingSpeakTimer = null;
-          speakNext();
-        }, pauseMs);
-      },
-      onerror: () => {
-        notifySpeechState(false);
-        onend?.();
-      },
-    });
-  }
-
-  if (hadActiveSpeech) scheduleSpeak(speakNext);
-  else speakNext();
+  if (hadActiveSpeech) scheduleSpeak(speakNextFromQueue);
+  else speakNextFromQueue();
 
   return null;
 }

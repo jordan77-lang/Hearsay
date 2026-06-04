@@ -3,6 +3,7 @@
 import {
   createDictionaryApi,
   getStoredCourseId,
+  DEMO_DICTIONARY_ID,
   setStoredCourseId,
   setStoredSupabaseConfig,
   clearStoredSupabaseConfig,
@@ -126,7 +127,7 @@ function mountDisconnectedPanel(root, { onOpenSettings }) {
 
 function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId, onOpenSettings }) {
   const api = createDictionaryApi(config);
-  let courseId = initialCourseId ?? getStoredCourseId(config.courseId ?? "chem113");
+  let courseId = initialCourseId ?? getStoredCourseId(config.courseId ?? DEMO_DICTIONARY_ID);
   let courses = [];
 
   root.innerHTML = `
@@ -305,7 +306,8 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
   async function refreshCourses() {
     courses = await api.listCourses();
     if (!courses.some((c) => c.id === courseId)) {
-      courseId = courses.find((c) => c.id !== COMBINED_COURSE_ID)?.id ?? courses[0]?.id ?? "chem113";
+      courseId =
+        courses.find((c) => c.id !== COMBINED_COURSE_ID)?.id ?? courses[0]?.id ?? DEMO_DICTIONARY_ID;
     }
     renderCourseOptions();
   }

@@ -5,64 +5,95 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>HearSay · Course pronunciation assistant</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='22'%3E%E2%99%AA%3C/text%3E%3C/svg%3E" />
+    <script src="src/theme-init.js"></script>
     <link rel="stylesheet" href="src/ui.css" />
   </head>
-  <body>
+  <body class="hs-page-shell">
+    <div id="hs-nav"></div>
     <main class="hs-landing">
       <header class="hs-landing-hero">
         <h1 class="ss-title hs-landing-title">HearSay</h1>
-        <p class="hs-landing-tagline">I can speak it — and spell it — for screen readers.</p>
+        <p class="hs-landing-tagline">Speak it clearly — for every screen reader.</p>
         <p class="ss-sub hs-landing-lead">
-          Internal tool for course authors. Build class dictionaries, export NVDA add-ons for students,
-          and test how plain Canvas quiz text reads with screen readers.
+          Tools for course authors: build class dictionaries, test quiz speech, and export NVDA add-ons for students — without asking them to edit personal dictionaries.
         </p>
       </header>
 
       <section class="hs-landing-actions" aria-labelledby="hs-get-started">
-        <h2 id="hs-get-started" class="ss-title hs-landing-section-title">Get started</h2>
-        <div class="hs-landing-cards">
-          <a class="hs-landing-card hs-landing-card-primary" href="lab/">
-            <span class="hs-landing-card-label">Screen Reader Lab</span>
-            <span class="ss-sub">Paste quiz text · hear raw vs dictionary speech</span>
-          </a>
-          <a class="hs-landing-card" href="dictionary/">
-            <span class="hs-landing-card-label">Dictionary</span>
-            <span class="ss-sub">Edit terms · export NVDA add-on for students</span>
-          </a>
-          <a class="hs-landing-card" href="dist/hearsay-chrome-extension.zip" download>
-            <span class="hs-landing-card-label">Download Chrome extension</span>
-            <span class="ss-sub">Side panel + pull selection from Canvas</span>
-          </a>
-          <div class="hs-landing-card hs-landing-card-disabled" aria-disabled="true">
-            <span class="hs-landing-card-label">Safari extension (Mac)</span>
-            <span class="ss-sub">Coming soon — use the browser tool on Mac for now</span>
-          </div>
-        </div>
+        <h2 id="hs-get-started" class="hs-landing-section-title">Choose a tool</h2>
+        <div class="hs-landing-cards hs-landing-cards-grid" id="hs-landing-cards"></div>
       </section>
 
       <section class="hs-landing-install" aria-labelledby="hs-chrome-install">
-        <h2 id="hs-chrome-install" class="ss-title hs-landing-section-title">Install Chrome extension</h2>
+        <h2 id="hs-chrome-install" class="ss-title hs-landing-section-title" style="text-transform:none;letter-spacing:-0.01em;font-size:0.9375rem;color:var(--text)">Install Chrome extension</h2>
         <ol class="hs-landing-steps">
-          <li>Download <a href="dist/hearsay-chrome-extension.zip">hearsay-chrome-extension.zip</a> (run <code>npm run pack:extension</code> before deploying if the file is missing).</li>
-          <li>Extract the zip to a folder you will keep (e.g. <code>Documents/HearSay-extension</code>).</li>
-          <li>Open <code>chrome://extensions</code>, turn on <b>Developer mode</b>.</li>
-          <li>Click <b>Load unpacked</b> and select the extracted folder (must contain <code>manifest.json</code>).</li>
-          <li>Click the HearSay toolbar icon to open the side panel. Use <b>Pull selection from page</b> while authoring in Canvas.</li>
+          <li>Download <a href="dist/hearsay-chrome-extension.zip">hearsay-chrome-extension.zip</a>.</li>
+          <li>Extract the zip to a folder you will keep (for example <code>Documents/HearSay-extension</code>). The folder must contain <code>manifest.json</code> at the top level.</li>
+          <li>Open <code>chrome://extensions</code> and turn on <b>Developer mode</b>.</li>
+          <li>Click <b>Load unpacked</b> and select the extracted folder (not the .zip file).</li>
+          <li>Pin HearSay from the puzzle icon, then click the HearSay toolbar icon to open the <b>side panel</b>. Use <b>☁ Connect</b> once, then <b>Screen Reader Lab</b> or <b>Dictionary</b>. On a course page, select text and choose <b>Pull from page</b> (Lab tab).</li>
         </ol>
       </section>
 
       <section class="hs-landing-install" aria-labelledby="hs-dict">
-        <h2 id="hs-dict" class="ss-title hs-landing-section-title">Class dictionaries</h2>
-        <p class="ss-sub">
-          Edit terms on the <a href="dictionary/">Dictionary</a> page, export an NVDA add-on for students,
-          and verify speech in the <a href="lab/">Screen Reader Lab</a>.
-        </p>
+        <h2 id="hs-dict" class="ss-title hs-landing-section-title" style="text-transform:none;letter-spacing:-0.01em;font-size:0.9375rem;color:var(--text)">Typical workflow</h2>
+        <p class="ss-sub" style="margin:0" id="hs-landing-workflow"></p>
       </section>
-
-      <p class="ss-sub hs-landing-foot">
-        <a href="lab/">Open Screen Reader Lab →</a>
-        · <a href="dictionary/">Dictionary</a>
-      </p>
     </main>
+    <script type="module">
+      import { mountSiteNav } from "./src/site-nav.js";
+      import { SHOW_CANVAS_TRANSLATE } from "./src/site-config.js";
+
+      mountSiteNav(document.getElementById("hs-nav"), { active: "home", base: "" });
+
+      const cards = document.getElementById("hs-landing-cards");
+      const items = [
+        ...(SHOW_CANVAS_TRANSLATE
+          ? [
+              {
+                href: "playground/",
+                primary: true,
+                label: "Canvas Translate",
+                sub: "Paste, hear, and copy Canvas-safe accessible HTML",
+              },
+            ]
+          : []),
+        {
+          href: "lab/",
+          primary: !SHOW_CANVAS_TRANSLATE,
+          label: "Screen Reader Lab",
+          sub: "Compare raw vs dictionary speech on pasted course text",
+        },
+        {
+          href: "dictionary/",
+          primary: false,
+          label: "Dictionary",
+          sub: "Edit terms and export NVDA add-ons for students",
+        },
+        {
+          href: "dist/hearsay-chrome-extension.zip",
+          primary: false,
+          label: "Chrome extension",
+          sub: "Side panel while you work in the browser",
+          download: true,
+        },
+      ];
+
+      cards.innerHTML = items
+        .map(
+          (c) =>
+            `<a class="hs-landing-card${c.primary ? " hs-landing-card-primary" : ""}" href="${c.href}"${c.download ? " download" : ""}>` +
+            `<span class="hs-landing-card-label">${c.label}</span>` +
+            `<span class="ss-sub">${c.sub}</span></a>`,
+        )
+        .join("") +
+        `<div class="hs-landing-card hs-landing-card-disabled" aria-disabled="true">` +
+        `<span class="hs-landing-card-label">Safari extension</span>` +
+        `<span class="ss-sub">Coming soon</span></div>`;
+
+      document.getElementById("hs-landing-workflow").innerHTML = SHOW_CANVAS_TRANSLATE
+        ? `Build terms in <a href="dictionary/">Dictionary</a> (or import CSV) → test in <a href="lab/">Screen Reader Lab</a> → author with <a href="playground/">Canvas Translate</a> → students install the NVDA add-on (2026.1+).`
+        : `Build terms in <a href="dictionary/">Dictionary</a> (or import CSV) → test in <a href="lab/">Screen Reader Lab</a> → students double-click the NVDA add-on (2026.1+) and restart NVDA.`;
+    </script>
   </body>
 </html>

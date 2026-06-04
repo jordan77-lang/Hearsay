@@ -8,12 +8,19 @@
     "test": "node --test test/*.test.mjs",
     "build:dict": "node tools/build-dictionary.mjs",
     "build:doc": "node tools/build-test-doc.mjs",
-    "serve": "node tools/serve.mjs 8123",
+    "build:vendor": "node tools/build-vendor.mjs",
+    "serve": "node tools/build-vendor.mjs && node tools/serve.mjs 8123",
     "push:dict": "node tools/push-dictionary-to-supabase.mjs",
     "pull:dict": "node tools/pull-dictionary-from-supabase.mjs",
     "sync:dict": "node tools/sync-combined-dictionary.mjs",
-    "pack:extension": "node tools/pack-extension.mjs",
-    "build:pages": "node tools/build-pages.mjs"
+    "pack:extension": "node tools/build-vendor.mjs && node tools/pack-extension.mjs",
+    "build:pages": "node tools/build-vendor.mjs && node tools/build-pages.mjs",
+    "build:user-guide": "node tools/build-vendor.mjs && node tools/build-user-guide.mjs"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "jspdf": "^2.5.2",
+    "jszip": "^3.10.1"
+  }
 }

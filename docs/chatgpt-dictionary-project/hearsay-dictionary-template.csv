@@ -1,0 +1,8 @@
+Pattern,Spoken,Note,Ignore case
+ΔT,delta T,temperature change,Yes
+mL,milliliters,volume unit,Yes
+J/g°C,jools per gram degree Celsius,specific heat capacity unit,Yes
+kJ/mol,killuh jools per mol,molar energy unit,Yes
+H2O,H two O,water formula,Yes
+qsolution,q of solution,heat absorbed by solution,Yes
+T2,T of 2,final temperature variable,Yes

@@ -3,18 +3,32 @@
 import { mountSiteNav } from "./site-nav.js";
 import { openCloudSettingsModal } from "./supabase/cloud-settings.js";
 import {
+  isSupabaseConnected,
+  requireSupabaseConnection,
+  supabaseConnectMessage,
+} from "./supabase/connect-guard.js";
+import {
   createDictionaryApi,
   loadSupabaseConfigFromBrowser,
-  getStoredSupabaseConfig,
   setStoredSupabaseConfig,
   clearStoredSupabaseConfig,
   getStoredCourseId,
   setStoredCourseId,
   COMBINED_COURSE_ID,
+  DEMO_DICTIONARY_ID,
+  DEMO_DICTIONARY_LABEL,
+  isDemoDictionaryId,
 } from "./supabase/dictionary-api.js";
-import { ruleCount, dictionarySource } from "./core/dictionary.js";
-import { findTokens } from "./core/detect.js";
-import { analyze, toDictionarySpeechByLine, canvasSpokenLinesFromText, formatDictionarySpeechHtmlByLine } from "./core/transform.js";
+import { loadBareClassDictionary, loadBundledChemistryDictionary, ruleCount } from "./core/dictionary.js";
+import {
+  toLabDictionarySpeechByLine,
+  toDefaultScreenReaderSpeechByLine,
+  formatBaselineSpeechHtmlByLine,
+  formatDictionarySpeechHtmlByLine,
+  labFlaggedSpeechTokens,
+  createLabTokenLinkResolver,
+  setLabTokenLinkResolver,
+} from "./core/transform.js";
 import {
   normalizePastedContent,
   inspectPasteFromEvent,
@@ -23,20 +37,22 @@ import {
 import { insertAtCursor } from "./fraction-builder.js";
 import { createHearController } from "./hear-ui.js";
 import { helpTip, bindHelpTips } from "./help-tip.js";
-import { preloadSpeech } from "./speech.js";
+import { preloadSpeech, cancelSpeech, subscribeSpeechState } from "./speech.js";
+import { pullTextFromActiveTab, pullSourceLabel } from "./extension/pull-from-tab.js";
+import { onDictionaryUpdated, notifyDictionaryUpdated } from "./dictionary-sync.js";
 
 const SAMPLE = `Heat 10 mL of DI water from 25°C to 30°C. The specific heat capacity is (J/g°C).
 
 Calculate q = mcΔT. Report energy in kJ/mol.`;
 
 const HELP = {
-  paste: `<p>Paste from Google Docs, Word, or Canvas — HearSay normalizes subscripts and glued variables (<code>qcalorimeter</code>, <code>T2</code>).</p>
+  paste: `<p>Paste from Google Docs, Word, an LMS page, or elsewhere — HearSay normalizes subscripts and glued variables (<code>qcalorimeter</code>, <code>T2</code>).</p>
     <p><b>Google Docs equations</b> lose their fraction bar on copy (e.g. <code>29 dogs30 rats</code>). HearSay inserts “divided by” and the course dictionary speaks it the same way.</p>
-    <p>For a visible numerator and denominator with a horizontal line, build the fraction in <b>Canvas’s equation editor</b> for New Quizzes (or the Google Docs equation editor for drafts only — add a spoken cue for students).</p>
-    <p><b>With dictionary</b> uses HearSay’s full speech engine (dictionary + term detection), not raw NVDA rule substitution alone.</p>`,
-  without: `<p>What students see on screen. NVDA without a course dictionary reads symbols literally (e.g. “J slash g degree C”).</p>`,
-  with: `<p>Simulated NVDA speech after your course dictionary rules run — same engine HearSay uses for previews.</p>`,
-  tokens: `<p>Terms HearSay flagged as risky. After dictionary rules, they should match the <b>With dictionary</b> column.</p>`,
+    <p>For a visible numerator and denominator with a horizontal line, use your LMS or document equation editor when students will read it there (Google Docs drafts only — add a spoken cue for students).</p>
+    <p>The <b>default + dictionary</b> column uses HearSay’s full speech engine (built-in reading plus your class terms), not raw NVDA substitution alone.</p>`,
+  without: `<p>What <b>NVDA reads with no speech dictionary</b> (factory symbol table at level <b>most</b> — parentheses, slash, degrees, equals, etc.). Normal text matches what students see. <span class="hs-lab-speech-baseline">Blue</span> = spelled-out symbol names (e.g. <code>(ΔT)</code> → left paren ΔT right paren; <code>J/g°C</code> → J slash g degrees C). Unit expansions like “joules per gram…” require a dictionary — green in the right column.</p>`,
+  with: `<p>Same text with your <b>saved class dictionary</b> loaded. Class rules always win over default screen reader symbol speech. Normal text is unchanged. <span class="hs-lab-speech-dict">Green</span> = your class dictionary. <span class="hs-lab-speech-baseline">Blue</span> = default screen reader only where your class has no rule (NVDA level <b>most</b> — includes parentheses as left/right paren).</p>`,
+  tokens: `<p>Tokens in passage order where pronunciation changes. <span class="hs-lab-speech-baseline">Blue</span> = default screen reader. <span class="hs-lab-speech-dict">Green</span> = your saved class dictionary when loaded. Click highlighted speech above to jump here. Green rows: <b>Edit</b> → change spoken text → <b>▶ Hear</b> to test → <b>Save</b> (confirms) or <b>Cancel</b>.</p>`,
 };
 
 function escapeHtml(s) {
@@ -57,21 +73,31 @@ function debounce(fn, ms) {
 
 /**
  * @param {HTMLElement} root
- * @param {{ base?: string }} opts
+ * @param {{ base?: string, context?: 'web'|'extension', onNavigate?: (view: 'lab'|'dictionary') => void }} opts
  */
-export async function mountScreenReaderLab(root, { base = ".." } = {}) {
+export async function mountScreenReaderLab(
+  root,
+  { base = "..", context = "web", onNavigate, registerDictionaryReload } = {},
+) {
+  const isExtension = context === "extension";
+  const dictLink = isExtension
+    ? `<button type="button" class="hs-inline-link hs-ext-nav-link" data-hs-ext-nav="dictionary">Dictionary</button>`
+    : `<a href="${base.replace(/\/$/, "")}/dictionary/">Dictionary</a>`;
+  const dictFootLink = isExtension
+    ? `<button type="button" class="hs-inline-link hs-ext-nav-link" data-hs-ext-nav="dictionary">Dictionary tab</button>`
+    : `<a href="${base.replace(/\/$/, "")}/dictionary/">Export NVDA add-on on Dictionary →</a>`;
   let config = await loadSupabaseConfigFromBrowser();
   let api = config?.url && config?.anonKey ? createDictionaryApi(config) : null;
   let courses = [];
   let activeCourse = getStoredCourseId();
-  if (activeCourse === COMBINED_COURSE_ID) activeCourse = "chem113";
+  if (activeCourse === COMBINED_COURSE_ID) activeCourse = DEMO_DICTIONARY_ID;
 
   root.innerHTML = `
-    <div class="hs-site-nav-mount"></div>
+    ${isExtension ? "" : '<div class="hs-site-nav-mount"></div>'}
     <main class="ss-wrap hs-lab">
-      <header class="hs-lab-head">
-        <h1 class="ss-title">Screen Reader Lab ${helpTip("<p>Test how quiz text reads <b>with</b> your course NVDA dictionary — the same path students use in New Quizzes.</p>")}</h1>
-        <p class="ss-sub">Paste plain Canvas quiz text · hear raw vs dictionary speech · export add-ons on the <a href="${base.replace(/\/$/, "")}/dictionary/">Dictionary</a> page</p>
+      <header class="hs-lab-head ss-page-header">
+        <h1 class="ss-title">Screen Reader Lab ${helpTip("<p>Test how quiz or assignment text reads <b>with</b> your course NVDA dictionary — the same path students hear in the browser.</p>")}</h1>
+        <p class="ss-sub">Left = plain visible text as a typical screen reader reads it (no class dictionary). Right = same text plus your <b>class dictionary</b> when saved (green). Pick a class (☁ Connect) or <b>Demo dictionary</b>. Export on ${dictLink}.</p>
       </header>
 
       <section class="hs-lab-card" aria-label="Connection">
@@ -81,37 +107,61 @@ export async function mountScreenReaderLab(root, { base = ".." } = {}) {
         </div>
         <label class="hs-lab-field">
           <span class="hs-lab-label">Class dictionary</span>
-          <select id="hs-lab-class" class="ss-btn" disabled>
-            <option value="">— connect to load —</option>
+          <select id="hs-lab-class" class="ss-btn">
+            <option value="demo">Demo dictionary (sample chemistry)</option>
           </select>
         </label>
         <p id="hs-lab-dict-meta" class="ss-type hs-lab-dict-meta" aria-live="polite"></p>
       </section>
 
       <section class="hs-lab-card" aria-labelledby="hs-lab-paste-h">
-        <h2 id="hs-lab-paste-h" class="hs-lab-card-title">Paste quiz text ${helpTip(HELP.paste)}</h2>
-        <textarea id="hs-lab-input" class="ss-input hs-lab-textarea" rows="8" placeholder="Paste plain text from a New Quiz stem or answer…"></textarea>
+        <h2 id="hs-lab-paste-h" class="hs-lab-card-title">Text to preview ${helpTip(HELP.paste)}</h2>
+        <textarea id="hs-lab-input" class="ss-input hs-lab-textarea" rows="8" placeholder="Paste or type plain text from a handout, quiz, lab, or LMS page…"></textarea>
         <p id="hs-lab-paste-notice" class="hs-lab-paste-notice hidden" role="status" aria-live="polite"></p>
+        <p id="hs-lab-pull-status" class="hs-ext-scan-status ss-type hidden" role="status" aria-live="polite"></p>
         <div class="hs-lab-paste-actions">
+          ${
+            isExtension
+              ? `<button type="button" class="ss-btn primary" id="hs-lab-pull" title="Read selection or the focused editor from the active browser tab">Pull from page</button>`
+              : ""
+          }
           <button type="button" class="ss-btn" id="hs-lab-sample">Load sample</button>
           <button type="button" class="ss-btn" id="hs-lab-clear">Clear</button>
         </div>
       </section>
 
+      <p class="hs-lab-legend ss-type" role="note">
+        <span class="hs-lab-legend-item">Normal = on-screen text</span>
+        <span class="hs-lab-legend-item"><span class="hs-lab-legend-swatch is-baseline" aria-hidden="true"></span> Blue = default screen reader</span>
+        <span class="hs-lab-legend-item"><span class="hs-lab-legend-swatch is-dict" aria-hidden="true"></span> Green = class dictionary</span>
+      </p>
       <section class="hs-lab-compare" aria-label="Speech comparison">
         <div class="hs-lab-panel">
           <div class="hs-lab-panel-head">
-            <h3 class="hs-lab-panel-title">Without dictionary ${helpTip(HELP.without)}</h3>
-            <button type="button" class="ss-btn" id="hs-lab-hear-raw" title="Hear visible text">▶ Hear</button>
+            <h3 class="hs-lab-panel-title">Default screen reader ${helpTip(HELP.without)}</h3>
+            <div class="hs-lab-panel-hear-btns">
+              <button type="button" class="ss-btn" id="hs-lab-hear-raw" title="Hear visible text">▶ Hear</button>
+              <button type="button" class="ss-btn hs-lab-hear-pause" id="hs-lab-pause-raw" disabled title="Pause playback">⏸ Pause</button>
+            </div>
           </div>
-          <p id="hs-lab-raw-out" class="hs-lab-output">Paste text above to preview.</p>
+          <div class="hs-lab-output-scroll" id="hs-lab-raw-scroll">
+            <div id="hs-lab-raw-out" class="hs-lab-output">Paste text above to preview.</div>
+          </div>
         </div>
         <div class="hs-lab-panel hs-lab-panel-dict">
           <div class="hs-lab-panel-head">
-            <h3 class="hs-lab-panel-title">With dictionary ${helpTip(HELP.with)}</h3>
-            <button type="button" class="ss-btn primary" id="hs-lab-hear-dict" title="Hear dictionary speech">▶ Hear</button>
+            <div class="hs-lab-panel-head-text">
+              <h3 class="hs-lab-panel-title" id="hs-lab-dict-panel-title">Default screen reader and dictionary ${helpTip(HELP.with)}</h3>
+              <p id="hs-lab-dict-panel-meta" class="hs-lab-panel-meta ss-type" aria-live="polite"></p>
+            </div>
+            <div class="hs-lab-panel-hear-btns">
+              <button type="button" class="ss-btn primary" id="hs-lab-hear-dict" title="Hear dictionary speech">▶ Hear</button>
+              <button type="button" class="ss-btn hs-lab-hear-pause" id="hs-lab-pause-dict" disabled title="Pause playback">⏸ Pause</button>
+            </div>
           </div>
-          <p id="hs-lab-dict-out" class="hs-lab-output">Paste text above to preview.</p>
+          <div class="hs-lab-output-scroll" id="hs-lab-dict-scroll">
+            <div id="hs-lab-dict-out" class="hs-lab-output">Paste text above to preview.</div>
+          </div>
           <p id="hs-lab-changed" class="hs-lab-changed hidden" aria-live="polite"></p>
         </div>
       </section>
@@ -119,16 +169,24 @@ export async function mountScreenReaderLab(root, { base = ".." } = {}) {
       <section class="hs-lab-card" aria-labelledby="hs-lab-tokens-h">
         <h2 id="hs-lab-tokens-h" class="hs-lab-card-title">Flagged tokens ${helpTip(HELP.tokens)}</h2>
         <p id="hs-lab-token-empty" class="ss-sub">No risky tokens detected yet.</p>
-        <ul id="hs-lab-token-list" class="hs-lab-token-list hidden" role="list"></ul>
+        <div id="hs-lab-token-scroll" class="hs-lab-token-scroll hidden">
+          <p class="hs-lab-legend hs-lab-token-legend ss-type" role="note">
+            <span class="hs-lab-legend-item"><span class="hs-lab-legend-swatch is-baseline" aria-hidden="true"></span> Blue = default screen reader</span>
+            <span class="hs-lab-legend-item"><span class="hs-lab-legend-swatch is-dict" aria-hidden="true"></span> Green = class dictionary</span>
+          </p>
+          <ul id="hs-lab-token-list" class="hs-lab-token-list" role="list"></ul>
+        </div>
+        <p id="hs-lab-token-save-status" class="ss-type hs-lab-token-save-status hidden" role="status" aria-live="polite"></p>
       </section>
 
       <p class="ss-sub hs-lab-foot">
-        Ready for students?
-        <a href="${base.replace(/\/$/, "")}/dictionary/">Export NVDA add-on on Dictionary →</a>
+        Ready for students? ${dictFootLink}
       </p>
     </main>`;
 
-  mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "lab", base });
+  if (!isExtension) {
+    mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "lab", base });
+  }
   bindHelpTips(root);
   preloadSpeech();
 
@@ -139,10 +197,20 @@ export async function mountScreenReaderLab(root, { base = ".." } = {}) {
   const input = root.querySelector("#hs-lab-input");
   const rawOut = root.querySelector("#hs-lab-raw-out");
   const dictOut = root.querySelector("#hs-lab-dict-out");
+  const rawScroll = root.querySelector("#hs-lab-raw-scroll");
+  const dictScroll = root.querySelector("#hs-lab-dict-scroll");
   const changedEl = root.querySelector("#hs-lab-changed");
   const tokenEmpty = root.querySelector("#hs-lab-token-empty");
+  const tokenScroll = root.querySelector("#hs-lab-token-scroll");
   const tokenList = root.querySelector("#hs-lab-token-list");
+  const tokenSaveStatus = root.querySelector("#hs-lab-token-save-status");
   const pasteNotice = root.querySelector("#hs-lab-paste-notice");
+  const dictPanelTitle = root.querySelector("#hs-lab-dict-panel-title");
+  const dictPanelMeta = root.querySelector("#hs-lab-dict-panel-meta");
+  const pauseRawBtn = root.querySelector("#hs-lab-pause-raw");
+  const pauseDictBtn = root.querySelector("#hs-lab-pause-dict");
+  let lastDictLoad = { classRuleCount: 0, mergeBundled: false, skipped: true };
+  let dictLoadSeq = 0;
 
   function showPasteNotice(message) {
     if (!message) {
@@ -156,46 +224,134 @@ export async function mountScreenReaderLab(root, { base = ".." } = {}) {
 
   function updateConnectNote() {
     const card = root.querySelector(".hs-lab-card");
-    if (config?.url && config?.anonKey) {
+    const signedIn = isSupabaseConnected();
+    if (signedIn && config?.url) {
       connectNote.textContent = `Connected to Supabase · ${config.url.replace(/^https:\/\//, "")}`;
       card?.classList.add("is-connected");
+      card?.classList.remove("needs-connect");
     } else {
-      connectNote.textContent = "Connect Supabase to load your class dictionary (same credentials as Dictionary Builder).";
+      connectNote.textContent =
+        "Not connected — use ☁ Connect to load your classes. Demo dictionary works offline for preview.";
       card?.classList.remove("is-connected");
+      card?.classList.add("needs-connect");
     }
+  }
+
+  function guardSupabase(feature) {
+    const ok = requireSupabaseConnection({
+      feature,
+      api,
+      onConnect: () => root.querySelector("#hs-lab-cloud")?.click(),
+    });
+    if (!ok) showLabConnectError(supabaseConnectMessage(feature));
+    return ok;
+  }
+
+  function showLabConnectError(msg) {
+    connectNote.textContent = msg;
+  }
+
+  function getActiveClassLabel() {
+    if (isDemoDictionaryId(activeCourse)) return DEMO_DICTIONARY_LABEL;
+    const course = courses.find((c) => c.id === activeCourse);
+    return course?.label || activeCourse || "Class dictionary";
+  }
+
+  function updateDictPanelCaption() {
+    const label = getActiveClassLabel();
+    if (dictPanelTitle) {
+      dictPanelTitle.textContent = `Default screen reader and dictionary — ${label}`;
+    }
+    if (!dictPanelMeta) return;
+    const n = ruleCount();
+    const { classRuleCount, mergeBundled, skipped } = lastDictLoad;
+    if (isDemoDictionaryId(activeCourse)) {
+      dictPanelMeta.textContent = `${n} rules · offline demo sample`;
+      return;
+    }
+    if (!api) {
+      dictPanelMeta.textContent = "Connect Supabase to preview your classes";
+      return;
+    }
+    if (skipped) {
+      dictPanelMeta.textContent = `${label}: no saved terms yet`;
+      return;
+    }
+    dictPanelMeta.textContent = `${n} rules · ${classRuleCount} class row(s)`;
   }
 
   function updateDictMeta() {
+    updateDictPanelCaption();
     const n = ruleCount();
-    const src = dictionarySource();
-    dictMeta.textContent = n ? `${n} active rules · source: ${src}` : "Using bundled chemistry dictionary only.";
+    const { classRuleCount, mergeBundled, skipped } = lastDictLoad;
+    if (isDemoDictionaryId(activeCourse)) {
+      dictMeta.textContent = `${n} rules · ${DEMO_DICTIONARY_LABEL} (offline sample)`;
+      return;
+    }
+    if (!api) {
+      dictMeta.textContent = "Connect Supabase to load your class dictionaries.";
+      return;
+    }
+    if (skipped) {
+      dictMeta.textContent = `${activeCourse}: no saved terms yet — add rows in Dictionary.`;
+      return;
+    }
+    dictMeta.textContent = `${n} rules · ${activeCourse} (${classRuleCount} class row(s))`;
   }
 
   function renderClassSelect() {
-    const list = courses.filter((c) => c.id !== COMBINED_COURSE_ID);
-    if (!list.length) {
-      classSelect.innerHTML = `<option value="">— connect to load —</option>`;
-      classSelect.disabled = true;
-      return;
-    }
+    const demoOpt = `<option value="${DEMO_DICTIONARY_ID}"${activeCourse === DEMO_DICTIONARY_ID ? " selected" : ""}>${escapeHtml(DEMO_DICTIONARY_LABEL)}</option>`;
+    const list = courses.filter((c) => c.id !== COMBINED_COURSE_ID && !isDemoDictionaryId(c.id));
     classSelect.disabled = false;
-    classSelect.innerHTML = list
-      .map(
-        (c) =>
-          `<option value="${escapeHtml(c.id)}"${c.id === activeCourse ? " selected" : ""}>${escapeHtml(c.label || c.id)}</option>`,
-      )
-      .join("");
+    classSelect.innerHTML =
+      demoOpt +
+      (list.length
+        ? list
+            .map(
+              (c) =>
+                `<option value="${escapeHtml(c.id)}"${c.id === activeCourse ? " selected" : ""}>${escapeHtml(c.label || c.id)}</option>`,
+            )
+            .join("")
+        : "");
   }
 
   async function loadDictionaryForCourse(courseId) {
-    if (!api) return;
+    const loadId = ++dictLoadSeq;
     activeCourse = courseId;
     setStoredCourseId(courseId);
-    try {
-      await api.loadCourseDictionary(courseId);
+    updateDictPanelCaption();
+
+    if (isDemoDictionaryId(courseId)) {
+      loadBundledChemistryDictionary("demo");
+      lastDictLoad = {
+        classRuleCount: 0,
+        mergeBundled: true,
+        skipped: false,
+        source: "demo",
+      };
+      if (loadId !== dictLoadSeq) return;
       updateDictMeta();
-      mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "lab", base });
+      refreshPreview();
+      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "lab", base });
+      return;
+    }
+
+    if (!api) {
+      loadBareClassDictionary("offline-not-connected");
+      lastDictLoad = { classRuleCount: 0, mergeBundled: false, skipped: true };
+      if (loadId !== dictLoadSeq) return;
+      updateDictMeta();
+      refreshPreview();
+      return;
+    }
+    try {
+      lastDictLoad = await api.loadCourseDictionary(courseId);
+      if (loadId !== dictLoadSeq) return;
+      updateDictMeta();
+      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "lab", base });
     } catch {
+      if (loadId !== dictLoadSeq) return;
+      lastDictLoad = { classRuleCount: 0, mergeBundled: false, skipped: true };
       updateDictMeta();
     }
     refreshPreview();
@@ -205,69 +361,459 @@ export async function mountScreenReaderLab(root, { base = ".." } = {}) {
     if (!api) return;
     try {
       courses = await api.listCourses();
-      if (!courses.some((c) => c.id === activeCourse)) {
-        activeCourse = courses.find((c) => c.id !== COMBINED_COURSE_ID)?.id ?? activeCourse;
+      if (
+        !isDemoDictionaryId(activeCourse) &&
+        !courses.some((c) => c.id === activeCourse)
+      ) {
+        activeCourse = DEMO_DICTIONARY_ID;
+        setStoredCourseId(activeCourse);
       }
       renderClassSelect();
       if (activeCourse) await loadDictionaryForCourse(activeCourse);
     } catch {
       courses = [];
       renderClassSelect();
+      if (isDemoDictionaryId(activeCourse)) await loadDictionaryForCourse(activeCourse);
     }
   }
+
+  function hasActiveClassDictionary() {
+    if (isDemoDictionaryId(activeCourse)) return true;
+    const { skipped, mergeBundled, classRuleCount } = lastDictLoad;
+    return !skipped && !mergeBundled && (classRuleCount ?? 0) > 0;
+  }
+
+  let lastFlaggedTokens = [];
+  let savingToken = false;
+
+  function canEditDictTokens() {
+    return Boolean(api) && !isDemoDictionaryId(activeCourse) && hasActiveClassDictionary();
+  }
+
+  function exitTokenEditRow(row) {
+    if (!row) return;
+    row.classList.remove("is-editing");
+    const input = row.querySelector(".hs-lab-token-edit");
+    const spokenEl = row.querySelector(".hs-lab-token-spoken");
+    if (input && spokenEl) input.value = spokenEl.textContent ?? "";
+    row.querySelector(".hs-lab-token-view")?.classList.remove("hidden");
+    row.querySelector(".hs-lab-token-edit-panel")?.classList.add("hidden");
+    row.querySelector(".hs-lab-token-actions-view")?.classList.remove("hidden");
+    row.querySelector(".hs-lab-token-actions-edit")?.classList.add("hidden");
+    if (row.querySelector(".hs-lab-token-hear")?.classList.contains("ss-hear-playing")) {
+      cancelSpeech();
+    }
+  }
+
+  function enterTokenEdit(row) {
+    if (!row || savingToken) return;
+    tokenList.querySelectorAll(".hs-lab-token.is-editing").forEach(exitTokenEditRow);
+    row.classList.add("is-editing");
+    row.querySelector(".hs-lab-token-view")?.classList.add("hidden");
+    row.querySelector(".hs-lab-token-edit-panel")?.classList.remove("hidden");
+    row.querySelector(".hs-lab-token-actions-view")?.classList.add("hidden");
+    row.querySelector(".hs-lab-token-actions-edit")?.classList.remove("hidden");
+    const input = row.querySelector(".hs-lab-token-edit");
+    input?.focus();
+    input?.select();
+  }
+
+  function closeAllTokenEdits() {
+    tokenList.querySelectorAll(".hs-lab-token.is-editing").forEach(exitTokenEditRow);
+  }
+
+  function scrollToFlaggedToken(id) {
+    const el = tokenList.querySelector(`[data-token-id="${id}"]`);
+    if (!el) return;
+    tokenScroll?.classList.remove("hidden");
+    tokenEmpty.classList.add("hidden");
+    el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    tokenList.querySelectorAll(".hs-lab-token.is-active").forEach((n) => n.classList.remove("is-active"));
+    el.classList.add("is-active");
+    const focusTarget = el.querySelector(".hs-lab-token-edit-btn, .hs-lab-token-spoken");
+    focusTarget?.focus?.({ preventScroll: true });
+  }
+
+  function bindSpeechColumnLinks(container) {
+    if (!container) return;
+    container.addEventListener("click", (e) => {
+      const link = e.target.closest?.(".hs-lab-speech-link");
+      if (!link) return;
+      e.preventDefault();
+      const id = link.getAttribute("data-lab-token");
+      if (id != null) scrollToFlaggedToken(id);
+    });
+    container.addEventListener("keydown", (e) => {
+      const link = e.target.closest?.(".hs-lab-speech-link");
+      if (!link || (e.key !== "Enter" && e.key !== " ")) return;
+      e.preventDefault();
+      const id = link.getAttribute("data-lab-token");
+      if (id != null) scrollToFlaggedToken(id);
+    });
+  }
+
+  bindSpeechColumnLinks(rawOut);
+  bindSpeechColumnLinks(dictOut);
+
+  let syncScrollLock = false;
+  let hearScrollLock = false;
+  function bindSyncedLabScroll(a, b) {
+    if (!a || !b) return;
+    a.addEventListener("scroll", () => {
+      if (syncScrollLock || hearScrollLock) return;
+      syncScrollLock = true;
+      b.scrollTop = a.scrollTop;
+      syncScrollLock = false;
+    });
+  }
+  bindSyncedLabScroll(rawScroll, dictScroll);
+  bindSyncedLabScroll(dictScroll, rawScroll);
+
+  let hearHighlightRoot = null;
+
+  function clearLabHearHighlight() {
+    for (const root of [rawOut, dictOut]) {
+      root?.querySelectorAll(".hs-lab-output-line.is-hearing").forEach((el) => {
+        el.classList.remove("is-hearing");
+      });
+    }
+    hearHighlightRoot = null;
+  }
+
+  /** Pin a line to the top of its scroll panel (relative to visible viewport). */
+  function scrollLabLineToTop(scrollHost, line) {
+    if (!scrollHost || !line) return;
+    const hostRect = scrollHost.getBoundingClientRect();
+    const lineRect = line.getBoundingClientRect();
+    scrollHost.scrollTop += lineRect.top - hostRect.top;
+  }
+
+  /** Highlight the same input line in both columns and keep it pinned to the top while Hear plays. */
+  function highlightLabHearLine(lineIndex) {
+    if (lineIndex == null) return;
+    clearLabHearHighlight();
+    hearScrollLock = true;
+    try {
+      for (const container of [rawOut, dictOut]) {
+        const line = container?.querySelector(`.hs-lab-output-line[data-line="${lineIndex}"]`);
+        if (!line) continue;
+        line.classList.add("is-hearing");
+        scrollLabLineToTop(container.closest(".hs-lab-output-scroll"), line);
+      }
+    } finally {
+      hearScrollLock = false;
+    }
+    hearHighlightRoot = rawOut;
+  }
+
+  /** @param {string} raw @param {(line: string, lineIndex: number) => string} speakLine */
+  function buildLabHearChunks(raw, speakLine) {
+    return String(raw ?? "")
+      .split(/\r?\n/)
+      .map((line, lineIndex) => ({
+        lineIndex,
+        text: line.trim() ? String(speakLine(line, lineIndex) ?? "").trim() : "",
+      }))
+      .filter((chunk) => chunk.text);
+  }
+
+  function playLabHear(btn, meta, chunks) {
+    hear.play(btn, meta, chunks, {
+      onChunkStart: (chunk) => highlightLabHearLine(chunk.lineIndex),
+      onStop: () => clearLabHearHighlight(),
+    });
+    updateLabPauseButtons(true);
+  }
+
+  function updateLabPauseButtons(forcePlaying) {
+    const playing = forcePlaying === true || hear.isPlaying();
+    const paused = hear.isPaused();
+    for (const btn of [pauseRawBtn, pauseDictBtn]) {
+      if (!btn) continue;
+      btn.disabled = !playing;
+      btn.textContent = paused ? hear.RESUME_LABEL : hear.PAUSE_LABEL;
+      btn.title = paused ? "Resume playback" : "Pause playback";
+      btn.setAttribute("aria-label", btn.title);
+      btn.classList.toggle("is-paused", paused && playing);
+    }
+  }
+
+  hear.subscribePauseState?.(() => updateLabPauseButtons());
+  subscribeSpeechState(() => {
+    if (!hear.isPlaying()) updateLabPauseButtons(false);
+  });
+
+  function bindLabPauseButton(btn) {
+    btn?.addEventListener("click", () => {
+      if (!hear.isPlaying()) return;
+      hear.togglePause();
+      updateLabPauseButtons(true);
+    });
+  }
+  bindLabPauseButton(pauseRawBtn);
+  bindLabPauseButton(pauseDictBtn);
+
+  function showTokenSaveStatus(message, isError = false) {
+    if (!message) {
+      tokenSaveStatus.classList.add("hidden");
+      tokenSaveStatus.textContent = "";
+      tokenSaveStatus.classList.remove("is-error");
+      return;
+    }
+    tokenSaveStatus.textContent = message;
+    tokenSaveStatus.classList.remove("hidden");
+    tokenSaveStatus.classList.toggle("is-error", isError);
+  }
+
+  function confirmSaveDictToken({ pattern, spoken, tokenRaw }) {
+    const label = getActiveClassLabel();
+    const visible = tokenRaw || pattern;
+    return window.confirm(
+      `Save pronunciation to "${label}"?\n\n` +
+        `${visible} → ${spoken}\n\n` +
+        "This updates the shared class dictionary for all authors and students using this class.",
+    );
+  }
+
+  function playTokenEditHear(btn, row) {
+    const input = row?.querySelector(".hs-lab-token-edit");
+    const spoken = String(input?.value ?? "").trim();
+    if (!spoken) {
+      showTokenSaveStatus("Enter spoken text before hearing.", true);
+      input?.focus();
+      return;
+    }
+    showTokenSaveStatus(null);
+    hear.play(btn, { hearLabel: "▶ Hear", hearTitle: "Hear edited pronunciation" }, spoken);
+  }
+
+  async function saveDictTokenFromLab({ pattern, spoken }) {
+    if (savingToken || !guardSupabase("Saving to your class dictionary")) return;
+    if (isDemoDictionaryId(activeCourse)) {
+      showTokenSaveStatus("Demo dictionary is read-only. Connect and select your class to save terms.", true);
+      return;
+    }
+    const trimmedPattern = String(pattern ?? "").trim();
+    const trimmedSpoken = String(spoken ?? "").trim();
+    if (!trimmedPattern || !trimmedSpoken) return;
+    const label = getActiveClassLabel();
+    savingToken = true;
+    showTokenSaveStatus("Saving…");
+    try {
+      const entriesTable = await api.probeEntriesTable();
+      if (entriesTable.exists) {
+        let records = await api.fetchEntryRecords(activeCourse);
+        const idx = records.findIndex((r) => r.text === trimmedPattern);
+        if (idx >= 0) {
+          records[idx] = { ...records[idx], substitution: trimmedSpoken };
+        } else {
+          records.push({
+            text: trimmedPattern,
+            substitution: trimmedSpoken,
+            app: "All Apps",
+            ignore_case: "Yes",
+            note: "Edited in Screen Reader Lab",
+          });
+        }
+        await api.saveEntryRecords(activeCourse, records);
+      } else {
+        await api.upsertRule(activeCourse, {
+          pattern: trimmedPattern,
+          replacement: trimmedSpoken,
+        });
+      }
+      await loadDictionaryForCourse(activeCourse);
+      notifyDictionaryUpdated({ classSlug: activeCourse });
+      showTokenSaveStatus(`Saved "${trimmedPattern}" to ${label}.`);
+    } catch (err) {
+      showTokenSaveStatus(err.message ?? String(err), true);
+    } finally {
+      savingToken = false;
+    }
+  }
+
+  function renderFlaggedTokens(raw, { classDictActive, needsConnect, flagged: precomputed }) {
+    if (!raw.trim()) {
+      tokenEmpty.textContent = "No risky tokens detected yet.";
+      tokenEmpty.classList.remove("hidden");
+      tokenScroll?.classList.add("hidden");
+      tokenList.innerHTML = "";
+      lastFlaggedTokens = [];
+      showTokenSaveStatus("");
+      return;
+    }
+
+    const flagged =
+      precomputed ??
+      labFlaggedSpeechTokens(raw, {
+        classDictActive: classDictActive && !needsConnect,
+      });
+    lastFlaggedTokens = flagged;
+
+    if (!flagged.length) {
+      tokenEmpty.textContent = needsConnect
+        ? "No default screen reader changes in this text. Connect to preview class dictionary (green) tokens."
+        : classDictActive
+          ? "No default or dictionary pronunciation changes detected in this text."
+          : "No default screen reader pronunciation changes detected. Add class terms in Dictionary to see green tokens.";
+      tokenEmpty.classList.remove("hidden");
+      tokenScroll?.classList.add("hidden");
+      tokenList.innerHTML = "";
+      return;
+    }
+
+    const editableDict = canEditDictTokens();
+    tokenEmpty.classList.add("hidden");
+    tokenScroll?.classList.remove("hidden");
+    closeAllTokenEdits();
+    tokenList.innerHTML = flagged
+      .map(({ id, raw: tokenRaw, spoken, kind, pattern, hasRule }) => {
+        const spokenClass =
+          kind === "dict" ? "hs-lab-speech-dict" : "hs-lab-speech-baseline";
+        const savePattern = pattern ?? tokenRaw;
+        const hint =
+          kind === "dict" && !editableDict && isDemoDictionaryId(activeCourse)
+            ? `<span class="hs-lab-token-hint">Demo only</span>`
+            : kind === "dict" && !editableDict && !api
+              ? `<span class="hs-lab-token-hint">Connect to edit</span>`
+              : kind === "dict" && !hasRule && editableDict
+                ? `<span class="hs-lab-token-hint">New term</span>`
+                : "";
+        const spokenBlock =
+          kind === "dict" && editableDict
+            ? `<div class="hs-lab-token-view">
+                <span class="hs-lab-token-spoken ${spokenClass}">${escapeHtml(spoken)}</span>
+              </div>
+              <div class="hs-lab-token-edit-panel hidden">
+                <input type="text" class="hs-lab-token-edit" data-pattern="${escapeHtml(savePattern)}" value="${escapeHtml(spoken)}" aria-label="Spoken for ${escapeHtml(tokenRaw)}" />
+              </div>`
+            : `<span class="hs-lab-token-spoken ${spokenClass}">${escapeHtml(spoken)}</span>`;
+        const actionsBlock =
+          kind === "dict" && editableDict
+            ? `<div class="hs-lab-token-actions">
+                <div class="hs-lab-token-actions-view">
+                  <button type="button" class="ss-btn hs-lab-token-edit-btn">Edit</button>
+                </div>
+                <div class="hs-lab-token-actions-edit hidden">
+                  <button type="button" class="ss-btn hs-lab-token-hear" title="Hear edited pronunciation">▶ Hear</button>
+                  <button type="button" class="ss-btn primary hs-lab-token-save" data-pattern="${escapeHtml(savePattern)}">Save</button>
+                  <button type="button" class="ss-btn hs-lab-token-cancel">Cancel</button>
+                </div>
+              </div>`
+            : "";
+        return `<li class="hs-lab-token hs-lab-token-${kind}" data-token-id="${id}" data-pattern="${escapeHtml(savePattern)}" id="hs-lab-token-${id}" role="listitem">
+          <div class="hs-lab-token-body">
+            <code class="hs-lab-token-raw">${escapeHtml(tokenRaw)}</code>
+            <span class="hs-lab-token-arrow" aria-hidden="true">→</span>
+            ${spokenBlock}
+            ${hint}
+          </div>
+          ${actionsBlock}
+        </li>`;
+      })
+      .join("");
+  }
+
+  tokenList.addEventListener("click", (e) => {
+    const editBtn = e.target.closest?.(".hs-lab-token-edit-btn");
+    if (editBtn) {
+      enterTokenEdit(editBtn.closest(".hs-lab-token"));
+      return;
+    }
+    const hearBtn = e.target.closest?.(".hs-lab-token-hear");
+    if (hearBtn) {
+      playTokenEditHear(hearBtn, hearBtn.closest(".hs-lab-token"));
+      return;
+    }
+    const cancelBtn = e.target.closest?.(".hs-lab-token-cancel");
+    if (cancelBtn) {
+      exitTokenEditRow(cancelBtn.closest(".hs-lab-token"));
+      return;
+    }
+    const saveBtn = e.target.closest?.(".hs-lab-token-save");
+    if (!saveBtn || savingToken) return;
+    const row = saveBtn.closest(".hs-lab-token");
+    const input = row?.querySelector(".hs-lab-token-edit");
+    if (!input) return;
+    const pattern = saveBtn.getAttribute("data-pattern") || row?.getAttribute("data-pattern");
+    const spoken = input.value.trim();
+    if (!spoken) {
+      showTokenSaveStatus("Enter spoken text before saving.", true);
+      input.focus();
+      return;
+    }
+    const tokenRaw = row?.querySelector(".hs-lab-token-raw")?.textContent?.trim();
+    if (!confirmSaveDictToken({ pattern, spoken, tokenRaw })) return;
+    void saveDictTokenFromLab({ pattern, spoken });
+  });
+
+  tokenList.addEventListener("keydown", (e) => {
+    if (!e.target.classList.contains("hs-lab-token-edit")) return;
+    const row = e.target.closest(".hs-lab-token");
+    if (e.key === "Enter") {
+      e.preventDefault();
+      row?.querySelector(".hs-lab-token-save")?.click();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      exitTokenEditRow(row);
+    }
+  });
 
   function refreshPreview() {
     const raw = input.value;
     if (!raw.trim()) {
-      rawOut.textContent = "Paste text above to preview.";
-      dictOut.textContent = "Paste text above to preview.";
+      rawOut.innerHTML = "Paste text above to preview.";
+      dictOut.innerHTML = "Paste text above to preview.";
       changedEl.classList.add("hidden");
       tokenEmpty.classList.remove("hidden");
-      tokenList.classList.add("hidden");
+      tokenScroll?.classList.add("hidden");
       tokenList.innerHTML = "";
+      lastFlaggedTokens = [];
+      setLabTokenLinkResolver(null);
       return;
     }
 
-    const normalized = normalizePastedContent(raw);
-    const withDict = toDictionarySpeechByLine(raw);
-    rawOut.textContent = normalized;
-    dictOut.innerHTML = formatDictionarySpeechHtmlByLine(raw);
-
-    const same = normalized.replace(/\s+/g, " ").trim() === withDict.replace(/\s+/g, " ").trim();
-    if (same) {
+    const needsConnect = !api && !isDemoDictionaryId(activeCourse);
+    const withoutSpeech = toDefaultScreenReaderSpeechByLine(raw);
+    const classDictActive = hasActiveClassDictionary();
+    const withDict = needsConnect
+      ? ""
+      : classDictActive
+        ? toLabDictionarySpeechByLine(raw)
+        : withoutSpeech;
+    let linkFlagged;
+    if (needsConnect) {
+      rawOut.innerHTML = escapeHtml(withoutSpeech).replace(/\n/g, "<br>");
+      dictOut.innerHTML = escapeHtml(
+        `Connect with ☁ Connect to load the ${getActiveClassLabel()} dictionary, then preview and Hear how students will read this text.`,
+      );
       changedEl.classList.add("hidden");
     } else {
-      changedEl.textContent = "Dictionary changed the speech — good sign for student install.";
-      changedEl.classList.remove("hidden");
+      linkFlagged = labFlaggedSpeechTokens(raw, {
+        classDictActive: classDictActive && !needsConnect,
+      });
+      const linkResolver = createLabTokenLinkResolver(linkFlagged);
+      setLabTokenLinkResolver(linkResolver);
+      rawOut.innerHTML = formatBaselineSpeechHtmlByLine(raw);
+      dictOut.innerHTML = classDictActive
+        ? formatDictionarySpeechHtmlByLine(raw)
+        : formatBaselineSpeechHtmlByLine(raw);
+      setLabTokenLinkResolver(null);
+      const same =
+        withoutSpeech.replace(/\s+/g, " ").trim() === withDict.replace(/\s+/g, " ").trim();
+      const classLabel = getActiveClassLabel();
+      if (!classDictActive) {
+        changedEl.textContent = `${classLabel} has no saved terms yet — both columns show default screen reader reading. Add terms in Dictionary, save, then reload here to preview green highlights.`;
+        changedEl.classList.remove("hidden");
+      } else if (same) {
+        changedEl.classList.add("hidden");
+      } else {
+        changedEl.textContent = `${classLabel} dictionary changed some pronunciations (green above) — good sign for student install.`;
+        changedEl.classList.remove("hidden");
+      }
     }
 
-    const { findings } = analyze(raw, findTokens);
-    if (!findings.length) {
-      tokenEmpty.textContent = "No risky tokens detected.";
-      tokenEmpty.classList.remove("hidden");
-      tokenList.classList.add("hidden");
-      tokenList.innerHTML = "";
-      return;
-    }
-
-    tokenEmpty.classList.add("hidden");
-    tokenList.classList.remove("hidden");
-    tokenList.innerHTML = findings
-      .slice(0, 24)
-      .map((f) => {
-        const spoken = (f.primarySpoken ?? f.raw).replace(/\s+/g, " ").trim();
-        const ok = spoken !== f.raw.replace(/\s+/g, " ").trim();
-        return `<li class="hs-lab-token${ok ? " is-covered" : ""}" role="listitem">
-          <code class="hs-lab-token-raw">${escapeHtml(f.raw)}</code>
-          <span class="hs-lab-token-arrow">→</span>
-          <span class="hs-lab-token-spoken">${escapeHtml(spoken)}</span>
-          ${ok ? "" : `<span class="hs-lab-token-warn">check dictionary</span>`}
-        </li>`;
-      })
-      .join("");
-    if (findings.length > 24) {
-      tokenList.innerHTML += `<li class="hs-lab-token-more ss-type" role="listitem">+ ${findings.length - 24} more</li>`;
-    }
+    renderFlaggedTokens(raw, { classDictActive, needsConnect, flagged: linkFlagged });
   }
 
   const refreshDebounced = debounce(refreshPreview, 120);
@@ -282,7 +828,7 @@ export async function mountScreenReaderLab(root, { base = ".." } = {}) {
         api = createDictionaryApi(config);
         updateConnectNote();
         await pullCourses();
-        mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "lab", base });
+        if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "lab", base });
       },
       onClear: async () => {
         clearStoredSupabaseConfig();
@@ -293,18 +839,36 @@ export async function mountScreenReaderLab(root, { base = ".." } = {}) {
         renderClassSelect();
         updateDictMeta();
         refreshPreview();
-        mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "lab", base });
+        if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "lab", base });
       },
     });
   });
 
   classSelect.addEventListener("change", () => {
-    if (classSelect.value) loadDictionaryForCourse(classSelect.value);
+    const next = classSelect.value;
+    if (!isDemoDictionaryId(next) && !guardSupabase("Loading your class dictionary")) {
+      classSelect.value = activeCourse;
+      return;
+    }
+    if (classSelect.value) void loadDictionaryForCourse(classSelect.value);
   });
+
+  const reloadActiveDictionary = (classSlug) => {
+    if (!activeCourse || isDemoDictionaryId(activeCourse)) return;
+    if (classSlug && classSlug !== activeCourse) return;
+    void loadDictionaryForCourse(activeCourse);
+  };
+
+  const unsubDictionarySync = onDictionaryUpdated(({ classSlug }) => reloadActiveDictionary(classSlug));
+  const unregisterReload = registerDictionaryReload?.(reloadActiveDictionary);
 
   input.addEventListener("input", () => {
     showPasteNotice(null);
     refreshDebounced();
+  });
+  input.addEventListener("change", () => {
+    showPasteNotice(null);
+    refreshPreview();
   });
   input.addEventListener("paste", (e) => {
     e.preventDefault();
@@ -324,22 +888,77 @@ export async function mountScreenReaderLab(root, { base = ".." } = {}) {
     refreshPreview();
   });
 
+  const pullBtn = root.querySelector("#hs-lab-pull");
+  const pullStatus = root.querySelector("#hs-lab-pull-status");
+  if (pullBtn && pullStatus) {
+    pullStatus.classList.remove("hidden");
+    pullBtn.addEventListener("click", async () => {
+      pullBtn.disabled = true;
+      pullStatus.textContent = "Reading the active page…";
+      pullStatus.classList.remove("is-error", "is-ok");
+      try {
+        const result = await pullTextFromActiveTab();
+        if (!result.ok) {
+          pullStatus.textContent = result.error;
+          pullStatus.classList.add("is-error");
+          return;
+        }
+        input.value = normalizePastedContent(result.text);
+        showPasteNotice(null);
+        refreshPreview();
+        pullStatus.textContent = `Pulled ${pullSourceLabel(result.source)} (${result.text.length.toLocaleString()} characters). Click the course page tab before pulling again.`;
+        pullStatus.classList.add("is-ok");
+        input.focus();
+      } catch (err) {
+        console.error("HearSay: pull failed", err);
+        pullStatus.textContent = "Pull failed. Reload the page and try again.";
+        pullStatus.classList.add("is-error");
+      } finally {
+        pullBtn.disabled = false;
+      }
+    });
+  }
+
   root.querySelector("#hs-lab-hear-raw").addEventListener("click", (e) => {
-    const text = rawOut.textContent?.trim();
-    if (!text || text.startsWith("Paste")) return;
-    hear.play(e.currentTarget, { hearLabel: "▶ Hear", hearTitle: "Hear without dictionary" }, text);
+    const raw = input.value.trim();
+    if (!raw) return;
+    const spokenByLine = toDefaultScreenReaderSpeechByLine(raw).split(/\r?\n/);
+    const chunks = buildLabHearChunks(raw, (line, lineIndex) => spokenByLine[lineIndex] ?? "");
+    if (!chunks.length) return;
+    playLabHear(
+      e.currentTarget,
+      { hearLabel: "▶ Hear", hearTitle: "Hear default screen reader (no dictionary)" },
+      chunks,
+    );
   });
 
   root.querySelector("#hs-lab-hear-dict").addEventListener("click", (e) => {
     const raw = input.value.trim();
     if (!raw) return;
-    const lines = canvasSpokenLinesFromText(raw);
-    if (!lines.length) return;
-    hear.play(e.currentTarget, { hearLabel: "▶ Hear", hearTitle: "Hear with dictionary" }, lines);
+    if (!isDemoDictionaryId(activeCourse) && !api && !guardSupabase("Hearing with your class dictionary")) {
+      return;
+    }
+    const spokenByLine = hasActiveClassDictionary()
+      ? toLabDictionarySpeechByLine(raw).split(/\r?\n/)
+      : toDefaultScreenReaderSpeechByLine(raw).split(/\r?\n/);
+    const chunks = buildLabHearChunks(raw, (line, lineIndex) => spokenByLine[lineIndex] ?? "");
+    if (!chunks.length) return;
+    playLabHear(
+      e.currentTarget,
+      { hearLabel: "▶ Hear", hearTitle: `Hear with ${getActiveClassLabel()}` },
+      chunks,
+    );
   });
 
   updateConnectNote();
-  updateDictMeta();
   renderClassSelect();
+  await loadDictionaryForCourse(activeCourse);
   if (api) await pullCourses();
+
+  return {
+    destroy: () => {
+      unsubDictionarySync();
+      unregisterReload?.();
+    },
+  };
 }

@@ -1,0 +1,9 @@
+Pattern,Spoken,Note,Ignore case
+ΔT,delta T,temperature change; from syllabus p.4,Yes
+mL,milliliters,volume unit,Yes
+J/g°C,jools per gram degree Celsius,lab manual equation,Yes
+kJ/mol,killuh jools per mol,energy unit; instructor chose phrasing,Yes
+H2O,H two O,water formula,Yes
+qsolution,q of solution,calorimetry variable,Yes
+qcalorimeter,q of calorimeter,glued variable in PDF extract,Yes
+DI water,D I water,deionized water,Yes

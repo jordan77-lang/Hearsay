@@ -1,8 +1,18 @@
 // Shared Hear button behavior (play / stop toggle).
 
-import { speak, speakQueued, cancelSpeech, subscribeSpeechState } from "./speech.js";
+import {
+  speak,
+  speakQueued,
+  cancelSpeech,
+  toggleSpeechPause,
+  isSpeechPaused,
+  subscribeSpeechState,
+  subscribeSpeechPauseState,
+} from "./speech.js";
 
 const HEAR_STOP_LABEL = "\u25a0 Stop";
+const HEAR_PAUSE_LABEL = "\u23f8 Pause";
+const HEAR_RESUME_LABEL = "\u25b6 Resume";
 
 export function setHearPlaying(btn, playing, { hearLabel, hearTitle }) {
   if (!btn?.isConnected) return;
@@ -30,16 +40,31 @@ export function createHearController() {
     }
   }
 
-  function play(btn, meta, text) {
+  function play(btn, meta, text, hearOpts = {}) {
     if (btn.classList.contains("ss-hear-playing")) {
       cancelSpeech();
+      hearOpts.onStop?.();
       return;
     }
-    const lines = Array.isArray(text) ? text : [text];
-    const chunks = lines.map((l) => String(l ?? "").trim()).filter(Boolean);
+    const rawChunks = Array.isArray(text) ? text : [text];
+    const chunks = rawChunks
+      .map((entry) => {
+        if (entry && typeof entry === "object" && "text" in entry) {
+          return { ...entry, text: String(entry.text ?? "").trim() };
+        }
+        return { text: String(entry ?? "").trim() };
+      })
+      .filter((c) => c.text);
     if (!chunks.length) return;
-    if (chunks.length === 1) speak(chunks[0]);
-    else speakQueued(chunks);
+    if (chunks.length === 1 && chunks[0].lineIndex == null && !hearOpts.onChunkStart) {
+      speak(chunks[0].text, { onend: hearOpts.onStop });
+    } else {
+      speakQueued(chunks, {
+        onChunkStart: hearOpts.onChunkStart,
+        onboundary: hearOpts.onboundary,
+        onend: hearOpts.onStop,
+      });
+    }
     clear();
     activeBtn = btn;
     activeMeta = meta;
@@ -54,5 +79,25 @@ export function createHearController() {
     if (!playing) clear();
   });
 
-  return { bind, play, clear, resetIfDetached };
+  function togglePause() {
+    if (!activeBtn) return isSpeechPaused();
+    return toggleSpeechPause();
+  }
+
+  function isPlaying() {
+    return Boolean(activeBtn?.isConnected);
+  }
+
+  return {
+    bind,
+    play,
+    clear,
+    resetIfDetached,
+    togglePause,
+    isPlaying,
+    isPaused: isSpeechPaused,
+    subscribePauseState: subscribeSpeechPauseState,
+    PAUSE_LABEL: HEAR_PAUSE_LABEL,
+    RESUME_LABEL: HEAR_RESUME_LABEL,
+  };
 }

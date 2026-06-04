@@ -1,6 +1,7 @@
 // Build NVDA .nvda-addon packages (ported from screenreader dictionary-builder.html).
 
 import { buildNvdaDic } from "./dictionary-export.js";
+import { saveBlobAsFile } from "./save-download.js";
 
 function sanitize(value) {
   return String(value ?? "").trim();
@@ -54,7 +55,7 @@ export function resolveAddonOptions(fields, defaults = {}) {
 
 export function buildAddonManifest(options) {
   return [
-    `name = ${escapeIniString(options.addonId)}`,
+    `name = "${escapeIniString(options.addonId)}"`,
     `summary = "${escapeIniString(options.summary)}"`,
     `description = """${escapeIniString(options.summary)}."""`,
     `author = "${escapeIniString(options.author)}"`,
@@ -200,23 +201,18 @@ let jsZipLoader;
 async function loadJSZip() {
   if (typeof globalThis.JSZip !== "undefined") return globalThis.JSZip;
   if (!jsZipLoader) {
-    jsZipLoader = import("https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm").then((m) => m.default);
+    jsZipLoader = import("./vendor/jszip.js").then((m) => m.default);
   }
   return jsZipLoader;
 }
 
+/** Warm JSZip while the user is still on the page (speeds add-on export). */
+export function preloadNvdaAddonDeps() {
+  void loadJSZip();
+}
+
 export function downloadBlob(filename, blob) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  // Revoke after the browser has started reading the blob (immediate revoke can corrupt downloads).
-  setTimeout(() => {
-    link.remove();
-    URL.revokeObjectURL(url);
-  }, 2000);
+  void saveBlobAsFile(filename, blob);
 }
 
 /** Gap between back-to-back browser downloads (avoids multi-download warnings). */
@@ -250,8 +246,13 @@ export async function downloadNvdaAddon({ options, dictionaryContent, literalCou
   const blob = await buildNvdaAddonBlob({ options, dictionaryContent });
   const filename = `${options.addonId}-${options.version}.nvda-addon`;
 
+  // Start the add-on download immediately — building the PDF first can expire the click
+  // "user activation" window and Chrome will block the download with no error message.
+  await saveBlobAsFile(filename, blob);
+
   let pdfFilename = null;
   let pdfBlob = null;
+  let pdfError = null;
   try {
     const { downloadInstallGuidePdf } = await import("./student-install-guide.js");
     const pdf = await downloadInstallGuidePdf(options, {
@@ -261,36 +262,42 @@ export async function downloadNvdaAddon({ options, dictionaryContent, literalCou
     });
     pdfBlob = pdf.blob;
     pdfFilename = pdf.filename;
-  } catch {
-    // Add-on still usable if PDF library fails to load offline.
-  }
-
-  downloadBlob(filename, blob);
-
-  if (pdfBlob && pdfFilename) {
     await delay(DOWNLOAD_STAGGER_MS);
-    downloadBlob(pdfFilename, pdfBlob);
+    await saveBlobAsFile(pdfFilename, pdfBlob);
+  } catch (err) {
+    pdfError = err;
+    // Add-on already downloaded; PDF is optional.
   }
-
-  const regexNote =
-    regexCount > 0
-      ? `${regexCount} regex rules included.`
-      : "Warning: no regex rules were included.";
-
-  const pdfNote = pdfFilename
-    ? `\n\nAlso downloaded: ${pdfFilename} — post this PDF for students next to the add-on file.`
-    : "";
 
   return {
     filename,
     pdfFilename,
-    message:
-      `Exported ${filename}.${pdfNote}\n\n` +
-      "Requires NVDA 2026.1 or later. Restart NVDA after install.\n" +
-      `${literalCount} literal entries. ${regexNote}\n\n` +
-      "Install: students open the .nvda-addon file from Downloads (or Add-on Store).\n" +
-      "Quick test in Notepad: type kJ/mol — NVDA should say killuh jools per mol.",
+    pdfError,
+    message: buildNvdaDownloadAlertMessage({ filename, pdfFilename, pdfError }),
   };
+}
+
+/** Short browser alert after export — details live in the install PDF. */
+const EXTERNAL_SOURCE_HINT =
+  "If double-click fails: NVDA → Tools → Add-on Store → Install from external source.";
+
+export function buildNvdaDownloadAlertMessage({ filename, pdfFilename, pdfError }) {
+  const lines = [`Downloaded: ${filename}`];
+  if (pdfFilename) {
+    lines.push(`Also downloaded: ${pdfFilename}`);
+    lines.push(
+      "",
+      "Students: double-click the .nvda-addon file, confirm Install, restart NVDA (2026.1+).",
+      EXTERNAL_SOURCE_HINT,
+      "Both methods are in the PDF (Option A and Option B).",
+    );
+  } else {
+    if (pdfError) {
+      lines.push("(Install PDF was not created; the add-on file is fine.)");
+    }
+    lines.push("", "Students: double-click the .nvda-addon file, confirm Install, restart NVDA (2026.1+).", EXTERNAL_SOURCE_HINT);
+  }
+  return lines.join("\n");
 }
 
 /** Default add-on metadata for a class slug/label. */

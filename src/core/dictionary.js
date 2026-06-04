@@ -112,8 +112,9 @@ function insertRulesBeforeStandaloneParens(rules, toInsert) {
 }
 
 /** Class rules override bundled patterns; new patterns append at end (NVDA order). */
-export function mergeBundledWithClassRules(classRules) {
-  const bundled = parse(DICTIONARY_DIC);
+export function mergeBundledWithClassRules(classRules, { suppressBundled = [] } = {}) {
+  const suppress = new Set(suppressBundled.map((p) => String(p).trim()).filter(Boolean));
+  const bundled = parse(DICTIONARY_DIC).filter((r) => !suppress.has(r.raw));
   const overrideByPattern = new Map(classRules.map((r) => [r.raw, r]));
   const merged = bundled.map((r) => overrideByPattern.get(r.raw) ?? r);
   const bundledPatterns = new Set(bundled.map((r) => r.raw));
@@ -121,8 +122,8 @@ export function mergeBundledWithClassRules(classRules) {
   return insertRulesBeforeStandaloneParens(merged, additions);
 }
 
-let RULES = mergePinnedRules(parse(DICTIONARY_DIC));
-let dictionarySourceLabel = "bundled";
+let RULES = mergePinnedRules([]);
+let dictionarySourceLabel = "none";
 
 function rebuildCompositionRules() {
   COMPOSITION_RULES = RULES.filter(isCompositionRule);
@@ -144,6 +145,20 @@ export function withEmptyDictionary(fn) {
   }
 }
 
+/** Empty class: no dictionary rows (Lab “with dictionary” matches “without” until terms are saved). */
+export function loadBareClassDictionary(sourceLabel = "bare-class") {
+  RULES = [];
+  COMPOSITION_RULES = [];
+  dictionarySourceLabel = sourceLabel;
+}
+
+/** In-memory preview of unsaved editor rows only (no pinned / bundled extras). */
+export function loadEditorPreviewDictionary(raw, sourceLabel = "editor-preview") {
+  RULES = parse(raw);
+  rebuildCompositionRules();
+  dictionarySourceLabel = sourceLabel;
+}
+
 // Replace in-memory rules (e.g. after fetching from Supabase). Falls back to
 // bundled dictionary on the next page load if remote sync is unavailable.
 export function loadDictionary(raw, sourceLabel = "remote") {
@@ -153,10 +168,15 @@ export function loadDictionary(raw, sourceLabel = "remote") {
 }
 
 // Load a class dictionary: bundled base + class overrides/additions.
-export function loadClassDictionary(raw, sourceLabel = "remote") {
-  RULES = mergePinnedRules(mergeBundledWithClassRules(parse(raw)));
+export function loadClassDictionary(raw, sourceLabel = "remote", { suppressBundled = [] } = {}) {
+  RULES = mergePinnedRules(mergeBundledWithClassRules(parse(raw), { suppressBundled }));
   rebuildCompositionRules();
   dictionarySourceLabel = sourceLabel;
+}
+
+/** Offline bundled CHEM curriculum (demo / optional export base). */
+export function loadBundledChemistryDictionary(sourceLabel = "bundled-chemistry") {
+  loadDictionary(DICTIONARY_DIC, sourceLabel);
 }
 
 export function dictionarySource() {
@@ -265,6 +285,25 @@ function isSafeCompositionMatch(text, start, end, rule) {
   ) {
     return false;
   }
+  // Lowercase single-letter rules (e.g. "t" → metric tons) must not match uppercase
+  // letters glued after math symbols (e.g. ΔT — \b matches between Δ and T).
+  if (
+    !rule.caseSensitive &&
+    rule.raw.length === 1 &&
+    /^[a-z]$/.test(rule.raw) &&
+    matched !== rule.raw
+  ) {
+    return false;
+  }
+  // All-caps chem symbols (NO, CO) should not rewrite English "no"/"No".
+  if (
+    rule.type === "2" &&
+    /^[A-Z]{2,4}$/.test(rule.raw) &&
+    matched !== rule.raw &&
+    matched.toUpperCase() === rule.raw
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -315,6 +354,27 @@ export function segmentByDictionary(text) {
 // (parentheses, equals, plus, …) in the spoken stream.
 export function segmentForComposition(text) {
   return segmentWithRules(text, COMPOSITION_RULES, { compositionSafe: true });
+}
+
+/** Dictionary rule that fully covers visible on-screen text (for Lab token editing). */
+export function ruleForVisibleToken(visible) {
+  const trimmed = String(visible ?? "").trim();
+  if (!trimmed) return null;
+  const segs = segmentForComposition(trimmed);
+  if (segs.length !== 1 || !segs[0].spoken || segs[0].text !== trimmed) return null;
+  for (const r of COMPOSITION_RULES) {
+    r.regex.lastIndex = 0;
+    const m = r.regex.exec(trimmed);
+    if (!m || m.index !== 0 || m[0].length !== trimmed.length) continue;
+    if (!isSafeCompositionMatch(trimmed, 0, trimmed.length, r)) continue;
+    return {
+      pattern: r.raw,
+      replacement: r.replacement,
+      case_sensitive: r.caseSensitive,
+      rule_type: r.type,
+    };
+  }
+  return null;
 }
 
 function matchAt(text, index, rules, compositionSafe = false) {

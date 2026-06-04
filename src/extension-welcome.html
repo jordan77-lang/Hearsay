@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HearSay extension installed</title>
+    <script src="theme-init.js"></script>
+    <link rel="stylesheet" href="ui.css" />
+  </head>
+  <body class="hs-page-shell">
+    <main class="ss-wrap" style="max-width: 520px">
+      <header class="ss-page-header">
+        <h1 class="ss-title">HearSay is installed</h1>
+        <p class="ss-sub">The side panel has <strong>Screen Reader Lab</strong> and <strong>Dictionary</strong> — the same tools as the HearSay website, for use alongside whatever course site or document you have open.</p>
+      </header>
+
+      <ol class="hs-ext-install-steps">
+        <li><strong>Pin HearSay</strong> — puzzle icon → pin <strong>HearSay</strong>.</li>
+        <li><strong>Open your course page</strong> in a normal tab (LMS, syllabus, quiz, lab, etc.).</li>
+        <li><strong>Click the HearSay icon</strong> — the side panel opens on the right.</li>
+        <li><strong>☁ Connect</strong> once (Supabase URL + anon key).</li>
+        <li><strong>Screen Reader Lab</strong> — select text on the page → <strong>Pull from page</strong> → hear raw vs dictionary speech.</li>
+        <li><strong>Dictionary</strong> tab — edit terms and download the NVDA add-on for students.</li>
+      </ol>
+
+      <div class="ss-controls" style="margin-top: 20px">
+        <button type="button" class="ss-btn primary" id="hs-ext-open-panel">Open HearSay side panel</button>
+        <button type="button" class="ss-btn" id="hs-ext-close">Close this tab</button>
+      </div>
+    </main>
+    <script src="extension-welcome.js"></script>
+  </body>
+</html>

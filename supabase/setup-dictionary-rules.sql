@@ -121,3 +121,13 @@ create policy "dictionary_rules auth write"
   on public.dictionary_rules for all to authenticated using (true) with check (true);
 
 
+
+-- Allow Dictionary page to remove a class (not slug "all").
+
+drop policy if exists "classes anon delete" on public.classes;
+
+create policy "classes anon delete"
+
+  on public.classes for delete to anon using (slug <> 'all');
+
+

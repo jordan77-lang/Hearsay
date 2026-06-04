@@ -78,6 +78,20 @@ export function rowsToDic(rows) {
  * Dictionary Builder (screenreader repo) stores rows in public.entries.
  * Map to the same shape as dictionary_rules for HearSay.
  */
+/** Editor rows from legacy dictionary_rules (skips regex-only type-1 rules). */
+export function ruleRowsToEntryRows(ruleRows) {
+  return (ruleRows ?? [])
+    .filter((r) => Number(r.rule_type ?? 0) !== 1)
+    .map((r) => ({
+      text: String(r.pattern ?? "").trim(),
+      substitution: String(r.replacement ?? "").trim(),
+      app: "All Apps",
+      ignore_case: r.case_sensitive ? "No" : "Yes",
+      note: String(r.comment ?? "").trim(),
+    }))
+    .filter((r) => r.text && r.substitution);
+}
+
 export function entriesToRuleRows(entries) {
   const out = [];
   for (const [i, e] of (entries ?? []).entries()) {
@@ -93,7 +107,7 @@ export function entriesToRuleRows(entries) {
         pattern,
         replacement,
         case_sensitive,
-        rule_type: inferRuleType(pattern),
+        rule_type: e.rule_type != null ? Number(e.rule_type) : inferRuleType(pattern),
         comment: String(e.note ?? "").trim() || null,
       }),
     );

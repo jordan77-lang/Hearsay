@@ -93,9 +93,12 @@ function normalizePlainDigitSubscripts(s) {
 /**
  * Prepare pasted or typed curriculum text for Sci-Speak analysis.
  * Handles Word/HTML subscripts, unicode scripts, T2→T₂, and qcalorimeter→q_{calorimeter}.
- * @param {{ skipGluedFractionRepair?: boolean }} [opts]
+ * @param {{ skipGluedFractionRepair?: boolean, skipChemGluedBraceMarkup?: boolean }} [opts]
  */
-export function normalizePastedContent(input, { skipGluedFractionRepair = false } = {}) {
+export function normalizePastedContent(
+  input,
+  { skipGluedFractionRepair = false, skipChemGluedBraceMarkup = false } = {},
+) {
   let s = String(input ?? "");
   if (/docs-internal-guid/i.test(s)) {
     s = stripHtmlToText(s);
@@ -104,11 +107,23 @@ export function normalizePastedContent(input, { skipGluedFractionRepair = false 
   }
   s = normalizeSpreadsheetCellRefs(s);
   s = normalizeMathSymbols(s);
-  s = normalizeChemGluedVariables(s);
+  if (!skipChemGluedBraceMarkup) s = normalizeChemGluedVariables(s);
   s = normalizePlainDigitSubscripts(s);
   s = normalizeWhitespaceCleanup(s);
   if (!skipGluedFractionRepair) s = repairFlattenedGdocsFraction(s);
   return s;
+}
+
+/**
+ * Text as a typical screen reader receives it from plain quiz/LMS paste:
+ * unicode subscripts and spacing, but not internal HearSay detection markup
+ * (e.g. qcalorimeter stays glued, not q_{calorimeter}).
+ */
+export function normalizeBaselinePaste(input, { skipGluedFractionRepair = true } = {}) {
+  return normalizePastedContent(input, {
+    skipGluedFractionRepair,
+    skipChemGluedBraceMarkup: true,
+  });
 }
 
 /** Google Docs copy often glues numerator/denominator (e.g. 29 dogs30 rats). */

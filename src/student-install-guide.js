@@ -4,7 +4,7 @@ let jsPdfLoader;
 
 async function loadJsPDF() {
   if (!jsPdfLoader) {
-    jsPdfLoader = import("https://cdn.jsdelivr.net/npm/jspdf@2.5.2/+esm").then((m) => m.jsPDF);
+    jsPdfLoader = import("./vendor/jspdf.js").then((m) => m.jsPDF);
   }
   return jsPdfLoader;
 }
@@ -41,28 +41,25 @@ export function buildInstallGuideSections(options, { addonFilename, literalCount
     courseName,
     file,
     whatThisDoes: [
-      `This guide helps you install ${courseName} on your computer.`,
-      "You only need to do this once for the course.",
-      "After you install and restart NVDA, chemistry and science terms in Canvas should read correctly — including New Quizzes. You do not need to change any Canvas settings.",
+      `Install ${courseName} once on your Windows computer.`,
+      "After you restart NVDA, science and chemistry terms in readings and quizzes should sound correct. No changes are needed inside Canvas or other sites.",
     ],
     requirements: [
-      "A Windows computer.",
-      "NVDA 2026.1 or later (free screen reader from nvaccess.org).",
-      `The install file: ${file} (usually in your Downloads folder, next to this PDF).`,
+      "Windows computer with NVDA 2026.1 or later (free from nvaccess.org).",
+      `Install file: ${file} (usually in Downloads, next to this PDF).`,
+      "The file name must end in .nvda-addon — not .zip.",
     ],
     stepsPrimary: [
-      "Open File Explorer and go to Downloads (or wherever you saved the file).",
-      `Find ${file}.`,
-      "Click the file once, then press Enter — or double-click it.",
-      "NVDA opens and shows an install screen. Choose Install.",
-      "When NVDA asks to restart, choose Yes.",
-      "Wait for NVDA to finish restarting.",
+      "Open Downloads in File Explorer (or the folder where you saved the file).",
+      `Double-click ${file}. NVDA should open and start installing the add-on.`,
+      "If NVDA asks you to confirm, choose Install.",
+      "When NVDA asks to restart, choose Yes and wait until NVDA is running again.",
+      "If double-click does nothing (spinner, no NVDA), use Option B below instead of repeating the click.",
     ],
     stepsAlternate: [
-      "Open NVDA.",
-      "Open Tools → Add-on Store.",
-      "Choose Install from external source.",
-      `Browse to ${file} and choose Install.`,
+      "Open NVDA and make sure it is running.",
+      "Go to Tools → Add-on Store → Install from external source.",
+      `Browse to ${file} (usually in Downloads), select it, and choose Install.`,
       "Restart NVDA when prompted.",
     ],
     test: [
@@ -70,15 +67,14 @@ export function buildInstallGuideSections(options, { addonFilename, literalCount
       { sample: "10 mL", expect: "milliliters" },
       { sample: "J/g°C", expect: "jools per gram degree Celsius" },
     ],
-    testIntro: "Open Notepad (Windows key, type Notepad, press Enter). Type each line below and listen.",
-    testOutro: "If those sound right, you are ready for Canvas.",
+    testIntro: "Open Notepad. Type each sample below and listen with NVDA.",
+    testOutro: "If they sound like the descriptions, installation worked.",
     troubleshooting: [
-      "If double-click does nothing, use Add-on Store instead: NVDA → Tools → Add-on Store → Install from external source → choose the .nvda-addon file.",
-      "Make sure NVDA 2026.1 or later is installed (this add-on does not work on older NVDA). Update to NVDA 2026.1.1+ if File Explorer never opens NVDA when you activate the file.",
-      "If NVDA says the package is invalid or incompatible, re-download the file and try again (a partial download can look like a broken zip).",
-      "If NVDA says the add-on is not compatible, update NVDA to 2026.1 or newer.",
-      "After restart, open Tools → Add-on Store and make sure the add-on is enabled.",
-      "If terms still read as symbols (like J slash g), contact your instructor or campus accessibility office. Tell them your NVDA version and the file name above.",
+      "Nothing happens when you double-click: use Option B — Tools → Add-on Store → Install from external source (same file). You can also try right-click → Open with → nvda.exe (usually C:\\Program Files\\NVDA\\).",
+      "NVDA says the file is invalid: download again; the file must end in .nvda-addon, not .zip.",
+      "NVDA says not compatible: update to NVDA 2026.1 or newer.",
+      "After restart, check Tools → Add-on Store that the add-on is enabled.",
+      "Terms still sound wrong (for example “J slash g”): contact your instructor with your NVDA version and the install file name above.",
     ],
     footer: `${courseName} · version ${options.version} · ${file}`,
     literalCount,
@@ -384,13 +380,17 @@ export async function buildInstallGuidePdfBlob(options, meta) {
   drawBullets(s.requirements);
 
   drawSectionLabel("Install");
-  drawBadge("RECOMMENDED");
-  drawSectionTitle("Open the install file");
-  drawBody("When you click or double-click the .nvda-addon file, NVDA should start installing automatically.");
+  drawBadge("OPTION A — RECOMMENDED");
+  drawSectionTitle("Double-click the install file");
+  drawBody("Double-click the .nvda-addon file. NVDA opens, installs the dictionary, and asks you to restart.");
   drawNumberedSteps(s.stepsPrimary);
 
-  drawSectionTitle("Another way — Add-on Store", 13);
-  drawBullets(s.stepsAlternate);
+  drawBadge("OPTION B");
+  drawSectionTitle("Install from Add-on Store (if double-click fails)", 13);
+  drawBody(
+    "Use this when the file does not open NVDA, you only see a spinner, or Windows asks what program to use. NVDA 2026.1.1+ is recommended so double-click works next time.",
+  );
+  drawNumberedSteps(s.stepsAlternate);
 
   drawSectionLabel("Verify");
   drawTestCards();
