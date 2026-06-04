@@ -85,7 +85,7 @@ const HELP = {
   spoken: `<p><b>Spoken</b> is how you want a screen reader to say the pattern.</p>
     <p>Used in the Screen Reader Lab and saved to Supabase for your class dictionary.</p>`,
   note: `<p><b>Note</b> is optional — a reminder for authors only.</p>
-    <p>Included in NVDA export files as a comment line; students never hear it.</p>`,
+    <p>Included as a comment line in exported dictionary files; students never hear it.</p>`,
   case: `<p><b>Ignore case</b> is the NVDA dictionary setting for whether capitalization must match.</p>
     <p>Chemistry classes still include bundled rules like uppercase <b>NO</b> (nitric oxide). English <b>no</b> / <b>No</b> are not changed. To override a bundled token, add a row with the same <b>Pattern</b> (for example <code>NO</code> → <code>no</code>).</p>
     <ul>
@@ -122,9 +122,9 @@ const HELP = {
   import: `<p><b>Template CSV</b> — same columns as the ChatGPT Dictionary project: Pattern, Spoken, Note, Ignore case.</p>
     <p><b>Import</b> — load a <code>.csv</code> from ChatGPT (not TSV or Excel), then confirm saving to Supabase.</p>`,
   advanced: `<p>Optional files for NVDA, JAWS, or Apple VoiceOver dictionary tools.</p>`,
-  students: `<p><b>NVDA add-on</b> (recommended): students usually <b>double-click</b> the file to install (NVDA <b>2026.1+</b>, Windows). The PDF also explains <b>Install from external source</b> in the Add-on Store if double-click fails.</p>
-    <p>Each class uses <b>only its own saved rows</b>. Use <b>Demo dictionary</b> in Screen Reader Lab to preview the offline chemistry sample. Preview your class in <b>Screen Reader Lab</b> before you share files.</p>
-    <p><b>Regex rules</b> cover units after numbers (e.g. <code>10 mL</code>). Bump <b>Version</b> when you redistribute an update.</p>`,
+  students: `<p><b>Export screen reader dictionaries</b> from the same class terms: NVDA add-on (Windows), NVDA .dic, JAWS TSV, or Apple VoiceOver CSV. Pick the format your students use.</p>
+    <p>For NVDA on Windows, the <b>.nvda-addon</b> plus install PDF is the simplest path (NVDA <b>2026.1+</b>). The PDF also covers Add-on Store → <b>Install from external source</b> if double-click fails.</p>
+    <p>Preview your class in <b>Screen Reader Lab</b> before you share files. Bump <b>Version</b> when you redistribute an NVDA add-on update.</p>`,
   connect: `<p>Your team Supabase <b>URL</b> and <b>anon key</b>. Stored in this browser only (same credentials as the legacy Dictionary Builder).</p>`,
 };
 
@@ -185,7 +185,7 @@ export async function mountDictionaryEditor(root, {
     <main class="ss-wrap hs-dict-editor">
       <header class="hs-dict-editor-head ss-page-header">
         <h1 class="ss-title hs-dict-editor-title">Dictionary ${helpTip("<p>Start with the <b>demo dictionary</b> offline, or connect and pick your class.</p><p><b>Save class</b> updates Supabase and refreshes <b>Screen Reader Lab</b> for that class. <b>▶ Hear</b> tests a row before save.</p>")}</h1>
-        <p class="ss-sub">Connect → edit your class → save → export the NVDA add-on and PDF for students.${
+        <p class="ss-sub">Connect → edit your class → save → export screen reader dictionaries for students.${
           isExtension
             ? ` Test speech in <button type="button" class="hs-inline-link hs-ext-nav-link" data-hs-ext-nav="lab">Screen Reader Lab</button>.`
             : ""
@@ -293,7 +293,7 @@ export async function mountDictionaryEditor(root, {
         <h2 id="hs-dict-ed-download-h" class="hs-dict-editor-card-title hs-dict-editor-card-title-inline">
           Download for students ${helpTip(HELP.students)}
         </h2>
-        <p class="ss-sub">Share the <b>.nvda-addon</b> file and install PDF. Most students double-click to install; the PDF includes Add-on Store → <b>Install from external source</b> if needed.</p>
+        <p class="ss-sub">Export NVDA, JAWS, or VoiceOver dictionary files from the same class terms. The NVDA add-on includes a student install PDF; other formats download as a single file.</p>
         <p id="hs-dict-ed-regex-status" class="hs-dict-editor-regex-status ss-type" aria-live="polite"></p>
         <div class="hs-dict-editor-export-btns">
           <button type="button" class="ss-btn primary" id="hs-dict-ed-export-addon">NVDA add-on (.nvda-addon)</button>

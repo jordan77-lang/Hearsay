@@ -15,7 +15,7 @@
         <h1 class="ss-title hs-landing-title">HearSay</h1>
         <p class="hs-landing-tagline">Speak it clearly — for every screen reader.</p>
         <p class="ss-sub hs-landing-lead">
-          Tools for course authors: build class dictionaries, test quiz speech, and export NVDA add-ons for students — without asking them to edit personal dictionaries.
+          Tools for course authors: build class dictionaries, test quiz speech, and export screen reader dictionaries for students — without asking them to edit personal dictionaries.
         </p>
       </header>
 
@@ -68,7 +68,7 @@
           href: "dictionary/",
           primary: false,
           label: "Dictionary",
-          sub: "Edit terms and export NVDA add-ons for students",
+          sub: "Edit terms and export screen reader dictionaries for students",
         },
         {
           href: "dist/hearsay-chrome-extension.zip",
@@ -92,8 +92,8 @@
         `<span class="ss-sub">Coming soon</span></div>`;
 
       document.getElementById("hs-landing-workflow").innerHTML = SHOW_CANVAS_TRANSLATE
-        ? `Build terms in <a href="dictionary/">Dictionary</a> (or import CSV) → test in <a href="lab/">Screen Reader Lab</a> → author with <a href="playground/">Canvas Translate</a> → students install the NVDA add-on (2026.1+).`
-        : `Build terms in <a href="dictionary/">Dictionary</a> (or import CSV) → test in <a href="lab/">Screen Reader Lab</a> → students double-click the NVDA add-on (2026.1+) and restart NVDA.`;
+        ? `Build terms in <a href="dictionary/">Dictionary</a> (or import CSV) → test in <a href="lab/">Screen Reader Lab</a> → author with <a href="playground/">Canvas Translate</a> → export screen reader dictionaries for students.`
+        : `Build terms in <a href="dictionary/">Dictionary</a> (or import CSV) → test in <a href="lab/">Screen Reader Lab</a> → export screen reader dictionaries for students (NVDA, JAWS, VoiceOver).`;
     </script>
   </body>
 </html>
