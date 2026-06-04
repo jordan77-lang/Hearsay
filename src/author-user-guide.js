@@ -159,7 +159,7 @@ export function buildAuthorUserGuideSections() {
         id: "extension",
         title: "Chrome extension",
         body: [
-          "Install from the home page: download hearsay-chrome-extension.zip, extract it, open chrome://extensions, enable Developer mode, Load unpacked, and select the extracted folder (not the zip).",
+          "Install from the home page: download hearsay-chrome-extension.zip from the Download section, extract it, open chrome://extensions, enable Developer mode, Load unpacked, and select the extracted folder (not the zip).",
         ],
         bullets: [
           "Pin HearSay from the puzzle icon, then click the toolbar icon to open the side panel.",

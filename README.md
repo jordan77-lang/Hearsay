@@ -216,7 +216,7 @@ Use **Screen Reader Lab** and **Dictionary** from the landing page. Canvas Trans
 
 Requires **Chrome 116+** (Manifest V3 side panel).
 
-Download **`dist/hearsay-chrome-extension.zip`** from the site.
+Download **`download/hearsay-chrome-extension.zip`** from the site (or run `npm run pack:extension` locally).
 
 1. Extract the zip to a folder you will keep (must contain `manifest.json` at the top level).
 2. Open `chrome://extensions` → **Developer mode** → **Load unpacked** → select that extracted folder (not the .zip).

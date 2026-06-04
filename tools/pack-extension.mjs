@@ -1,4 +1,4 @@
-// Build dist/hearsay-chrome-extension.zip and an unpacked folder for Load unpacked.
+// Build download/hearsay-chrome-extension.zip and dist/hearsay-chrome-extension/ for Load unpacked.
 
 import JSZip from "jszip";
 import {
@@ -15,8 +15,9 @@ import { join, relative } from "node:path";
 
 const ROOT = process.cwd();
 const OUT_DIR = join(ROOT, "dist");
+const DOWNLOAD_DIR = join(ROOT, "download");
 const UNPACKED = join(OUT_DIR, "hearsay-chrome-extension");
-const ZIP = join(OUT_DIR, "hearsay-chrome-extension.zip");
+const ZIP = join(DOWNLOAD_DIR, "hearsay-chrome-extension.zip");
 
 const BUNDLE_ITEMS = ["manifest.json", "src", "extension"];
 
@@ -33,6 +34,7 @@ function addFolderToZip(zip, folder, basePath = folder) {
 }
 
 mkdirSync(OUT_DIR, { recursive: true });
+mkdirSync(DOWNLOAD_DIR, { recursive: true });
 rmSync(UNPACKED, { recursive: true, force: true });
 mkdirSync(UNPACKED, { recursive: true });
 

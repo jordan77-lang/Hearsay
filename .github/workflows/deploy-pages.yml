@@ -37,12 +37,15 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
+      - uses: actions/configure-pages@v5
       - name: Build static site
         env:
           HEARSAY_SUPABASE_URL: ${{ vars.HEARSAY_SUPABASE_URL }}
           HEARSAY_SUPABASE_ANON_KEY: ${{ secrets.HEARSAY_SUPABASE_ANON_KEY }}
           HEARSAY_COURSE_ID: ${{ vars.HEARSAY_COURSE_ID }}
         run: npm run build:pages
+      - name: Verify extension zip in site output
+        run: test -f _site/download/hearsay-chrome-extension.zip && ls -la _site/download/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
