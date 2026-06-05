@@ -13,6 +13,8 @@ import { mountDictionaryPanel } from "./supabase/dictionary-ui.js";
 import { supabaseConnectMessage } from "./supabase/connect-guard.js";
 import { normalizePastedContent, pasteDataFromEvent } from "./core/paste-normalize.js";
 import { helpTip, bindHelpTips } from "./help-tip.js";
+import { onDictionaryUpdated, dictionarySyncMatchesClass } from "./dictionary-sync.js";
+import { getStoredCourseId } from "./supabase/dictionary-remote.js";
 
 const RISK_LABEL = { high: "High risk", medium: "Medium risk", low: "Low risk" };
 
@@ -350,9 +352,23 @@ export function mountApp(root, {
     },
   });
 
+  const unsubDictionarySync = onDictionaryUpdated(({ classSlug }) => {
+    const courseId = dictPanel?.getCourseId?.() ?? getStoredCourseId();
+    if (!dictionarySyncMatchesClass(classSlug, courseId)) return;
+    void dictPanel?.reload?.(false).then(() => {
+      refreshSpeechNote();
+      run();
+    });
+  });
+
   bindHelpTips(root);
   run();
-  return { run, getState: () => current, dictPanel: () => dictPanel };
+  return {
+    run,
+    getState: () => current,
+    dictPanel: () => dictPanel,
+    destroy: () => unsubDictionarySync(),
+  };
 }
 
 function renderSummary(el, counts, total) {

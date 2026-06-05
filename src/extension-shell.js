@@ -9,12 +9,26 @@ import {
 import { isSupabaseConnected } from "./supabase/connect-guard.js";
 import { mountScreenReaderLab } from "./screen-reader-lab.js";
 import { mountDictionaryEditor } from "./dictionary-editor.js";
-import { notifyDictionaryUpdated, onSupabaseConnectionChanged } from "./dictionary-sync.js";
+import { notifyDictionaryUpdated, onSupabaseConnectionChanged, onDictionaryUpdated } from "./dictionary-sync.js";
+import { createDictionaryApi, loadSupabaseConfigFromBrowser } from "./supabase/dictionary-api.js";
 
 const VIEW_KEY = "hearsay-ext-view";
 
 /** Reload in-memory dictionary when Dictionary saves (Lab tab may be unmounted). */
 let labDictionaryReload = null;
+
+/** Keep global dictionary rules fresh when Dictionary saves while Lab is unmounted. */
+async function reloadSharedDictionary(classSlug) {
+  if (!classSlug || isDemoDictionaryId(classSlug)) return;
+  if (labDictionaryReload) {
+    labDictionaryReload(classSlug);
+    return;
+  }
+  const config = await loadSupabaseConfigFromBrowser();
+  if (!config?.url || !config?.anonKey) return;
+  const api = createDictionaryApi(config);
+  await api.loadCourseDictionary(classSlug);
+}
 let teardownView = null;
 
 function escapeHtml(s) {
@@ -100,7 +114,7 @@ export async function mountExtensionShell(root) {
         onNavigate: showView,
         onDictionarySaved: ({ classSlug }) => {
           notifyDictionaryUpdated({ classSlug });
-          labDictionaryReload?.(classSlug);
+          void reloadSharedDictionary(classSlug);
           refreshStatus();
         },
       });
@@ -138,4 +152,7 @@ export async function mountExtensionShell(root) {
 
   await showView(activeView);
   onSupabaseConnectionChanged(refreshStatus);
+  onDictionaryUpdated(({ classSlug }) => {
+    void reloadSharedDictionary(classSlug);
+  });
 }

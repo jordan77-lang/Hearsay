@@ -1,11 +1,21 @@
-// Notify Lab / Dictionary when a class dictionary is saved or pulled from Supabase.
+// Notify every HearSay surface when a class dictionary is saved or pulled from Supabase.
 
 export const DICTIONARY_SYNC_STORAGE_KEY = "hearsay-dictionary-updated";
 export const DICTIONARY_SYNC_EVENT = "hearsay-dictionary-updated";
 export const SUPABASE_CONNECTION_EVENT = "hearsay-supabase-connection-changed";
 
 /**
- * Broadcast that a class dictionary changed. Listeners reload from Supabase for that class.
+ * @param {string | null | undefined} classSlug
+ * @param {string | null | undefined} activeClass
+ */
+export function dictionarySyncMatchesClass(classSlug, activeClass) {
+  if (!classSlug) return true;
+  if (!activeClass) return true;
+  return classSlug === activeClass;
+}
+
+/**
+ * Broadcast that a class dictionary changed. All mounted HearSay instances should reload.
  * @param {{ classSlug?: string, source?: string, deleted?: string }} detail
  */
 export function notifyDictionaryUpdated(detail = {}) {
@@ -14,9 +24,13 @@ export function notifyDictionaryUpdated(detail = {}) {
     at: Date.now(),
     source: detail.source ?? null,
     deleted: detail.deleted ?? null,
+    viaStorage: false,
   };
   try {
-    localStorage.setItem(DICTIONARY_SYNC_STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(
+      DICTIONARY_SYNC_STORAGE_KEY,
+      JSON.stringify({ ...payload, viaStorage: true }),
+    );
   } catch (_) {}
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(DICTIONARY_SYNC_EVENT, { detail: payload }));
@@ -29,16 +43,16 @@ export function notifySupabaseConnectionChanged() {
 }
 
 /**
- * @param {(detail: { classSlug: string | null, at: number, source?: string | null }) => void} handler
+ * @param {(detail: { classSlug: string | null, at: number, source?: string | null, deleted?: string | null, viaStorage?: boolean }) => void} handler
  * @returns {() => void}
  */
 export function onDictionaryUpdated(handler) {
   if (typeof window === "undefined") return () => {};
-  const onEvent = (e) => handler(e.detail ?? {});
+  const onEvent = (e) => handler({ ...(e.detail ?? {}), viaStorage: false });
   const onStorage = (e) => {
     if (e.key !== DICTIONARY_SYNC_STORAGE_KEY || !e.newValue) return;
     try {
-      handler(JSON.parse(e.newValue));
+      handler({ ...JSON.parse(e.newValue), viaStorage: true });
     } catch (_) {}
   };
   window.addEventListener(DICTIONARY_SYNC_EVENT, onEvent);

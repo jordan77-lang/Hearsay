@@ -40,6 +40,25 @@ export function insertAtCursor(textarea, text, range) {
   return pos;
 }
 
+/** Insert or replace while preserving browser undo (Ctrl+Z). */
+export function insertTextWithUndo(textarea, text, range) {
+  const start = range?.start ?? textarea.selectionStart ?? 0;
+  const end = range?.end ?? textarea.selectionEnd ?? start;
+  textarea.focus();
+  textarea.setSelectionRange(start, end);
+  const ok = typeof document !== "undefined" && document.execCommand?.("insertText", false, text);
+  if (!ok) insertAtCursor(textarea, text, { start, end });
+  return start + text.length;
+}
+
+/** Replace entire textarea contents with undo support. */
+export function replaceTextareaValueWithUndo(textarea, value) {
+  textarea.focus();
+  textarea.setSelectionRange(0, textarea.value.length);
+  const ok = typeof document !== "undefined" && document.execCommand?.("insertText", false, value);
+  if (!ok) textarea.value = value;
+}
+
 function fractionPreview(numerator, denominator) {
   const latex = formatFractionLatex(numerator, denominator);
   if (!latex) return { latex: "", spoken: "", mathml: "" };
@@ -49,13 +68,17 @@ function fractionPreview(numerator, denominator) {
 
 /**
  * Open a two-step wizard to build \frac{num}{den} at the textarea cursor.
- * @param {{ textarea: HTMLTextAreaElement, onInsert: () => void }} opts
+ * @param {{ textarea: HTMLTextAreaElement, onInsert: () => void, numerator?: string, denominator?: string }} opts
  */
-export function openFractionBuilder({ textarea, onInsert }) {
+export function openFractionBuilder({ textarea, onInsert, numerator, denominator } = {}) {
   const start = textarea.selectionStart ?? textarea.value.length;
   const end = textarea.selectionEnd ?? start;
   const selected = textarea.value.slice(start, end);
-  const parsed = parseSlashFraction(selected);
+  const parsed =
+    parseSlashFraction(selected) ??
+    (numerator && denominator
+      ? { numerator: sanitizeFracPart(numerator), denominator: sanitizeFracPart(denominator) }
+      : null);
 
   const overlay = document.createElement("div");
   overlay.className = "ss-modal-overlay";
@@ -178,7 +201,7 @@ export function openFractionBuilder({ textarea, onInsert }) {
       return;
     }
     const latex = formatFractionLatex(num, den);
-    insertAtCursor(textarea, latex, replaceRange);
+    insertTextWithUndo(textarea, latex, replaceRange);
     close();
     onInsert?.();
   }

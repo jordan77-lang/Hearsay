@@ -49,3 +49,30 @@ test("formatDictionarySpeechHtmlByLine spaces after open parenthesis dict terms"
   );
   assert.doesNotMatch(strip(formatDictionarySpeechHtmlByLine("(qcalorimeter)")), /parenthesisq/i);
 });
+
+test("toLabDictionarySpeechByLine applies long class phrases and symbol rules", () => {
+  const timesSign = "\u2715";
+  loadEditorPreviewDictionary(
+    "200 gmass of H2O2 in solution\t200 grams mass of H two O two in solution\t0\t0\n" +
+      `${timesSign}\ttimes sign\t0\t0`,
+  );
+  assert.match(
+    toLabDictionarySpeechByLine("The sample is 200 gmass of H2O2 in solution today."),
+    /200 grams mass of H two O two in solution/i,
+  );
+  assert.match(toLabDictionarySpeechByLine(`Rate ${timesSign} time`), /times sign/i);
+});
+
+test("bundled dictionary speaks ✕ as times without a class override", () => {
+  const timesSign = "\u2715";
+  loadDictionary(DICTIONARY_DIC);
+  assert.match(toLabDictionarySpeechByLine(`energy ${timesSign} mass`), /times/i);
+  assert.doesNotMatch(toLabDictionarySpeechByLine(`energy ${timesSign} mass`), /✕/);
+});
+
+test("bundled dictionary does not read in as inches after H2O2", () => {
+  loadDictionary(DICTIONARY_DIC);
+  const spoken = toLabDictionarySpeechByLine("H2O2 in solution");
+  assert.match(spoken, /H two O two in solution/i);
+  assert.doesNotMatch(spoken, /inches/i);
+});

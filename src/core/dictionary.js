@@ -33,8 +33,10 @@ function compile(line) {
   const flags = "g" + (caseSensitive === "1" ? "" : "i");
   let source;
   if (type === "1") source = pattern;
-  else if (type === "2") source = `\\b${escapeRegex(pattern)}\\b`;
-  else source = escapeRegex(pattern);
+  else if (type === "2") {
+    // Word boundaries never match isolated symbols (e.g. ✕, ×); treat as literal.
+    source = /^[\w/-]+$/.test(pattern) ? `\\b${escapeRegex(pattern)}\\b` : escapeRegex(pattern);
+  } else source = escapeRegex(pattern);
   let regex;
   let single;
   try {
@@ -81,6 +83,8 @@ function parse(raw) {
 // remote/partial dictionaries often omit them and TTS/NVDA skip them silently.
 const PINNED_DIC =
   "(\t open parenthesis \t0\t0\n)\t close parenthesis \t0\t0\n" +
+  "×\t times \t0\t0\n" +
+  "✕\t times \t0\t0\n" +
   "−\t minus \t0\t0\n" +
   "DI water\t D I water \t0\t2\n" +
   "DIwater\t D I water \t0\t2\n" +
@@ -269,13 +273,22 @@ function spokenForMatch(text, m, rule) {
 // Type-0 "match anywhere" dictionary rules (e.g. NO, mL) must not fire inside
 // English words like "nozzle" or "firmly" when Sci-Speak composes speech.
 function isSafeCompositionMatch(text, start, end, rule) {
+  const matched = text.slice(start, end);
+  // All-caps chem symbols (NO, CO) should not rewrite English "no"/"No".
+  if (
+    rule.type === "2" &&
+    /^[A-Z]{2,4}$/.test(rule.raw) &&
+    matched !== rule.raw &&
+    matched.toUpperCase() === rule.raw
+  ) {
+    return false;
+  }
   if (rule.type !== "0") return true;
   const before = start > 0 ? text[start - 1] : "";
   const after = end < text.length ? text[end] : "";
   const letterBefore = /[A-Za-z]/.test(before);
   const letterAfter = /[A-Za-z]/.test(after);
   if (letterBefore && letterAfter) return false;
-  const matched = text.slice(start, end);
   if (
     !letterBefore &&
     letterAfter &&
@@ -292,15 +305,6 @@ function isSafeCompositionMatch(text, start, end, rule) {
     rule.raw.length === 1 &&
     /^[a-z]$/.test(rule.raw) &&
     matched !== rule.raw
-  ) {
-    return false;
-  }
-  // All-caps chem symbols (NO, CO) should not rewrite English "no"/"No".
-  if (
-    rule.type === "2" &&
-    /^[A-Z]{2,4}$/.test(rule.raw) &&
-    matched !== rule.raw &&
-    matched.toUpperCase() === rule.raw
   ) {
     return false;
   }

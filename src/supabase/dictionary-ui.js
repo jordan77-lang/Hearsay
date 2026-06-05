@@ -18,6 +18,7 @@ import { ruleCount, dictionarySource } from "../core/dictionary.js";
 import { normalizePastedContent, pasteDataFromEvent } from "../core/paste-normalize.js";
 import { insertAtCursor } from "../fraction-builder.js";
 import { helpTip } from "../help-tip.js";
+import { notifyDictionaryUpdated, onDictionaryUpdated, dictionarySyncMatchesClass } from "../dictionary-sync.js";
 
 function hasCloudConfig(config) {
   return Boolean(config?.url && config?.anonKey);
@@ -65,6 +66,7 @@ export function mountDictionaryPanel(root, { config: initialConfig, onDictionary
   }
 
   function remount() {
+    innerApi?.destroy?.();
     innerApi = null;
     root.innerHTML = "";
     if (isSignedIn() && hasCloudConfig(activeConfig)) {
@@ -381,6 +383,7 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
           ' All classes not updated — use Rebuild combined or run "npm run sync:dict" with a service role key.';
       }
       onDictionaryChange?.();
+      notifyDictionaryUpdated({ classSlug: courseId, source: "playground" });
       markRuleSaved(result.updated);
       showRuleSuccess(
         (result.updated
@@ -432,6 +435,7 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
       const { count } = await api.rebuildCombinedDictionary();
       showDictError("");
       alert(`Rebuilt combined dictionary: ${count} rules.`);
+      notifyDictionaryUpdated({ classSlug: COMBINED_COURSE_ID, source: "playground" });
       if (courseId === COMBINED_COURSE_ID) await reloadDictionary();
     } catch (err) {
       showDictError(err.message ?? String(err));
@@ -452,6 +456,7 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
       setStoredCourseId(courseId);
       renderCourseOptions();
       await reloadDictionary();
+      notifyDictionaryUpdated({ classSlug: created.id, source: "playground" });
     } catch (err) {
       showDictError(err.message ?? String(err));
     }
@@ -498,11 +503,18 @@ function mountConnectedPanel(root, { config, onDictionaryChange, initialCourseId
     await reloadDictionary(false);
   })();
 
+  const unsubSync = onDictionaryUpdated(({ classSlug, source, viaStorage }) => {
+    if (source === "playground" && !viaStorage) return;
+    if (!dictionarySyncMatchesClass(classSlug, courseId)) return;
+    void reloadDictionary(false).then(() => onDictionaryChange?.());
+  });
+
   return {
     reload: reloadDictionary,
     getCourseId: () => courseId,
     canSaveRules: () => courseId !== COMBINED_COURSE_ID,
     prefillRule,
+    destroy: () => unsubSync(),
     async saveFindingToDictionary(finding) {
       if (!finding?.raw || !finding?.primarySpoken) return;
       if (courseId === COMBINED_COURSE_ID) {

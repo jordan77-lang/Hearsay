@@ -54,6 +54,7 @@ function normalizeMathSymbols(s) {
   return s
     .replace(/\u2212/g, " − ")
     .replace(/×/g, " × ")
+    .replace(/\u2715/g, " ✕ ")
     .replace(/÷/g, " ÷ ")
     .replace(/[ \t]+/g, " ")
     .replace(/ *\n */g, "\n")
@@ -184,13 +185,12 @@ export function detectFlattenedGdocsEquation({ html = "", normalized = "", clipb
   return null;
 }
 
-/** Shown in Screen Reader Lab when a flattened Docs equation paste is detected. */
-export const FLATTENED_GDOCS_EQUATION_NOTICE =
-  "This paste looked like a flattened Google Docs equation — the fraction bar was lost on copy. " +
-  "HearSay inserted “divided by” in the text (your course NVDA dictionary uses the same rule). " +
-  "To preview other fractions here, type \\frac{numerator}{denominator} (for example \\frac{29 dogs}{30 rats}). " +
-  "For a visible numerator and denominator with a horizontal line, build the fraction in Canvas’s equation editor when authoring New Quizzes " +
-  "(or use the Google Docs equation editor for drafts only).";
+export const FLATTENED_FRACTION_NOTICE =
+  "Flattened fraction detected — the fraction bar was lost on copy or pull. HearSay inserted “divided by”. " +
+  "Use the Fractions section below to convert to \\frac{numerator}{denominator} or save a dictionary pronunciation.";
+
+/** @deprecated use FLATTENED_FRACTION_NOTICE */
+export const FLATTENED_GDOCS_EQUATION_NOTICE = FLATTENED_FRACTION_NOTICE;
 
 /** Normalize pasted content and detect flattened Google Docs equations. */
 export function inspectPasteFromEvent(event) {

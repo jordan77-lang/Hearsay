@@ -30,16 +30,23 @@ import {
   setLabTokenLinkResolver,
 } from "./core/transform.js";
 import {
-  normalizePastedContent,
   inspectPasteFromEvent,
-  FLATTENED_GDOCS_EQUATION_NOTICE,
-} from "./core/paste-normalize.js";
-import { insertAtCursor } from "./fraction-builder.js";
+  inspectPulledText,
+  findFractionCandidatesInText,
+  FLATTENED_FRACTION_NOTICE,
+} from "./core/fraction-detect.js";
+import { insertTextWithUndo, replaceTextareaValueWithUndo, openFractionBuilder } from "./fraction-builder.js";
 import { createHearController } from "./hear-ui.js";
 import { helpTip, bindHelpTips } from "./help-tip.js";
 import { preloadSpeech, cancelSpeech, subscribeSpeechState } from "./speech.js";
 import { pullTextFromActiveTab, pullSourceLabel } from "./extension/pull-from-tab.js";
-import { onDictionaryUpdated, notifyDictionaryUpdated } from "./dictionary-sync.js";
+import {
+  onDictionaryUpdated,
+  notifyDictionaryUpdated,
+  DICTIONARY_SYNC_STORAGE_KEY,
+  dictionarySyncMatchesClass,
+} from "./dictionary-sync.js";
+import { previewTermSpeech } from "./core/dictionary.js";
 
 const SAMPLE = `Heat 10 mL of DI water from 25°C to 30°C. The specific heat capacity is (J/g°C).
 
@@ -52,7 +59,9 @@ const HELP = {
     <p>The <b>default + dictionary</b> column uses HearSay’s full speech engine (built-in reading plus your class terms), not raw NVDA substitution alone.</p>`,
   without: `<p>What <b>NVDA reads with no speech dictionary</b> (factory symbol table at level <b>most</b> — parentheses, slash, degrees, equals, etc.). Normal text matches what students see. <span class="hs-lab-speech-baseline">Blue</span> = spelled-out symbol names (e.g. <code>(ΔT)</code> → left paren ΔT right paren; <code>J/g°C</code> → J slash g degrees C). Unit expansions like “joules per gram…” require a dictionary — green in the right column.</p>`,
   with: `<p>Same text with your <b>saved class dictionary</b> loaded. Class rules always win over default screen reader symbol speech. Normal text is unchanged. <span class="hs-lab-speech-dict">Green</span> = your class dictionary. <span class="hs-lab-speech-baseline">Blue</span> = default screen reader only where your class has no rule (NVDA level <b>most</b> — includes parentheses as left/right paren).</p>`,
-  tokens: `<p>Tokens in passage order where pronunciation changes. <span class="hs-lab-speech-baseline">Blue</span> = default screen reader. <span class="hs-lab-speech-dict">Green</span> = your saved class dictionary when loaded. Click highlighted speech above to jump here. Green rows: <b>Edit</b> → change spoken text → <b>▶ Hear</b> to test → <b>Save</b> (confirms) or <b>Cancel</b>.</p>`,
+  tokens: `<p>Tokens in passage order where pronunciation changes. <span class="hs-lab-speech-baseline">Blue</span> = default screen reader — use <b>Add</b> to save a class pronunciation. <span class="hs-lab-speech-dict">Green</span> = your saved class dictionary. Click highlighted speech above to jump here. <b>Edit</b> → change spoken text → <b>▶ Hear</b> → <b>Save</b>.</p>`,
+  addTerm: `<p>Type the <b>word or symbol</b> exactly as it appears in student materials, then how the screen reader should say it. Saves to your class dictionary and updates every open HearSay tab immediately.</p>`,
+  fractions: `<p>HearSay found one or more fractions. <b>Use \\frac</b> replaces glued text with LaTeX HearSay reads correctly. <b>Save to dictionary</b> stores the spoken form for your class. <b>Build fraction</b> opens the step-by-step fraction wizard.</p>`,
 };
 
 function escapeHtml(s) {
@@ -61,6 +70,10 @@ function escapeHtml(s) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function escapeAttr(s) {
+  return escapeHtml(s).replace(/'/g, "&#39;");
 }
 
 function debounce(fn, ms) {
@@ -114,6 +127,26 @@ export async function mountScreenReaderLab(
         <p id="hs-lab-dict-meta" class="ss-type hs-lab-dict-meta" aria-live="polite"></p>
       </section>
 
+      <section class="hs-lab-card" aria-labelledby="hs-lab-add-term-h">
+        <h2 id="hs-lab-add-term-h" class="hs-lab-card-title">Add word &amp; pronunciation ${helpTip(HELP.addTerm)}</h2>
+        <p id="hs-lab-add-hint" class="ss-sub hs-lab-add-hint"></p>
+        <div class="hs-lab-add-pronunciation">
+          <label class="hs-lab-field">
+            <span class="hs-lab-label">Word (in text)</span>
+            <input type="text" id="hs-lab-add-pattern" class="ss-input hs-dict-inline-input" placeholder="e.g. ✕, ΔT, nozzle, J/g°C" autocomplete="off" />
+          </label>
+          <label class="hs-lab-field">
+            <span class="hs-lab-label">Pronunciation</span>
+            <input type="text" id="hs-lab-add-spoken" class="ss-input hs-dict-inline-input" placeholder="e.g. times, delta T, how students should hear it" autocomplete="off" />
+          </label>
+          <div class="hs-lab-add-pronunciation-btns">
+            <button type="button" class="ss-btn primary" id="hs-lab-add-save">Add &amp; save</button>
+            <button type="button" class="ss-btn" id="hs-lab-add-hear" title="Hear pronunciation before saving">▶ Hear</button>
+          </div>
+        </div>
+        <p id="hs-lab-add-error" class="ss-type hs-lab-add-error hidden" role="alert"></p>
+      </section>
+
       <section class="hs-lab-card" aria-labelledby="hs-lab-paste-h">
         <h2 id="hs-lab-paste-h" class="hs-lab-card-title">Text to preview ${helpTip(HELP.paste)}</h2>
         <textarea id="hs-lab-input" class="ss-input hs-lab-textarea" rows="8" placeholder="Paste or type plain text from a handout, quiz, lab, or LMS page…"></textarea>
@@ -126,8 +159,15 @@ export async function mountScreenReaderLab(
               : ""
           }
           <button type="button" class="ss-btn" id="hs-lab-sample">Load sample</button>
+          <button type="button" class="ss-btn" id="hs-lab-insert-frac" title="Build \\frac{numerator}{denominator} at cursor">Insert fraction</button>
           <button type="button" class="ss-btn" id="hs-lab-clear">Clear</button>
         </div>
+      </section>
+
+      <section id="hs-lab-fractions-card" class="hs-lab-card hidden" aria-labelledby="hs-lab-fractions-h">
+        <h2 id="hs-lab-fractions-h" class="hs-lab-card-title">Fractions detected ${helpTip(HELP.fractions)}</h2>
+        <ul id="hs-lab-fraction-list" class="hs-lab-fraction-list" role="list"></ul>
+        <p id="hs-lab-fraction-status" class="ss-type hs-lab-fraction-status hidden" role="status" aria-live="polite"></p>
       </section>
 
       <p class="hs-lab-legend ss-type" role="note">
@@ -204,6 +244,15 @@ export async function mountScreenReaderLab(
   const tokenScroll = root.querySelector("#hs-lab-token-scroll");
   const tokenList = root.querySelector("#hs-lab-token-list");
   const tokenSaveStatus = root.querySelector("#hs-lab-token-save-status");
+  const addPatternInput = root.querySelector("#hs-lab-add-pattern");
+  const addSpokenInput = root.querySelector("#hs-lab-add-spoken");
+  const addErrorEl = root.querySelector("#hs-lab-add-error");
+  const addHintEl = root.querySelector("#hs-lab-add-hint");
+  const addSaveBtn = root.querySelector("#hs-lab-add-save");
+  const addHearBtn = root.querySelector("#hs-lab-add-hear");
+  const fractionsCard = root.querySelector("#hs-lab-fractions-card");
+  const fractionList = root.querySelector("#hs-lab-fraction-list");
+  const fractionStatus = root.querySelector("#hs-lab-fraction-status");
   const pasteNotice = root.querySelector("#hs-lab-paste-notice");
   const dictPanelTitle = root.querySelector("#hs-lab-dict-panel-title");
   const dictPanelMeta = root.querySelector("#hs-lab-dict-panel-meta");
@@ -211,6 +260,7 @@ export async function mountScreenReaderLab(
   const pauseDictBtn = root.querySelector("#hs-lab-pause-dict");
   let lastDictLoad = { classRuleCount: 0, mergeBundled: false, skipped: true };
   let dictLoadSeq = 0;
+  let lastDictReloadAt = 0;
 
   function showPasteNotice(message) {
     if (!message) {
@@ -235,6 +285,7 @@ export async function mountScreenReaderLab(
       card?.classList.remove("is-connected");
       card?.classList.add("needs-connect");
     }
+    updateAddPronunciationControls();
   }
 
   function guardSupabase(feature) {
@@ -333,6 +384,8 @@ export async function mountScreenReaderLab(
       updateDictMeta();
       refreshPreview();
       if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "lab", base });
+      lastDictReloadAt = Date.now();
+      updateAddPronunciationControls();
       return;
     }
 
@@ -342,6 +395,7 @@ export async function mountScreenReaderLab(
       if (loadId !== dictLoadSeq) return;
       updateDictMeta();
       refreshPreview();
+      updateAddPronunciationControls();
       return;
     }
     try {
@@ -354,7 +408,9 @@ export async function mountScreenReaderLab(
       lastDictLoad = { classRuleCount: 0, mergeBundled: false, skipped: true };
       updateDictMeta();
     }
+    if (loadId === dictLoadSeq) lastDictReloadAt = Date.now();
     refreshPreview();
+    updateAddPronunciationControls();
   }
 
   async function pullCourses() {
@@ -385,9 +441,46 @@ export async function mountScreenReaderLab(
 
   let lastFlaggedTokens = [];
   let savingToken = false;
+  let lastFractionCandidates = [];
 
   function canEditDictTokens() {
-    return Boolean(api) && !isDemoDictionaryId(activeCourse) && hasActiveClassDictionary();
+    return Boolean(api) && !isDemoDictionaryId(activeCourse);
+  }
+
+  function canUseAddPronunciation() {
+    return canEditDictTokens();
+  }
+
+  function showAddTermError(msg) {
+    if (!addErrorEl) return;
+    if (!msg) {
+      addErrorEl.textContent = "";
+      addErrorEl.classList.add("hidden");
+      return;
+    }
+    addErrorEl.textContent = msg;
+    addErrorEl.classList.remove("hidden");
+  }
+
+  function updateAddPronunciationControls() {
+    const on = canUseAddPronunciation();
+    addPatternInput?.toggleAttribute("disabled", !on);
+    addSpokenInput?.toggleAttribute("disabled", !on);
+    addSaveBtn?.toggleAttribute("disabled", !on || savingToken);
+    addHearBtn?.toggleAttribute("disabled", !on);
+    if (addHintEl) {
+      if (on) {
+        addHintEl.textContent = `Saving to ${getActiveClassLabel()}. Use ▶ Hear to test before Add & save.`;
+      } else if (isDemoDictionaryId(activeCourse)) {
+        addHintEl.textContent =
+          "Demo dictionary is read-only. Connect with ☁ Connect and select your class to add words.";
+      } else if (!api) {
+        addHintEl.textContent = "Connect with ☁ Connect above, then pick your class to add words.";
+      } else {
+        addHintEl.textContent = "Select your class above to add words.";
+      }
+    }
+    if (!on) showAddTermError("");
   }
 
   function exitTokenEditRow(row) {
@@ -588,14 +681,14 @@ export async function mountScreenReaderLab(
   }
 
   async function saveDictTokenFromLab({ pattern, spoken }) {
-    if (savingToken || !guardSupabase("Saving to your class dictionary")) return;
+    if (savingToken || !guardSupabase("Saving to your class dictionary")) return false;
     if (isDemoDictionaryId(activeCourse)) {
       showTokenSaveStatus("Demo dictionary is read-only. Connect and select your class to save terms.", true);
-      return;
+      return false;
     }
     const trimmedPattern = String(pattern ?? "").trim();
     const trimmedSpoken = String(spoken ?? "").trim();
-    if (!trimmedPattern || !trimmedSpoken) return;
+    if (!trimmedPattern || !trimmedSpoken) return false;
     const label = getActiveClassLabel();
     savingToken = true;
     showTokenSaveStatus("Saving…");
@@ -623,14 +716,156 @@ export async function mountScreenReaderLab(
         });
       }
       await loadDictionaryForCourse(activeCourse);
-      notifyDictionaryUpdated({ classSlug: activeCourse });
+      notifyDictionaryUpdated({ classSlug: activeCourse, source: "lab" });
       showTokenSaveStatus(`Saved "${trimmedPattern}" to ${label}.`);
+      refreshPreview();
+      return true;
     } catch (err) {
       showTokenSaveStatus(err.message ?? String(err), true);
+      return false;
     } finally {
       savingToken = false;
+      updateAddPronunciationControls();
     }
   }
+
+  async function tryAddPronunciationFromForm() {
+    if (!canUseAddPronunciation()) {
+      showAddTermError("Connect and select your class to add pronunciations.");
+      return;
+    }
+    const pattern = addPatternInput?.value?.trim() ?? "";
+    const spoken = addSpokenInput?.value?.trim() ?? "";
+    if (!pattern) {
+      showAddTermError("Enter the word or symbol as it appears in student text.");
+      addPatternInput?.focus();
+      return;
+    }
+    if (!spoken) {
+      showAddTermError("Enter the pronunciation (how students should hear it).");
+      addSpokenInput?.focus();
+      return;
+    }
+    if (!confirmSaveDictToken({ pattern, spoken, tokenRaw: pattern })) return;
+    showAddTermError("");
+    const saved = await saveDictTokenFromLab({ pattern, spoken });
+    if (saved) {
+      addPatternInput.value = "";
+      addSpokenInput.value = "";
+    }
+  }
+
+  function showFractionStatus(message, isError = false) {
+    if (!fractionStatus) return;
+    if (!message) {
+      fractionStatus.textContent = "";
+      fractionStatus.classList.add("hidden");
+      fractionStatus.classList.remove("is-error");
+      return;
+    }
+    fractionStatus.textContent = message;
+    fractionStatus.classList.remove("hidden");
+    fractionStatus.classList.toggle("is-error", isError);
+  }
+
+  function fractionKindLabel(kind) {
+    if (kind === "latex") return "LaTeX fraction";
+    if (kind === "glued") return "Flattened (glued text)";
+    if (kind === "repaired") return "Flattened (divided by inserted)";
+    return "Fraction";
+  }
+
+  function convertFractionToLatex(candidate) {
+    const text = input.value;
+    const { sourceText, latex, start, end } = candidate;
+    let next;
+    if (start >= 0 && end > start && text.slice(start, end) === sourceText) {
+      next = text.slice(0, start) + latex + text.slice(end);
+    } else if (sourceText && text.includes(sourceText)) {
+      next = text.replace(sourceText, latex);
+    } else {
+      next = text;
+    }
+    replaceTextareaValueWithUndo(input, next);
+    showFractionStatus(`Replaced with ${latex}`);
+    refreshPreview();
+  }
+
+  function renderFractionsPanel(candidates) {
+    lastFractionCandidates = candidates ?? [];
+    if (!fractionsCard || !fractionList) return;
+    if (!lastFractionCandidates.length) {
+      fractionsCard.classList.add("hidden");
+      fractionList.innerHTML = "";
+      showFractionStatus("");
+      return;
+    }
+    fractionsCard.classList.remove("hidden");
+    const editable = canEditDictTokens();
+    fractionList.innerHTML = lastFractionCandidates
+      .map((c, id) => {
+        const needsConvert = c.kind === "glued" || c.kind === "repaired";
+        const convertBtn = needsConvert
+          ? `<button type="button" class="ss-btn hs-lab-frac-convert" data-frac-id="${id}">Use \\frac</button>`
+          : "";
+        const saveBtn = editable
+          ? `<button type="button" class="ss-btn primary hs-lab-frac-save" data-frac-id="${id}">Save to dictionary</button>`
+          : "";
+        const buildBtn = `<button type="button" class="ss-btn hs-lab-frac-build" data-frac-id="${id}">Build fraction</button>`;
+        return `<li class="hs-lab-fraction" data-frac-id="${id}" role="listitem">
+          <div class="hs-lab-fraction-body">
+            <span class="hs-lab-fraction-kind ss-type">${escapeHtml(fractionKindLabel(c.kind))}</span>
+            <code class="hs-lab-fraction-source">${escapeHtml(c.sourceText)}</code>
+            <span class="hs-lab-token-arrow" aria-hidden="true">→</span>
+            <span class="hs-lab-fraction-spoken">${escapeHtml(c.spoken)}</span>
+            <span class="hs-lab-fraction-latex ss-type">Dictionary pattern: <code>${escapeHtml(c.latex)}</code></span>
+          </div>
+          <div class="hs-lab-fraction-actions">
+            <button type="button" class="ss-btn hs-lab-frac-hear" data-frac-id="${id}">▶ Hear</button>
+            ${convertBtn}
+            ${saveBtn}
+            ${buildBtn}
+          </div>
+        </li>`;
+      })
+      .join("");
+  }
+
+  fractionList?.addEventListener("click", (e) => {
+    const id = Number(e.target.closest?.("[data-frac-id]")?.getAttribute("data-frac-id"));
+    const candidate = lastFractionCandidates[id];
+    if (!candidate) return;
+    if (e.target.closest?.(".hs-lab-frac-hear")) {
+      hear.play(e.target, { hearLabel: "▶ Hear", hearTitle: "Hear fraction pronunciation" }, candidate.spoken);
+      return;
+    }
+    if (e.target.closest?.(".hs-lab-frac-convert")) {
+      convertFractionToLatex(candidate);
+      return;
+    }
+    if (e.target.closest?.(".hs-lab-frac-save")) {
+      if (!confirmSaveDictToken({ pattern: candidate.latex, spoken: candidate.spoken, tokenRaw: candidate.sourceText })) {
+        return;
+      }
+      void saveDictTokenFromLab({ pattern: candidate.latex, spoken: candidate.spoken }).then((ok) => {
+        if (ok) showFractionStatus(`Saved ${candidate.latex} to ${getActiveClassLabel()}.`);
+      });
+      return;
+    }
+    if (e.target.closest?.(".hs-lab-frac-build")) {
+      const pos = input.value.indexOf(candidate.sourceText);
+      if (pos >= 0) input.setSelectionRange(pos, pos + candidate.sourceText.length);
+      openFractionBuilder({
+        textarea: input,
+        numerator: candidate.numerator,
+        denominator: candidate.denominator,
+        onInsert: () => {
+          showFractionStatus("Fraction inserted.");
+          refreshPreview();
+        },
+      });
+    }
+  });
 
   function renderFlaggedTokens(raw, { classDictActive, needsConnect, flagged: precomputed }) {
     if (!raw.trim()) {
@@ -671,32 +906,36 @@ export async function mountScreenReaderLab(
         const spokenClass =
           kind === "dict" ? "hs-lab-speech-dict" : "hs-lab-speech-baseline";
         const savePattern = pattern ?? tokenRaw;
+        const canSaveRow = editableDict && (kind === "dict" || kind === "baseline");
+        const viewBtnLabel = kind === "baseline" ? "Add" : "Edit";
         const hint =
           kind === "dict" && !editableDict && isDemoDictionaryId(activeCourse)
             ? `<span class="hs-lab-token-hint">Demo only</span>`
             : kind === "dict" && !editableDict && !api
               ? `<span class="hs-lab-token-hint">Connect to edit</span>`
+              : kind === "baseline" && !editableDict && !api
+                ? `<span class="hs-lab-token-hint">Connect to add</span>`
               : kind === "dict" && !hasRule && editableDict
                 ? `<span class="hs-lab-token-hint">New term</span>`
+                : kind === "baseline" && editableDict
+                  ? `<span class="hs-lab-token-hint">Save to dictionary</span>`
                 : "";
-        const spokenBlock =
-          kind === "dict" && editableDict
+        const spokenBlock = canSaveRow
             ? `<div class="hs-lab-token-view">
                 <span class="hs-lab-token-spoken ${spokenClass}">${escapeHtml(spoken)}</span>
               </div>
               <div class="hs-lab-token-edit-panel hidden">
-                <input type="text" class="hs-lab-token-edit" data-pattern="${escapeHtml(savePattern)}" value="${escapeHtml(spoken)}" aria-label="Spoken for ${escapeHtml(tokenRaw)}" />
+                <input type="text" class="hs-lab-token-edit" data-pattern="${escapeAttr(savePattern)}" value="${escapeAttr(spoken)}" aria-label="Spoken for ${escapeAttr(tokenRaw)}" />
               </div>`
             : `<span class="hs-lab-token-spoken ${spokenClass}">${escapeHtml(spoken)}</span>`;
-        const actionsBlock =
-          kind === "dict" && editableDict
+        const actionsBlock = canSaveRow
             ? `<div class="hs-lab-token-actions">
                 <div class="hs-lab-token-actions-view">
-                  <button type="button" class="ss-btn hs-lab-token-edit-btn">Edit</button>
+                  <button type="button" class="ss-btn hs-lab-token-edit-btn">${viewBtnLabel}</button>
                 </div>
                 <div class="hs-lab-token-actions-edit hidden">
                   <button type="button" class="ss-btn hs-lab-token-hear" title="Hear edited pronunciation">▶ Hear</button>
-                  <button type="button" class="ss-btn primary hs-lab-token-save" data-pattern="${escapeHtml(savePattern)}">Save</button>
+                  <button type="button" class="ss-btn primary hs-lab-token-save" data-pattern="${escapeAttr(savePattern)}">Save</button>
                   <button type="button" class="ss-btn hs-lab-token-cancel">Cancel</button>
                 </div>
               </div>`
@@ -770,8 +1009,11 @@ export async function mountScreenReaderLab(
       tokenList.innerHTML = "";
       lastFlaggedTokens = [];
       setLabTokenLinkResolver(null);
+      renderFractionsPanel([]);
       return;
     }
+
+    renderFractionsPanel(findFractionCandidatesInText(raw));
 
     const needsConnect = !api && !isDemoDictionaryId(activeCourse);
     const withoutSpeech = toDefaultScreenReaderSpeechByLine(raw);
@@ -854,13 +1096,73 @@ export async function mountScreenReaderLab(
   });
 
   const reloadActiveDictionary = (classSlug) => {
-    if (!activeCourse || isDemoDictionaryId(activeCourse)) return;
-    if (classSlug && classSlug !== activeCourse) return;
+    const stored = getStoredCourseId();
+    const target = classSlug || stored;
+    if (!target || isDemoDictionaryId(target)) return;
+    if (!dictionarySyncMatchesClass(classSlug, activeCourse) && classSlug !== stored) return;
+    if (classSlug && classSlug !== activeCourse && classSlug === stored) {
+      if (classSelect.value !== classSlug) classSelect.value = classSlug;
+      void loadDictionaryForCourse(classSlug);
+      return;
+    }
+    if (isDemoDictionaryId(activeCourse)) return;
+    if (!dictionarySyncMatchesClass(classSlug, activeCourse)) return;
     void loadDictionaryForCourse(activeCourse);
   };
 
-  const unsubDictionarySync = onDictionaryUpdated(({ classSlug }) => reloadActiveDictionary(classSlug));
+  const unsubDictionarySync = onDictionaryUpdated(({ classSlug, source, viaStorage }) => {
+    if (source === "lab" && !viaStorage) return;
+    reloadActiveDictionary(classSlug);
+  });
+
+  function reloadIfDictionaryStale() {
+    try {
+      const raw = localStorage.getItem(DICTIONARY_SYNC_STORAGE_KEY);
+      if (!raw) return;
+      const { classSlug, at } = JSON.parse(raw);
+      if (!at || at <= lastDictReloadAt) return;
+      reloadActiveDictionary(classSlug);
+    } catch (_) {}
+  }
+
   const unregisterReload = registerDictionaryReload?.(reloadActiveDictionary);
+  const onLabVisible = () => {
+    if (document.visibilityState === "visible") reloadIfDictionaryStale();
+  };
+  document.addEventListener("visibilitychange", onLabVisible);
+  window.addEventListener("focus", reloadIfDictionaryStale);
+
+  addSaveBtn?.addEventListener("click", () => {
+    void tryAddPronunciationFromForm();
+  });
+  addHearBtn?.addEventListener("click", (e) => {
+    const pattern = addPatternInput?.value?.trim() ?? "";
+    const spoken = addSpokenInput?.value?.trim() ?? "";
+    if (!pattern) {
+      showAddTermError("Enter the word before hearing.");
+      addPatternInput?.focus();
+      return;
+    }
+    if (!spoken) {
+      showAddTermError("Enter the pronunciation before hearing.");
+      addSpokenInput?.focus();
+      return;
+    }
+    showAddTermError("");
+    hear.play(
+      e.currentTarget,
+      { hearLabel: "▶ Hear", hearTitle: "Hear proposed pronunciation before saving" },
+      previewTermSpeech(pattern, { pattern, substitution: spoken, ignore_case: "Yes" }),
+    );
+  });
+  for (const sel of [addPatternInput, addSpokenInput]) {
+    sel?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        void tryAddPronunciationFromForm();
+      }
+    });
+  }
 
   input.addEventListener("input", () => {
     showPasteNotice(null);
@@ -873,19 +1175,28 @@ export async function mountScreenReaderLab(
   input.addEventListener("paste", (e) => {
     e.preventDefault();
     const { normalized, flattenedEquation } = inspectPasteFromEvent(e);
-    insertAtCursor(input, normalized);
-    showPasteNotice(flattenedEquation ? FLATTENED_GDOCS_EQUATION_NOTICE : null);
+    insertTextWithUndo(input, normalized, {
+      start: input.selectionStart,
+      end: input.selectionEnd,
+    });
+    showPasteNotice(flattenedEquation ? FLATTENED_FRACTION_NOTICE : null);
     refreshPreview();
   });
   root.querySelector("#hs-lab-sample").addEventListener("click", () => {
-    input.value = SAMPLE;
+    replaceTextareaValueWithUndo(input, SAMPLE);
     showPasteNotice(null);
     refreshPreview();
   });
   root.querySelector("#hs-lab-clear").addEventListener("click", () => {
-    input.value = "";
+    replaceTextareaValueWithUndo(input, "");
     showPasteNotice(null);
     refreshPreview();
+  });
+  root.querySelector("#hs-lab-insert-frac")?.addEventListener("click", () => {
+    openFractionBuilder({
+      textarea: input,
+      onInsert: () => refreshPreview(),
+    });
   });
 
   const pullBtn = root.querySelector("#hs-lab-pull");
@@ -903,10 +1214,14 @@ export async function mountScreenReaderLab(
           pullStatus.classList.add("is-error");
           return;
         }
-        input.value = normalizePastedContent(result.text);
-        showPasteNotice(null);
+        const inspected = inspectPulledText(result.text);
+        replaceTextareaValueWithUndo(input, inspected.normalized);
+        showPasteNotice(inspected.flattenedEquation ? FLATTENED_FRACTION_NOTICE : null);
         refreshPreview();
-        pullStatus.textContent = `Pulled ${pullSourceLabel(result.source)} (${result.text.length.toLocaleString()} characters). Click the course page tab before pulling again.`;
+        const fracNote = inspected.fractions?.length
+          ? ` · ${inspected.fractions.length} fraction(s) detected`
+          : "";
+        pullStatus.textContent = `Pulled ${pullSourceLabel(result.source)} (${inspected.normalized.length.toLocaleString()} characters${fracNote}). Click the course page tab before pulling again.`;
         pullStatus.classList.add("is-ok");
         input.focus();
       } catch (err) {
@@ -954,11 +1269,14 @@ export async function mountScreenReaderLab(
   renderClassSelect();
   await loadDictionaryForCourse(activeCourse);
   if (api) await pullCourses();
+  updateAddPronunciationControls();
 
   return {
     destroy: () => {
       unsubDictionarySync();
       unregisterReload?.();
+      document.removeEventListener("visibilitychange", onLabVisible);
+      window.removeEventListener("focus", reloadIfDictionaryStale);
     },
   };
 }

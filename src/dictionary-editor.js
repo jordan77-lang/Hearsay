@@ -47,7 +47,7 @@ import {
   defaultAddonDefaults,
   countRegexInDic,
 } from "./nvda-addon.js";
-import { notifyDictionaryUpdated, onDictionaryUpdated } from "./dictionary-sync.js";
+import { notifyDictionaryUpdated, onDictionaryUpdated, dictionarySyncMatchesClass } from "./dictionary-sync.js";
 import { helpTip, bindHelpTips } from "./help-tip.js";
 import { previewTermSpeech } from "./core/dictionary.js";
 import { createHearController } from "./hear-ui.js";
@@ -1556,10 +1556,10 @@ export async function mountDictionaryEditor(root, {
     setStatus(`${getActiveRows().length} demo terms (read-only)`);
   }
 
-  const unsubDictionarySync = onDictionaryUpdated(({ classSlug, source }) => {
-    if (source === "editor") return;
+  const unsubDictionarySync = onDictionaryUpdated(({ classSlug, source, viaStorage }) => {
+    if (source === "editor" && !viaStorage) return;
     if (isDemoDictionaryId(activeSlug) || !api) return;
-    if (classSlug && classSlug !== activeSlug) return;
+    if (!dictionarySyncMatchesClass(classSlug, activeSlug)) return;
     void pullWorkspace();
   });
 

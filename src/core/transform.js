@@ -35,6 +35,7 @@ import {
 import {
   applyDictionary,
   segmentForComposition,
+  segmentByDictionary,
   ruleCount,
   lookup,
   ruleForVisibleToken,
@@ -846,10 +847,15 @@ function collectBaselineVisible(tokens, visible) {
   }
 }
 
+/** Lab dictionary column: full NVDA rule set (includes long class phrases). */
+function labDictionarySegments(visible) {
+  return segmentByDictionary(String(visible ?? ""));
+}
+
 function collectDictionaryComposition(tokens, chunk) {
   const visible = labVisibleSlice(chunk);
   if (!visible) return;
-  for (const seg of segmentForComposition(visible)) {
+  for (const seg of labDictionarySegments(visible)) {
     const classSp = classDictSegmentSpoken(seg);
     if (classSp) {
       pushLabFlaggedToken(tokens, seg.text, classSp, "dict");
@@ -882,15 +888,9 @@ function collectDictionaryEnrichedFinding(tokens, f, rawSlice) {
 
 function collectDictionaryLineFlaggedTokens(line, tokens) {
   const pre = normalizeNumberUnitSpacing(line);
-  const { findings, normalizedText } = analyze(pre, findTokens);
-  const marked = canvasMarkedFindings(findings);
-  let cursor = 0;
-  for (const f of marked) {
-    collectDictionaryComposition(tokens, normalizedText.slice(cursor, f.start));
-    collectDictionaryEnrichedFinding(tokens, f, normalizedText.slice(f.start, f.end));
-    cursor = f.end;
-  }
-  collectDictionaryComposition(tokens, normalizedText.slice(cursor));
+  const visible = normalizeBaselinePaste(pre);
+  if (!visible.trim()) return;
+  collectDictionaryComposition(tokens, visible);
 }
 
 function collectBaselineLineFlaggedTokens(line, tokens) {
@@ -928,7 +928,7 @@ export function labFlaggedSpeechTokens(text, { classDictActive = false } = {}) {
 function appendDictionaryComposition(state, chunk) {
   const visible = labVisibleSlice(chunk);
   if (!visible) return state;
-  for (const seg of segmentForComposition(visible)) {
+  for (const seg of labDictionarySegments(visible)) {
     const classSp = classDictSegmentSpoken(seg);
     if (classSp) {
       pushLabSpeech(state, seg.text, classSp, "dict");
@@ -964,16 +964,10 @@ function appendDictionaryEnrichedFinding(state, f, rawSlice) {
 /** Dictionary column: class rules override default SR; same walk for HTML and Hear. */
 function walkLabDictionaryLine(line) {
   const pre = normalizeNumberUnitSpacing(line);
-  const { findings, normalizedText } = analyze(pre, findTokens);
-  const marked = canvasMarkedFindings(findings);
+  const visible = normalizeBaselinePaste(pre);
+  if (!visible.trim()) return { html: "", tail: "", afterSpokenSymbol: false };
   let state = { html: "", tail: "", afterSpokenSymbol: false };
-  let cursor = 0;
-  for (const f of marked) {
-    appendDictionaryComposition(state, normalizedText.slice(cursor, f.start));
-    appendDictionaryEnrichedFinding(state, f, normalizedText.slice(f.start, f.end));
-    cursor = f.end;
-  }
-  appendDictionaryComposition(state, normalizedText.slice(cursor));
+  appendDictionaryComposition(state, visible);
   return state;
 }
 

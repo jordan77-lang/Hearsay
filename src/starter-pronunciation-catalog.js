@@ -29,6 +29,7 @@ const PUNCTUATION_ROWS = [
   row("punct-minus", "-", "minus", "operator", "No"),
   row("punct-unicode-minus", "−", "minus", "operator", "No"),
   row("punct-times", "×", "times", "operator", "No"),
+  row("punct-times-cross", "✕", "times", "operator", "No"),
   row("punct-divide", "÷", "divided by", "operator", "No"),
   row("punct-equals", "=", "equals", "operator", "No"),
   row("punct-not-equals", "≠", "not equal to", "operator", "No"),

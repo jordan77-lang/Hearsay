@@ -3,6 +3,9 @@
 # standalone parentheses — default TTS/NVDA skip "(" and ")" unless spoken explicitly
 (	 open parenthesis 	0	0
 )	 close parenthesis 	0	0
+# multiplication sign (unicode times and cross variants from Google Docs / LMS)
+×	 times 	0	0
+✕	 times 	0	0
 # full phrase with heat capacity unit
 Effective heat capacity (J/°C)	Effective heat capacity in jools per degree Celsius	0	0
 # parenthetical heat capacity unit
@@ -376,9 +379,9 @@ m³	cubic meters	0	0
 # plain-text volume unit
 m3	cubic meters	0	0
 # imperial length unit after a number
-(?<=\d)\s?in\b	inches	0	1
+(?<![A-Za-z])\d\s+in\b	inches	0	1
 # imperial length unit after a number with period
-(?<=\d)\s?in\.\b	inches	0	1
+(?<![A-Za-z])\d\s+in\.\b	inches	0	1
 # imperial length unit after a number
 (?<=\d)\s?ft\b	feet	0	1
 # imperial length unit after a number with period
@@ -472,9 +475,9 @@ c_solution	c sub solution	0	2
 # temperature change equation with unicode subscript variables
 ΔT\s?=\s?T₂\s?[−-]\s?T₁	delta T equals T of 2 minus T of 1	0	1
 # plain-language equation from Act 3
-total chemical energy\s?=\s?energy released per gram\s?[×x*]\s?H₂O₂ propellant mass	total chemical energy equals energy released per gram times H two O two propellant mass	0	1
+total chemical energy\s?=\s?energy released per gram\s?[×x*✕]\s?H₂O₂ propellant mass	total chemical energy equals energy released per gram times H two O two propellant mass	0	1
 # plain-language equation from Act 3
-mechanical work\s?=\s?total chemical energy\s?[×x*]\s?efficiency	mechanical work equals total chemical energy times efficiency	0	1
+mechanical work\s?=\s?total chemical energy\s?[×x*✕]\s?efficiency	mechanical work equals total chemical energy times efficiency	0	1
 # LaTeX fraction with joules over grams, such as \frac{14J}{23g} or \frac{14 J}{23 g}
 \\frac\{(\d+(?:\.\d+)?)\s*J\}\{(\d+(?:\.\d+)?)\s*g\}	\1 jools divided by \2 grams	0	1
 # LaTeX fraction with kilojoules over grams, phonetic reading
@@ -482,9 +485,9 @@ mechanical work\s?=\s?total chemical energy\s?[×x*]\s?efficiency	mechanical wor
 # generic LaTeX fraction fallback; works only when NVDA receives literal LaTeX text
 \\frac\{([^{}]+)\}\{([^{}]+)\}	\1 divided by \2	0	1
 # full effective heat capacity equation with unicode subscripts
-Effective heat capacity \(J/°C\)\s?=\s?\(Mass of H₂O\s?[×x*]\s?cH₂O\)\s?\+\s?\(mass of excess H₂\s?[×x*]\s?cH₂\)	Effective heat capacity in jools per degree Celsius equals mass of H two O times c of H two O plus mass of excess H two times c of H two	0	1
+Effective heat capacity \(J/°C\)\s?=\s?\(Mass of H₂O\s?[×x*✕]\s?cH₂O\)\s?\+\s?\(mass of excess H₂\s?[×x*✕]\s?cH₂\)	Effective heat capacity in jools per degree Celsius equals mass of H two O times c of H two O plus mass of excess H two times c of H two	0	1
 # full effective heat capacity equation with plain-number formulas
-Effective heat capacity \(J/°C\)\s?=\s?\(Mass of H2O\s?[×x*]\s?cH2O\)\s?\+\s?\(mass of excess H2\s?[×x*]\s?cH2\)	Effective heat capacity in jools per degree Celsius equals mass of H two O times c of H two O plus mass of excess H two times c of H two	0	1
+Effective heat capacity \(J/°C\)\s?=\s?\(Mass of H2O\s?[×x*✕]\s?cH2O\)\s?\+\s?\(mass of excess H2\s?[×x*✕]\s?cH2\)	Effective heat capacity in jools per degree Celsius equals mass of H two O times c of H two O plus mass of excess H two times c of H two	0	1
 # Google Docs equation paste: numerator/denominator glued on copy (e.g. 29 dogs30 rats)
 (\d+\s+[^\d\n]+?)(?<=[a-zA-Z])(\d+\s+[^\d\n]+)	\1 divided by \2	0	1
 # Division symbol

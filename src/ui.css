@@ -2533,6 +2533,86 @@ mark.ss-hit.low { background: var(--low); }
 .hs-lab-token-save-status.is-error {
   color: var(--high, #b45309);
 }
+.hs-lab-add-pronunciation {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(100px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+.hs-lab-add-pronunciation-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.hs-lab-add-error {
+  margin-top: 8px;
+  color: var(--high, #b45309);
+}
+.hs-lab-add-hint {
+  margin: 0 0 10px;
+}
+.hs-lab-fraction-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hs-lab-fraction {
+  border: 1px solid var(--border, #ddd);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.hs-lab-fraction-body {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 8px;
+}
+.hs-lab-fraction-kind {
+  color: var(--muted, #666);
+  font-size: 12px;
+}
+.hs-lab-fraction-source,
+.hs-lab-fraction-latex code {
+  font-size: 13px;
+}
+.hs-lab-fraction-spoken {
+  color: var(--dict, #1a7f37);
+  font-weight: 500;
+}
+.hs-lab-fraction-latex {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--muted, #666);
+}
+.hs-lab-fraction-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.hs-lab-fraction-actions .ss-btn {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+.hs-lab-fraction-status.is-error {
+  color: var(--high, #b45309);
+}
+@media (max-width: 640px) {
+  .hs-lab-add-pronunciation {
+    grid-template-columns: 1fr;
+  }
+}
 .hs-lab-foot {
   margin-top: 8px;
 }

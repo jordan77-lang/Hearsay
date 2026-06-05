@@ -63,6 +63,7 @@ const NVDA_SYMBOLS = new Map([
   [">", { spoken: "greater", level: "some" }],
   ["°", { spoken: "degrees", level: "some" }],
   ["×", { spoken: "times", level: "some" }],
+  ["\u2715", { spoken: "times", level: "some" }], // multiplication cross (Google Docs / UI), distinct from ×
   ["÷", { spoken: "divide by", level: "some" }],
   ["−", { spoken: "minus", level: "some" }],
   ["±", { spoken: "plus or Minus", level: "some" }],

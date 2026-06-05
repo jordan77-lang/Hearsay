@@ -32,6 +32,10 @@ test("defaultSrSpeakVisible expands slash and degree symbol only", () => {
   assert.match(defaultSrSpeakVisible("a/b"), /a slash b/i);
 });
 
+test("defaultSrSpeakVisible speaks multiplication cross ✕ as times", () => {
+  assert.match(defaultSrSpeakVisible("\u2715 q"), /times q/i);
+});
+
 test("defaultSrSpeakVisible does not speak comma at factory level some", () => {
   assert.doesNotMatch(defaultSrSpeakVisible("A, B"), /\bcomma\b/i);
 });
