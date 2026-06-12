@@ -6,11 +6,11 @@ import {
 import { isSupabaseConnected } from "./supabase/connect-guard.js";
 import { onSupabaseConnectionChanged } from "./dictionary-sync.js";
 import { mountThemeToggle, initTheme } from "./theme.js";
-import { SHOW_CANVAS_TRANSLATE } from "./site-config.js";
+import { SHOW_CANVAS_TRANSLATE, SHOW_MATHSAY } from "./site-config.js";
 
 /**
  * @param {HTMLElement} container
- * @param {{ active?: 'home'|'playground'|'dictionary'|'lab', base?: string }} opts
+ * @param {{ active?: 'home'|'playground'|'mathsay'|'dictionary'|'lab', base?: string }} opts
  *   base — path prefix to site root (e.g. ".." from /lab/)
  */
 export function mountSiteNav(container, { active = "", base = "" } = {}) {
@@ -20,6 +20,9 @@ export function mountSiteNav(container, { active = "", base = "" } = {}) {
   const lab = `${root}lab/`;
   const canvasTranslateLink = SHOW_CANVAS_TRANSLATE
     ? `<a role="listitem" class="hs-site-nav-link${active === "playground" ? " is-active" : ""}" href="${root}playground/">Canvas Translate</a>`
+    : "";
+  const mathsayLink = SHOW_MATHSAY
+    ? `<a role="listitem" class="hs-site-nav-link${active === "mathsay" ? " is-active" : ""}" href="${root}mathsay/">MathSay</a>`
     : "";
 
   function statusText() {
@@ -35,6 +38,7 @@ export function mountSiteNav(container, { active = "", base = "" } = {}) {
       <div class="hs-site-nav-inner">
         <a class="hs-site-nav-brand" href="${root}">HearSay</a>
         <div class="hs-site-nav-links" role="list">
+          ${mathsayLink}
           ${canvasTranslateLink}
           <a role="listitem" class="hs-site-nav-link${active === "lab" ? " is-active" : ""}" href="${lab}">Screen Reader Lab</a>
           <a role="listitem" class="hs-site-nav-link${active === "dictionary" ? " is-active" : ""}" href="${dictionary}">Dictionary</a>

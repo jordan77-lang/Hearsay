@@ -16,6 +16,7 @@
 
 import { DICTIONARY_DIC } from "./dictionary-data.js";
 import { BOND_NOTATION } from "./lexicon.js";
+import { inferRuleType } from "../supabase/dictionary-format.js";
 
 function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -401,9 +402,7 @@ export function rulesWithPreview({ pattern, substitution, ignore_case = "Yes" })
   const trimmedSpoken = String(substitution ?? "").trim();
   if (!trimmedPattern || !trimmedSpoken) return RULES;
   const cs = String(ignore_case ?? "Yes").toLowerCase() === "no" ? "1" : "0";
-  let ruleType = "0";
-  if (/[\\^$.*+?[\](){}|]/.test(trimmedPattern) && trimmedPattern.includes("\\")) ruleType = "1";
-  else if (/^[A-Za-z][A-Za-z0-9/-]*$/.test(trimmedPattern) && trimmedPattern.length <= 24) ruleType = "2";
+  const ruleType = String(inferRuleType(trimmedPattern));
   const previewRule = compile(`${trimmedPattern}\t${trimmedSpoken}\t${cs}\t${ruleType}`);
   if (!previewRule) return RULES;
   return insertRulesBeforeStandaloneParens(

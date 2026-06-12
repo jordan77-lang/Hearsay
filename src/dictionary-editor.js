@@ -47,7 +47,7 @@ import {
   defaultAddonDefaults,
   countRegexInDic,
 } from "./nvda-addon.js";
-import { notifyDictionaryUpdated, onDictionaryUpdated, dictionarySyncMatchesClass } from "./dictionary-sync.js";
+import { notifyDictionaryUpdated, onDictionaryUpdated, dictionarySyncMatchesClass, DICTIONARY_SYNC_STORAGE_KEY } from "./dictionary-sync.js";
 import { helpTip, bindHelpTips } from "./help-tip.js";
 import { previewTermSpeech } from "./core/dictionary.js";
 import { createHearController } from "./hear-ui.js";
@@ -124,6 +124,7 @@ const HELP = {
   advanced: `<p>Optional files for NVDA, JAWS, or Apple VoiceOver dictionary tools.</p>`,
   students: `<p><b>Export screen reader dictionaries</b> from the same class terms: NVDA add-on (Windows), NVDA .dic, JAWS TSV, or Apple VoiceOver CSV. Pick the format your students use.</p>
     <p>For NVDA on Windows, the <b>.nvda-addon</b> plus install PDF is the simplest path (NVDA <b>2026.1+</b>). The PDF also covers Add-on Store → <b>Install from external source</b> if double-click fails.</p>
+    <p><b>JAWS:</b> import the TSV in Dictionary Manager, export an <b>.SBAK</b>, then on student machines choose <b>No, merge the settings from backup into existing settings</b>; if JAWS asks about conflicts, <b>Keep current settings</b>; restart JAWS. Word subscripts export as glued text (<code>mcalorimeter</code>, <code>msolution</code>).</p>
     <p>Preview your class in <b>Screen Reader Lab</b> before you share files. Bump <b>Version</b> when you redistribute an NVDA add-on update.</p>`,
   connect: `<p>Your team Supabase <b>URL</b> and <b>anon key</b>. Stored in this browser only (same credentials as the legacy Dictionary Builder).</p>`,
 };
@@ -152,6 +153,7 @@ export async function mountDictionaryEditor(root, {
   let statusMsg = "";
   let saving = false;
   let savedRowsSnapshot = "[]";
+  let lastDictReloadAt = 0;
 
   function cloneRows(rows) {
     return rows.map((r) => ({ ...r }));
@@ -1130,6 +1132,35 @@ export async function mountDictionaryEditor(root, {
     classSelect.innerHTML = demoOpt + classOpts;
   }
 
+  async function refreshActiveClassFromRemote() {
+    if (isDemoDictionaryId(activeSlug) || !api) return;
+    const records = await api.fetchEntryRecords(activeSlug);
+    setActiveRows(records);
+    await api.loadCourseDictionary(activeSlug);
+    rememberSavedSnapshot();
+    lastDictReloadAt = Date.now();
+    renderTable();
+  }
+
+  async function reloadIfDictionaryStale() {
+    if (!api || isDemoDictionaryId(activeSlug)) return;
+    try {
+      const raw = localStorage.getItem(DICTIONARY_SYNC_STORAGE_KEY);
+      if (!raw) return;
+      const { classSlug, at } = JSON.parse(raw);
+      if (!at || at <= lastDictReloadAt) return;
+      if (classSlug && !isDemoDictionaryId(classSlug)) {
+        entriesByClass[classSlug] = await api.fetchEntryRecords(classSlug);
+      }
+      if (dictionarySyncMatchesClass(classSlug, activeSlug)) {
+        setActiveRows(entriesByClass[activeSlug] ?? []);
+        await api.loadCourseDictionary(activeSlug);
+        renderTable();
+      }
+      lastDictReloadAt = Date.now();
+    } catch (_) {}
+  }
+
   async function pullWorkspace() {
     if (!guardSupabase("Pulling from Supabase")) return;
     showClassError("");
@@ -1161,6 +1192,7 @@ export async function mountDictionaryEditor(root, {
         : "";
       setStatus(`Loaded ${classProfiles.length} class(es) · ${n} row(s) in ${activeSlug}${legacyNote}`);
       rememberSavedSnapshot();
+      lastDictReloadAt = Date.now();
       notifyEditorSync({ classSlug: activeSlug });
       if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
     } catch (err) {
@@ -1194,6 +1226,7 @@ export async function mountDictionaryEditor(root, {
       rememberSavedSnapshot(rows);
       legacyEntrySlugs.delete(activeSlug);
       await api.loadCourseDictionary(activeSlug);
+      lastDictReloadAt = Date.now();
       setStatus(`Saved ${count} row(s) to Supabase · ${activeSlug}`);
       if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
       notifyEditorSync({ classSlug: activeSlug });
@@ -1309,7 +1342,9 @@ export async function mountDictionaryEditor(root, {
     renderTable();
     if (api) {
       try {
-        await api.loadCourseDictionary(activeSlug);
+        if (!isDemoDictionaryId(activeSlug)) {
+          await refreshActiveClassFromRemote();
+        }
         notifyEditorSync({ classSlug: activeSlug });
       } catch {
         /* keep prior in-memory rules */
@@ -1559,14 +1594,35 @@ export async function mountDictionaryEditor(root, {
   const unsubDictionarySync = onDictionaryUpdated(({ classSlug, source, viaStorage }) => {
     if (source === "editor" && !viaStorage) return;
     if (isDemoDictionaryId(activeSlug) || !api) return;
-    if (!dictionarySyncMatchesClass(classSlug, activeSlug)) return;
+    if (!dictionarySyncMatchesClass(classSlug, activeSlug) && classSlug) {
+      void api.fetchEntryRecords(classSlug).then((records) => {
+        entriesByClass[classSlug] = records;
+      });
+      return;
+    }
     void pullWorkspace();
   });
+
+  const onEditorVisible = () => {
+    if (document.visibilityState === "visible") void reloadIfDictionaryStale();
+  };
+  const onEditorFocus = () => void reloadIfDictionaryStale();
+  const onEditorPageShow = (e) => {
+    if (e.persisted) void reloadIfDictionaryStale();
+  };
+  document.addEventListener("visibilitychange", onEditorVisible);
+  window.addEventListener("focus", onEditorFocus);
+  window.addEventListener("pageshow", onEditorPageShow);
 
   return {
     pullWorkspace,
     saveActiveClass,
     getActiveSlug: () => activeSlug,
-    destroy: () => unsubDictionarySync(),
+    destroy: () => {
+      unsubDictionarySync();
+      document.removeEventListener("visibilitychange", onEditorVisible);
+      window.removeEventListener("focus", onEditorFocus);
+      window.removeEventListener("pageshow", onEditorPageShow);
+    },
   };
 }

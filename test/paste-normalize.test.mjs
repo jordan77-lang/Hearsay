@@ -72,6 +72,58 @@ test("normalizePastedContent trims leading spaces and invisible chars from HTML"
   );
 });
 
+test("normalizePastedContent strips CF_HTML wrapper and keeps apostrophe", () => {
+  const wrapped =
+    "<html><body><!--StartFragment--><span>Moon's</span><!--EndFragment--></body></html>";
+  assert.equal(normalizePastedContent(wrapped), "Moon's");
+});
+
+test("normalizePastedContent decodes html entities from span markup", () => {
+  const html = "<span>NASA&rsquo;s effort to return humans to the Moon</span>";
+  assert.equal(
+    normalizePastedContent(html),
+    "NASA\u2019s effort to return humans to the Moon",
+  );
+});
+
+test("normalizePastedContent decodes entities in plain text without tags", () => {
+  assert.equal(
+    normalizePastedContent("NASA&rsquo;s Artemis program"),
+    "NASA\u2019s Artemis program",
+  );
+  assert.equal(normalizePastedContent("Figure 1 &mdash; overview"), "Figure 1 \u2014 overview");
+});
+
+test("normalizePastedContent preserves paragraph breaks from block HTML", () => {
+  assert.equal(
+    normalizePastedContent("<p>Background</p><p>The Artemis program</p>"),
+    "Background\nThe Artemis program",
+  );
+  assert.equal(
+    normalizePastedContent("<div>Background</div><p>The Artemis program</p>"),
+    "Background\nThe Artemis program",
+  );
+  assert.equal(
+    normalizePastedContent("<h2>Background</h2><p>The Artemis program</p>"),
+    "Background\nThe Artemis program",
+  );
+  assert.equal(
+    normalizePastedContent("<p>Background<br>The Artemis program</p>"),
+    "Background\nThe Artemis program",
+  );
+});
+
+test("normalizePastedContent preserves line breaks in plain text", () => {
+  assert.equal(
+    normalizePastedContent("Background\r\nThe Artemis program"),
+    "Background\nThe Artemis program",
+  );
+  assert.equal(
+    normalizePastedContent("Background\rThe Artemis program"),
+    "Background\nThe Artemis program",
+  );
+});
+
 test("normalizePastedContent splits glued DIwater", () => {
   assert.equal(normalizePastedContent("Rinse with DIwater."), "Rinse with DI water.");
   assert.equal(normalizePastedContent("DI-water rinse"), "DI water rinse");

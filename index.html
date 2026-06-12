@@ -42,12 +42,22 @@
     </main>
     <script type="module">
       import { mountSiteNav } from "./src/site-nav.js";
-      import { SHOW_CANVAS_TRANSLATE } from "./src/site-config.js";
+      import { SHOW_CANVAS_TRANSLATE, SHOW_MATHSAY } from "./src/site-config.js";
 
       mountSiteNav(document.getElementById("hs-nav"), { active: "home", base: "" });
 
       const cards = document.getElementById("hs-landing-cards");
       const items = [
+        ...(SHOW_MATHSAY
+          ? [
+              {
+                href: "mathsay/",
+                primary: true,
+                label: "MathSay",
+                sub: "Build MathML equations with speech-aware Canvas export",
+              },
+            ]
+          : []),
         ...(SHOW_CANVAS_TRANSLATE
           ? [
               {
@@ -60,7 +70,7 @@
           : []),
         {
           href: "lab/",
-          primary: !SHOW_CANVAS_TRANSLATE,
+          primary: !SHOW_MATHSAY && !SHOW_CANVAS_TRANSLATE,
           label: "Screen Reader Lab",
           sub: "Compare raw vs dictionary speech on pasted course text",
         },
@@ -91,7 +101,9 @@
         `<span class="hs-landing-card-label">Safari extension</span>` +
         `<span class="ss-sub">Coming soon</span></div>`;
 
-      document.getElementById("hs-landing-workflow").innerHTML = SHOW_CANVAS_TRANSLATE
+      document.getElementById("hs-landing-workflow").innerHTML = SHOW_MATHSAY
+        ? `Build terms in <a href="dictionary/">Dictionary</a> → test in <a href="lab/">Screen Reader Lab</a> → author equations in <a href="mathsay/">MathSay</a> → export screen reader dictionaries for students.`
+        : SHOW_CANVAS_TRANSLATE
         ? `Build terms in <a href="dictionary/">Dictionary</a> (or import CSV) → test in <a href="lab/">Screen Reader Lab</a> → author with <a href="playground/">Canvas Translate</a> → export screen reader dictionaries for students.`
         : `Build terms in <a href="dictionary/">Dictionary</a> (or import CSV) → test in <a href="lab/">Screen Reader Lab</a> → export screen reader dictionaries for students (NVDA, JAWS, VoiceOver).`;
     </script>

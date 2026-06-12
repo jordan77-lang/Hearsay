@@ -88,7 +88,7 @@ export function buildAuthorUserGuideSections() {
           "Two speech columns update live as you type:",
         ],
         bullets: [
-          "Default screen reader — what students hear with no class dictionary loaded (factory symbol table: parentheses, slash, degrees, equals, etc.). Blue highlights show spelled-out symbols.",
+          "Default screen reader — what students hear with no class dictionary loaded, at true factory settings. Use the Reader toggle to switch between NVDA (quieter: math symbols and subscripts spoken, parentheses and quotes pause silently) and JAWS (also names parentheses, quotes, colons, and dashes). Blue highlights show spelled-out symbols.",
           "Default + dictionary — your saved class terms applied on top. Green = class dictionary; blue = default only where your class has no rule.",
           "Use Hear on each column to listen. While playback runs, use Pause or Resume.",
           "Flagged tokens — a list of words where pronunciation changes. Click highlighted speech to jump to a token. In the extension you can edit a flagged term inline.",
@@ -148,7 +148,7 @@ export function buildAuthorUserGuideSections() {
         bullets: [
           "NVDA add-on (.nvda-addon) plus install PDF — packaged install for Windows students on NVDA 2026.1+ (double-click or Add-on Store).",
           "NVDA .dic — raw dictionary file for manual NVDA import or advanced users.",
-          "JAWS source TSV — import into JAWS pronunciation dictionaries.",
+          "JAWS source TSV — import in JAWS Dictionary Manager, export an .SBAK for students. Word subscripts use glued text (mcalorimeter, msolution). When importing .SBAK: merge into existing settings, keep current settings on conflicts, then restart JAWS.",
           "Apple VoiceOver CSV — custom pronunciations on macOS.",
           "More screen reader formats are planned; the same class terms feed every export.",
           "Include regex rules (NVDA exports) — covers units after numbers (e.g. 10 mL) and patterns like parenthetical J/g deg C.",

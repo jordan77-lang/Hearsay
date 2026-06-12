@@ -15,16 +15,68 @@ const GLUED_CHEM_VARS = [
 /** Single-letter variables that use digit subscripts in plain pasted text (T2 → T₂). */
 const DIGIT_SUBSCRIPT_BASES = "Ttvxn";
 
+/** Windows CF_HTML wrappers, LMS spans, Word/Docs markup in text/plain or text/html. */
+const HTML_PASTE_RE =
+  /<!--\s*StartFragment|<\/?(?:html|body|head|meta|span|div|p|br|b|i|strong|em)\b|<sub|<sup|docs-internal-guid/i;
+
+const NAMED_HTML_ENTITIES = {
+  nbsp: " ",
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  rsquo: "\u2019",
+  lsquo: "\u2018",
+  rdquo: "\u201d",
+  ldquo: "\u201c",
+  hellip: "\u2026",
+  mdash: "\u2014",
+  ndash: "\u2013",
+  copy: "\u00a9",
+  reg: "\u00ae",
+  trade: "\u2122",
+  deg: "\u00b0",
+};
+
+export function looksLikeHtmlPaste(s) {
+  return HTML_PASTE_RE.test(String(s ?? ""));
+}
+
+/** Decode &#…;, &#x…;, and common named entities (Word, Canvas, web exports). */
+export function decodeHtmlEntities(s) {
+  return String(s ?? "")
+    .replace(/&([a-z0-9]+);/gi, (match, name) => NAMED_HTML_ENTITIES[name.toLowerCase()] ?? match)
+    .replace(/&#(\d+);/g, (_, dec) => {
+      const cp = Number(dec);
+      return Number.isFinite(cp) && cp >= 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : _;
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+      const cp = parseInt(hex, 16);
+      return Number.isFinite(cp) && cp >= 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : _;
+    });
+}
+
+function normalizeLineEndings(s) {
+  return String(s ?? "")
+    .replace(/\u2029/g, "\n\n")
+    .replace(/\u2028/g, "\n")
+    .replace(/\r\n?/g, "\n");
+}
+
 function stripHtmlToText(html) {
-  return String(html ?? "")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>\s*<p[^>]*>/gi, "\n\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/\r\n/g, "\n");
+  let s = String(html ?? "");
+  const frag = /<!--\s*StartFragment\s*-->([\s\S]*?)<!--\s*EndFragment\s*-->/i.exec(s);
+  if (frag) s = frag[1];
+  return decodeHtmlEntities(
+    normalizeLineEndings(
+      s
+        .replace(/<hr\b[^>]*>/gi, "\n")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/(?:p|div|h[1-6]|li|tr|td|th|blockquote|section|article|header|footer|pre|table|ul|ol)\s*>/gi, "\n")
+        .replace(/<[^>]+>/g, ""),
+    ),
+  );
 }
 
 function normalizeHtmlSubSup(html) {
@@ -63,7 +115,7 @@ function normalizeMathSymbols(s) {
 
 /** Remove invisible chars and leading/trailing junk whitespace from pasted docs. */
 function normalizeWhitespaceCleanup(s) {
-  let out = String(s ?? "")
+  let out = normalizeLineEndings(s)
     .replace(/[\u200B-\u200D\uFEFF\u180E\u00AD\u2060\u2800\u202F\u115F\u1160\u3164]/g, "")
     .replace(/\u00a0/g, " ");
   const lines = out.split(/\r?\n/).map((line) => line.replace(/[ \t]+/g, " ").trim());
@@ -101,10 +153,11 @@ export function normalizePastedContent(
   { skipGluedFractionRepair = false, skipChemGluedBraceMarkup = false } = {},
 ) {
   let s = String(input ?? "");
-  if (/docs-internal-guid/i.test(s)) {
-    s = stripHtmlToText(s);
-  } else if (/<sub|<sup|<\/p|<br/i.test(s)) {
-    s = normalizeHtmlSubSup(s);
+  if (looksLikeHtmlPaste(s)) {
+    if (/<sub|<sup/i.test(s)) s = normalizeHtmlSubSup(s);
+    else s = stripHtmlToText(s);
+  } else {
+    s = decodeHtmlEntities(s);
   }
   s = normalizeSpreadsheetCellRefs(s);
   s = normalizeMathSymbols(s);
@@ -140,6 +193,8 @@ export function pasteDataFromEvent(event) {
   const html = event.clipboardData?.getData("text/html") ?? "";
   const plain = event.clipboardData?.getData("text/plain") ?? "";
   if (html && /<sub|<sup/i.test(html)) return html;
+  if (html && looksLikeHtmlPaste(html)) return html;
+  if (plain && looksLikeHtmlPaste(plain)) return plain;
   if (html && /<[a-z]/i.test(html)) return html;
   return plain;
 }

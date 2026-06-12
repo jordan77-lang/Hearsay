@@ -5,7 +5,8 @@ import {
   defaultSrSpeakVisible,
   defaultSrVisibleSegments,
   DEFAULT_SR_PUNCTUATION_LEVEL,
-  LAB_DEFAULT_SR_PUNCTUATION_LEVEL,
+  SR_PROFILES,
+  setDefaultSrProfile,
 } from "../src/core/default-sr-speech.js";
 import { labSpeechNeedsGap } from "../src/core/lab-speech-gap.js";
 import {
@@ -22,14 +23,27 @@ test("defaultSrSpeakVisible does not say comma at factory punctuation level some
   assert.match(spoken, /First, calculate/i);
 });
 
-test("defaultSrSpeakVisible speaks left paren at lab default level most", () => {
-  const spoken = defaultSrSpeakVisible("(ΔT)", LAB_DEFAULT_SR_PUNCTUATION_LEVEL);
-  assert.match(spoken, /left paren ΔT right paren/);
+test("defaultSrSpeakVisible speaks left paren at punctuation level most", () => {
+  const spoken = defaultSrSpeakVisible("(ΔT)", "most");
+  assert.match(spoken, /left paren delta T right paren/);
 });
 
-test("defaultSrSpeakVisible still says times and minus at lab default level", () => {
-  assert.match(defaultSrSpeakVisible("× ΔT", LAB_DEFAULT_SR_PUNCTUATION_LEVEL), /times ΔT/);
-  assert.match(defaultSrSpeakVisible("T₂ − T₁", LAB_DEFAULT_SR_PUNCTUATION_LEVEL), /T₂ minus T₁/);
+test("factory NVDA profile passes parens through as pauses", () => {
+  setDefaultSrProfile("nvda");
+  assert.doesNotMatch(defaultSrSpeakVisible("(ΔT)"), /paren/i);
+});
+
+test("JAWS profile names parens at factory settings", () => {
+  setDefaultSrProfile("jaws");
+  assert.match(defaultSrSpeakVisible("(ΔT)"), /left paren delta T right paren/);
+  setDefaultSrProfile("nvda");
+});
+
+test("defaultSrSpeakVisible still says times and minus at factory NVDA", () => {
+  setDefaultSrProfile("nvda");
+  assert.match(defaultSrSpeakVisible("× ΔT"), /times delta T/);
+  // NVDA factory reads unicode subscript digits as "subscript N" (en/symbols.dic, level some).
+  assert.match(defaultSrSpeakVisible("T₂ − T₁"), /T subscript 2 minus T subscript 1/);
 });
 
 test("defaultSrSpeakVisible reads comma when punctuation level is all", () => {
@@ -44,13 +58,18 @@ test("labSpeechNeedsGap separates spoken symbols from math tokens", () => {
   assert.equal(labSpeechNeedsGap("10", "milliliters"), true);
 });
 
-test("formatBaselineSpeechHtmlByLine uses NVDA left paren not class open parenthesis", () => {
+test("formatBaselineSpeechHtmlByLine follows the selected reader profile", () => {
   loadBareClassDictionary("test");
   const strip = (html) => html.replace(/<[^>]+>/g, "");
-  assert.match(strip(formatBaselineSpeechHtmlByLine("(ΔT)")), /left paren ΔT right paren/);
+  setDefaultSrProfile("nvda");
+  assert.doesNotMatch(strip(formatBaselineSpeechHtmlByLine("(ΔT)")), /paren/i);
+  assert.match(strip(formatBaselineSpeechHtmlByLine("× ΔT")), /times delta T/);
+  assert.match(strip(formatBaselineSpeechHtmlByLine("T2 −T1")), /T subscript 2 minus T subscript 1/);
+  setDefaultSrProfile("jaws");
+  assert.match(strip(formatBaselineSpeechHtmlByLine("(ΔT)")), /left paren delta T right paren/);
   assert.doesNotMatch(strip(formatBaselineSpeechHtmlByLine("(ΔT)")), /open parenthesis/i);
-  assert.match(strip(formatBaselineSpeechHtmlByLine("× ΔT")), /times ΔT/);
-  assert.match(strip(formatBaselineSpeechHtmlByLine("T2 −T1")), /T₂ minus T₁/);
+  assert.match(strip(formatBaselineSpeechHtmlByLine("T2 −T1")), /T 2 minus T 1/);
+  setDefaultSrProfile("nvda");
 });
 
 test("formatDictionarySpeechHtmlByLine uses class open parenthesis over default left paren", () => {
@@ -85,9 +104,10 @@ test("toDefaultScreenReaderSpeechByLine matches baseline column speech", () => {
   assert.equal(html.replace(/\s+/g, " ").trim(), spoken.replace(/\s+/g, " ").trim());
 });
 
-test("DEFAULT_SR_PUNCTUATION_LEVEL is some and LAB level is most", () => {
+test("profiles use true factory levels: NVDA some, JAWS most", () => {
   assert.equal(DEFAULT_SR_PUNCTUATION_LEVEL, "some");
-  assert.equal(LAB_DEFAULT_SR_PUNCTUATION_LEVEL, "most");
+  assert.equal(SR_PROFILES.nvda.level, "some");
+  assert.equal(SR_PROFILES.jaws.level, "most");
 });
 
 test("defaultSrVisibleSegments marks slash and degrees at level some", () => {

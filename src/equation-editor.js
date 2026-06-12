@@ -53,7 +53,7 @@ const PALETTE = [
   },
 ];
 
-function buildPalette(container, onInsert) {
+export function buildPalette(container, onInsert) {
   container.innerHTML = "";
   for (const grp of PALETTE) {
     const wrap = document.createElement("div");

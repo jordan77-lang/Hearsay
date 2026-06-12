@@ -172,9 +172,48 @@ qsolution,q of solution,heat absorbed by solution,Yes</pre>
 </ul>
 
 <h3>6.3 Ignore case</h3>
-<p>Use <strong>Yes</strong> for units, formulas, and symbols. Use <strong>No</strong> when case distinguishes terms (e.g. capital <code>M</code> for molarity in “3 M HCl” → spoken <code>moh lurr</code>).</p>
+<p>Use <strong>Yes</strong> for units, formulas, and symbols. Use <strong>No</strong> when case distinguishes terms (e.g. capital <code>M</code> for molarity in “3 M HCl” → spoken <code>moh lurr</code>; capital <code>Ccalorimeter</code> for heat capacity vs lowercase <code>c</code> for specific heat).</p>
 
-<h2>7. Discipline-specific guidance (for the ChatGPT model)</h2>
+<h3>6.4 Subscripts — NVDA, JAWS, and VoiceOver (calorimetry labs)</h3>
+<p>See attached <strong>SUBSCRIPT-RULES.md</strong> for the full playbook. One CSV <strong>Spoken</strong> column works for all student exports; <strong>Pattern</strong> must match what appears in the PDF (unicode vs plain, glued vs spaced).</p>
+
+<h4>Why dictionary rows are needed</h4>
+<table>
+  <thead><tr><th>Visible</th><th>Factory NVDA (no dict)</th><th>Factory JAWS (no dict)</th><th>Target Spoken</th></tr></thead>
+  <tbody>
+    <tr><td><code>T₂</code> / <code>T2</code></td><td>“T subscript 2” / flat</td><td>“T 2” / flat</td><td><code>T of 2</code></td></tr>
+    <tr><td><code>msolution</code></td><td>glued word</td><td>glued word</td><td><code>m sub solution</code></td></tr>
+    <tr><td><code>qcalorimeter</code></td><td>misread / mush</td><td>misread / mush</td><td><code>q of calorimeter</code></td></tr>
+    <tr><td><code>cH₂O</code></td><td>letters + subscript digits</td><td>“c H 2 O”</td><td><code>c of H two O</code></td></tr>
+    <tr><td><code>Ccalorimeter</code></td><td>“C calorimeter”</td><td>similar</td><td><code>capital C of calorimeter</code></td></tr>
+  </tbody>
+</table>
+
+<h4>How instructors should format documents</h4>
+<ul>
+  <li><strong>Digit subscripts:</strong> unicode <code>T₂</code>, <code>T₁</code> in Word/Canvas when possible; add CSV rows for plain <code>T2</code>, <code>T1</code> if the PDF uses them.</li>
+  <li><strong>Word subscripts:</strong> glued plain text — <code>msolution</code>, <code>qcalorimeter</code>, <code>csolution</code> — not <code>m solution</code> with a space. Spreadsheet refs <code>B4</code>–<code>B7</code> stay plain (not subscripts).</li>
+  <li><strong>Formula subscripts:</strong> <code>cH₂O</code>, <code>cH₂</code> with unicode <code>H₂</code>; add <code>cH2O</code> if the export is ASCII-only.</li>
+  <li><strong>Invisible characters:</strong> Google Docs paste may include zero-width spaces — strip from Pattern or warn the instructor.</li>
+</ul>
+
+<h4>Spoken naming (ChatGPT must follow)</h4>
+<ul>
+  <li><code>q…</code> variables → <code>q of …</code> (e.g. <code>q of solution</code>)</li>
+  <li><code>m…</code> mass → <code>m sub …</code> (e.g. <code>m sub solution</code>, <code>m sub peroxide solution</code>)</li>
+  <li><code>c…</code> specific heat word subscript → <code>c sub …</code>; formula subscript → <code>c of H two O</code></li>
+  <li>Capital <code>C…</code> heat capacity → <code>capital C of calorimeter</code> (Ignore case: <strong>No</strong>)</li>
+  <li><code>ΔT</code> → <code>delta T</code></li>
+</ul>
+
+<h4>Variant checklist per lab</h4>
+<p>Add a row for <strong>each</strong> form that appears: <code>T2</code> and <code>T₂</code>; <code>qcalorimeter</code> and <code>q_calorimeter</code>; <code>J/g°C</code> and <code>J/°C</code>; optional verbatim equation lines such as <code>ΔT = T2 − T1</code> or the Effective heat capacity sentence.</p>
+
+<div class="callout">
+<strong>Peroxide calorimetry example.</strong> Scan for: ΔT, T1/T2/T₁/T₂, qcalorimeter, qsolution, qreaction, msolution, mperoxidesolution, csolution, Ccalorimeter, cH₂O, cH₂, J/g°C, H₂O, H₂O₂, %H₂O₂. Example rows are in <code>example-output-snippet.csv</code> and <code>SUBSCRIPT-RULES.md</code>.
+</div>
+
+<h2 class="page-break">7. Discipline-specific guidance (for the ChatGPT model)</h2>
 
 <h3>Chemistry &amp; physics</h3>
 <table>
@@ -186,7 +225,9 @@ qsolution,q of solution,heat absorbed by solution,Yes</pre>
     <tr><td>Formula</td><td>NaCl</td><td>sodium chloride</td></tr>
     <tr><td>Formula (letters)</td><td>CuSO4</td><td>C U S O 4</td></tr>
     <tr><td>State</td><td>(aq)</td><td>open parenthesis aqueous close parenthesis</td></tr>
-    <tr><td>Variable</td><td>qsolution</td><td>q of solution</td></tr>
+    <tr><td>Variable (q heat)</td><td>qsolution</td><td>q of solution</td></tr>
+    <tr><td>Variable (m mass)</td><td>msolution</td><td>m sub solution</td></tr>
+    <tr><td>Variable (T temp)</td><td>T2, T₂</td><td>T of 2</td></tr>
     <tr><td>Reaction</td><td>→</td><td>yields</td></tr>
   </tbody>
 </table>

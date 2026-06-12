@@ -2,6 +2,7 @@
 
 import { buildMergedExportDic, mergeBundledWithClassRules } from "./core/dictionary.js";
 import { DICTIONARY_DIC } from "./core/dictionary-data.js";
+import { normalizeSubscripts } from "./core/lexicon.js";
 import { parseDicLine } from "./supabase/dictionary-format.js";
 import { shouldMergeBundledBase, shouldMergeBundledForClass } from "./supabase/dictionary-api.js";
 
@@ -25,6 +26,24 @@ function escapeCsvField(value) {
   return s;
 }
 
+/**
+ * JAWS sees word subscripts as glued letters in curriculum text (mcalorimeter, msolution),
+ * not HearSay's m_{calorimeter} markup. Convert patterns for JAWS Dictionary Manager import.
+ */
+export function jawsExportPattern(text) {
+  let s = sanitize(text);
+  if (!s) return s;
+  s = s.replace(/([A-Za-z\u0394])_\{([^{}]+)\}/g, (_, base, sub) => `${base}${normalizeSubscripts(sub)}`);
+  s = s.replace(/\b([A-Za-z])_([A-Za-z][A-Za-z0-9]*)\b/g, (_, base, sub) => `${base}${sub}`);
+  return s;
+}
+
+export const JAWS_SBAK_IMPORT_STEPS = [
+  'Choose "No, merge the settings from backup into existing settings."',
+  'If JAWS asks about conflicts, choose "Keep current settings."',
+  "Restart JAWS after import.",
+];
+
 export function buildAppleCsv(rows) {
   const header = ["Text", "Substitution", "App", "Ignore case", "Note"];
   const lines = [header.map(escapeCsvField).join(",")];
@@ -47,12 +66,20 @@ export function buildAppleCsv(rows) {
 export function buildJawsTsv(rows) {
   const lines = [
     "# DSL chemistry pronunciation source for JAWS Dictionary Manager",
-    "# Import in JAWS Dictionary Manager, then export an .SBAK package from JAWS.",
+    "# Import this TSV in JAWS Dictionary Manager, then export an .SBAK package from JAWS.",
+    "# Word subscripts use glued text (mcalorimeter, msolution) — how JAWS reads subscripts in pasted curriculum.",
+    "#",
+    "# Importing the class dictionary .SBAK in JAWS:",
+    ...JAWS_SBAK_IMPORT_STEPS.map((step) => `# ${step}`),
     "Text\tPronunciation\tNote",
   ];
+  const seen = new Set();
   for (const row of rows) {
-    if (!row.text || !row.substitution) continue;
-    lines.push(`${row.text}\t${row.substitution}\t${row.note ?? ""}`);
+    const text = jawsExportPattern(row.text);
+    const substitution = sanitize(row.substitution);
+    if (!text || !substitution || seen.has(text)) continue;
+    seen.add(text);
+    lines.push(`${text}\t${substitution}\t${row.note ?? ""}`);
   }
   return lines.join("\r\n");
 }

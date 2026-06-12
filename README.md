@@ -76,7 +76,8 @@ on top. CHEM classes (`chem113`, …) still merge on the bundled `.dic` base;
 other class slugs use Supabase rows only.
 
 **Site pages:** [Dictionary](dictionary/) (edit `entries`, import CSV, NVDA/JAWS/VoiceOver exports),
-[Screen Reader Lab](lab/) (test plain quiz speech), and landing [index.html](index.html).
+[Screen Reader Lab](lab/) (test plain quiz speech), [MathSay](mathsay/) (equation MathML + Canvas export),
+and landing [index.html](index.html).
 Canvas Translate (`playground/`) remains in the repo but is hidden from the UI until re-enabled in `src/site-config.js`. Connect once per browser — legacy
 [external Builder](https://jordan77-lang.github.io/screenreader/dictionary-builder.html)
 credentials (`screenReaderBackendUrl` / `screenReaderBackendAnonKey`) migrate to HearSay automatically.

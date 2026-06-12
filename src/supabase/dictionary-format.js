@@ -5,10 +5,20 @@ export function rowClassId(row) {
   return row.class_slug ?? row.course_id;
 }
 
+/** LaTeX fragments saved as dictionary patterns (not NVDA regex). */
+export function isLiteralLatexPattern(pattern) {
+  const p = String(pattern ?? "").trim();
+  if (/^\\frac\s*\{/.test(p)) return true;
+  if (/^\\[A-Za-z]+$/.test(p)) return true;
+  return false;
+}
+
 /** Literal vs regex vs whole-word — shared by .dic rows and entries import. */
 export function inferRuleType(pattern) {
-  if (/[\\^$.*+?[\](){}|]/.test(pattern) && pattern.includes("\\")) return 1;
-  if (/^[A-Za-z][A-Za-z0-9/-]*$/.test(pattern) && pattern.length <= 24) return 2;
+  const p = String(pattern ?? "").trim();
+  if (isLiteralLatexPattern(p)) return 0;
+  if (/[\\^$.*+?[\](){}|]/.test(p) && p.includes("\\")) return 1;
+  if (/^[A-Za-z][A-Za-z0-9/-]*$/.test(p) && p.length <= 24) return 2;
   return 0;
 }
 export function normalizeRuleRow(row) {

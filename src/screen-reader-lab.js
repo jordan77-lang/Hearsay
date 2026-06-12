@@ -47,6 +47,25 @@ import {
   dictionarySyncMatchesClass,
 } from "./dictionary-sync.js";
 import { previewTermSpeech } from "./core/dictionary.js";
+import { SR_PROFILES, setDefaultSrProfile } from "./core/default-sr-speech.js";
+
+const SR_PROFILE_STORAGE_KEY = "hearsay-sr-profile";
+
+function loadStoredSrProfile() {
+  try {
+    return setDefaultSrProfile(localStorage.getItem(SR_PROFILE_STORAGE_KEY) ?? "nvda");
+  } catch {
+    return setDefaultSrProfile("nvda");
+  }
+}
+
+function storeSrProfile(id) {
+  try {
+    localStorage.setItem(SR_PROFILE_STORAGE_KEY, id);
+  } catch {
+    /* private mode */
+  }
+}
 
 const SAMPLE = `Heat 10 mL of DI water from 25°C to 30°C. The specific heat capacity is (J/g°C).
 
@@ -57,8 +76,8 @@ const HELP = {
     <p><b>Google Docs equations</b> lose their fraction bar on copy (e.g. <code>29 dogs30 rats</code>). HearSay inserts “divided by” and the course dictionary speaks it the same way.</p>
     <p>For a visible numerator and denominator with a horizontal line, use your LMS or document equation editor when students will read it there (Google Docs drafts only — add a spoken cue for students).</p>
     <p>The <b>default + dictionary</b> column uses HearSay’s full speech engine (built-in reading plus your class terms), not raw NVDA substitution alone.</p>`,
-  without: `<p>What <b>NVDA reads with no speech dictionary</b> (factory symbol table at level <b>most</b> — parentheses, slash, degrees, equals, etc.). Normal text matches what students see. <span class="hs-lab-speech-baseline">Blue</span> = spelled-out symbol names (e.g. <code>(ΔT)</code> → left paren ΔT right paren; <code>J/g°C</code> → J slash g degrees C). Unit expansions like “joules per gram…” require a dictionary — green in the right column.</p>`,
-  with: `<p>Same text with your <b>saved class dictionary</b> loaded. Class rules always win over default screen reader symbol speech. Normal text is unchanged. <span class="hs-lab-speech-dict">Green</span> = your class dictionary. <span class="hs-lab-speech-baseline">Blue</span> = default screen reader only where your class has no rule (NVDA level <b>most</b> — includes parentheses as left/right paren).</p>`,
+  without: `<p>What the selected screen reader reads <b>with no speech dictionary</b>, at true factory settings. <b>NVDA</b> (punctuation “some”) speaks math symbols, bullets, and subscript digits but passes parentheses, quotes, and dashes to the voice as pauses. <b>JAWS</b> (punctuation “Most”) also names parentheses, quotes, colons, and dashes. Normal text matches what students see. <span class="hs-lab-speech-baseline">Blue</span> = spelled-out symbol names (e.g. <code>J/g°C</code> → J slash g degrees C). Unit expansions like “joules per gram…” require a dictionary — green in the right column.</p>`,
+  with: `<p>Same text with your <b>saved class dictionary</b> loaded. Class rules always win over default screen reader symbol speech. Normal text is unchanged. <span class="hs-lab-speech-dict">Green</span> = your class dictionary. <span class="hs-lab-speech-baseline">Blue</span> = default screen reader (selected reader at factory settings) where your class has no rule.</p>`,
   tokens: `<p>Tokens in passage order where pronunciation changes. <span class="hs-lab-speech-baseline">Blue</span> = default screen reader — use <b>Add</b> to save a class pronunciation. <span class="hs-lab-speech-dict">Green</span> = your saved class dictionary. Click highlighted speech above to jump here. <b>Edit</b> → change spoken text → <b>▶ Hear</b> → <b>Save</b>.</p>`,
   addTerm: `<p>Type the <b>word or symbol</b> exactly as it appears in student materials, then how the screen reader should say it. Saves to your class dictionary and updates every open HearSay tab immediately.</p>`,
   fractions: `<p>HearSay found one or more fractions. <b>Use \\frac</b> replaces glued text with LaTeX HearSay reads correctly. <b>Save to dictionary</b> stores the spoken form for your class. <b>Build fraction</b> opens the step-by-step fraction wizard.</p>`,
@@ -179,6 +198,13 @@ export async function mountScreenReaderLab(
         <div class="hs-lab-panel">
           <div class="hs-lab-panel-head">
             <h3 class="hs-lab-panel-title">Default screen reader ${helpTip(HELP.without)}</h3>
+            <label class="hs-lab-sr-profile ss-type">Reader
+              <select id="hs-lab-sr-profile" aria-label="Default screen reader profile">
+                ${Object.values(SR_PROFILES)
+                  .map((p) => `<option value="${p.id}">${escapeHtml(p.label)}</option>`)
+                  .join("")}
+              </select>
+            </label>
             <div class="hs-lab-panel-hear-btns">
               <button type="button" class="ss-btn" id="hs-lab-hear-raw" title="Hear visible text">▶ Hear</button>
               <button type="button" class="ss-btn hs-lab-hear-pause" id="hs-lab-pause-raw" disabled title="Pause playback">⏸ Pause</button>
@@ -1060,6 +1086,17 @@ export async function mountScreenReaderLab(
 
   const refreshDebounced = debounce(refreshPreview, 120);
 
+  const srProfileSelect = root.querySelector("#hs-lab-sr-profile");
+  if (srProfileSelect) {
+    srProfileSelect.value = loadStoredSrProfile();
+    srProfileSelect.addEventListener("change", () => {
+      const id = setDefaultSrProfile(srProfileSelect.value);
+      srProfileSelect.value = id;
+      storeSrProfile(id);
+      refreshPreview();
+    });
+  }
+
   root.querySelector("#hs-lab-cloud").addEventListener("click", () => {
     openCloudSettingsModal({
       url: config?.url ?? "",
@@ -1129,8 +1166,12 @@ export async function mountScreenReaderLab(
   const onLabVisible = () => {
     if (document.visibilityState === "visible") reloadIfDictionaryStale();
   };
+  const onLabPageShow = (e) => {
+    if (e.persisted) reloadIfDictionaryStale();
+  };
   document.addEventListener("visibilitychange", onLabVisible);
   window.addEventListener("focus", reloadIfDictionaryStale);
+  window.addEventListener("pageshow", onLabPageShow);
 
   addSaveBtn?.addEventListener("click", () => {
     void tryAddPronunciationFromForm();
@@ -1277,6 +1318,7 @@ export async function mountScreenReaderLab(
       unregisterReload?.();
       document.removeEventListener("visibilitychange", onLabVisible);
       window.removeEventListener("focus", reloadIfDictionaryStale);
+      window.removeEventListener("pageshow", onLabPageShow);
     },
   };
 }

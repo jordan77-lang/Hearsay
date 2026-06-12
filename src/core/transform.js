@@ -40,7 +40,7 @@ import {
   lookup,
   ruleForVisibleToken,
 } from "./dictionary.js";
-import { defaultSrSpeakVisible, defaultSrVisibleSegments, LAB_DEFAULT_SR_PUNCTUATION_LEVEL } from "./default-sr-speech.js";
+import { defaultSrSpeakVisible, defaultSrVisibleSegments } from "./default-sr-speech.js";
 import { labSpeechNeedsGap } from "./lab-speech-gap.js";
 import { parseLatex } from "./latex.js";
 import { normalizeBaselinePaste, normalizePastedContent } from "./paste-normalize.js";
@@ -781,7 +781,7 @@ function defaultSrVisibleSpeech(rawSlice) {
 function defaultSrLinePlain(line) {
   const visible = normalizeBaselinePaste(line);
   if (!visible) return "";
-  return defaultSrSpeakVisible(normalizeMathMinusVisible(visible), LAB_DEFAULT_SR_PUNCTUATION_LEVEL);
+  return defaultSrSpeakVisible(normalizeMathMinusVisible(visible));
 }
 
 /** @typedef {{ html: string, tail: string, afterSpokenSymbol: boolean }} LabHtmlState */
@@ -817,7 +817,7 @@ function pushLabSpeech(state, literal, spoken, kind) {
 
 function appendBaselineVisible(state, visible) {
   const normalized = normalizeMathMinusVisible(String(visible ?? ""));
-  for (const seg of defaultSrVisibleSegments(normalized, LAB_DEFAULT_SR_PUNCTUATION_LEVEL)) {
+  for (const seg of defaultSrVisibleSegments(normalized)) {
     pushLabSpeech(state, seg.display, seg.spoken, seg.changed ? "baseline" : null);
   }
   return state;
@@ -842,7 +842,7 @@ function pushLabFlaggedToken(tokens, raw, spoken, kind) {
 }
 
 function collectBaselineVisible(tokens, visible) {
-  for (const seg of defaultSrVisibleSegments(visible, LAB_DEFAULT_SR_PUNCTUATION_LEVEL)) {
+  for (const seg of defaultSrVisibleSegments(visible)) {
     if (seg.changed) pushLabFlaggedToken(tokens, seg.display, seg.spoken, "baseline");
   }
 }
@@ -1150,7 +1150,7 @@ function proseToMathML(text) {
 }
 
 // Turn parser spoken forms into tokens the course dictionary recognizes.
-function spokenForDictionary(spoken) {
+export function spokenForDictionary(spoken) {
   return spoken
     .replace(/c sub H (\d+) O/g, "cH$1O")
     .replace(/c sub H (\d+)(?!\s*O)/g, "cH$1")
@@ -1160,9 +1160,9 @@ function spokenForDictionary(spoken) {
 // Equation typer: parse a LaTeX-subset string into MathML (for Canvas) and a
 // spoken preview. Prose-like input (full sentences pasted from the module) keeps
 // unicode subscripts in the preview and uses dictionary segmentation for speech.
-export function analyzeEquation(input) {
+export function analyzeEquation(input, { forceEquation = false } = {}) {
   const raw = input || "";
-  if (isProseLike(raw)) {
+  if (!forceEquation && isProseLike(raw)) {
     const dictSpoken = toDictionarySpeech(raw);
     const mathml = proseToMathML(raw);
     const accessibleText = ariaHide(mathml) + hiddenSpokenSpan(dictSpoken);

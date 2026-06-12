@@ -8,6 +8,7 @@ import {
   ruleRowsToEntryRows,
   rowsToDic,
   inferRuleType,
+  isLiteralLatexPattern,
   mergeRuleRowsByPattern,
 } from "../src/supabase/dictionary-format.js";
 import {
@@ -19,7 +20,7 @@ import {
   clearStoredSupabaseConfig,
   getStoredSupabaseConfig,
 } from "../src/supabase/dictionary-api.js";
-import { loadBareClassDictionary, loadDictionary, lookup, ruleCount } from "../src/core/dictionary.js";
+import { loadBareClassDictionary, loadDictionary, lookup, ruleCount, previewTermSpeech } from "../src/core/dictionary.js";
 import { toDictionarySpeech } from "../src/core/transform.js";
 
 test("ruleRowsToEntryRows maps dictionary_rules back to editor rows", () => {
@@ -155,4 +156,25 @@ test("mergeRuleRowsByPattern lets dictionary_rules override entries", () => {
   );
   assert.equal(merged.length, 1);
   assert.equal(merged[0].replacement, "custom mL");
+});
+
+test("inferRuleType treats LaTeX \\frac and command patterns as literal", () => {
+  assert.equal(isLiteralLatexPattern("\\frac{200 g}{mass of H2O2 in solution}"), true);
+  assert.equal(inferRuleType("\\frac{200 g}{mass of H2O2 in solution}"), 0);
+  assert.equal(inferRuleType("\\Delta"), 0);
+  assert.equal(inferRuleType("(?<=\\d)mL"), 1);
+});
+
+test("LaTeX fraction dictionary row compiles and previews", () => {
+  const pattern = "\\frac{200 g}{mass of H2O2 in solution}";
+  const spoken = "200 g divided by mass of H2O2 in solution";
+  const rows = entriesToRuleRows([
+    { class_slug: "chem113", text: pattern, substitution: spoken, ignore_case: "Yes" },
+  ]);
+  assert.equal(rows[0].rule_type, 0);
+  loadDictionary(rowsToDic(rows), "test-frac");
+  assert.equal(
+    previewTermSpeech(`use ${pattern} here`, { pattern, substitution: spoken, ignore_case: "Yes" }),
+    `use ${spoken} here`,
+  );
 });

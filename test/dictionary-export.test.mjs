@@ -8,6 +8,7 @@ import {
   buildExportNvdaDic,
   bundledExportRowCount,
   bundledRegexEntries,
+  jawsExportPattern,
   resolveExportRegexEntries,
 } from "../src/dictionary-export.js";
 
@@ -27,6 +28,26 @@ test("buildJawsTsv includes header row", () => {
   const out = buildJawsTsv(sample);
   assert.match(out, /Text\tPronunciation\tNote/);
   assert.match(out, /mL\tmilliliters\tvolume/);
+});
+
+test("jawsExportPattern glues word subscripts for JAWS curriculum text", () => {
+  assert.equal(jawsExportPattern("m_{calorimeter}"), "mcalorimeter");
+  assert.equal(jawsExportPattern("m_{solution}"), "msolution");
+  assert.equal(jawsExportPattern("m_solution"), "msolution");
+  assert.equal(jawsExportPattern("qcalorimeter"), "qcalorimeter");
+});
+
+test("buildJawsTsv converts brace subscripts and documents SBAK import", () => {
+  const out = buildJawsTsv([
+    { text: "m_{calorimeter}", substitution: "m sub calorimeter", ignore_case: "Yes", note: "mass" },
+    { text: "msolution", substitution: "m sub solution", ignore_case: "Yes", note: "dup" },
+  ]);
+  assert.match(out, /mcalorimeter\tm sub calorimeter\tmass/);
+  assert.equal((out.match(/^msolution\t/gm) || []).length, 1);
+  assert.match(out, /merge the settings from backup into existing settings/i);
+  assert.match(out, /Keep current settings/i);
+  assert.match(out, /Restart JAWS after import/i);
+  assert.match(out, /mcalorimeter, msolution/);
 });
 
 test("buildAppleCsv quotes fields with commas", () => {
