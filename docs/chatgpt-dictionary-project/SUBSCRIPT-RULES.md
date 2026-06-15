@@ -60,9 +60,19 @@ Docs often insert **zero-width spaces** (U+200B, U+180E) around subscripts and t
 - When building Pattern from pasted text, **strip invisible characters** or ask the instructor for a clean re-paste.
 - Flag in Note: `invisible chars removed from Pattern`.
 
-### Long equations
+### Long equations — do not default to dictionary rows
 
-If a **whole equation** appears verbatim and misreads, you may add one row for the **exact phrase** (e.g. the Effective heat capacity line). Prefer **short variable rows first**; add phrase rows only when the lab repeats the same sentence.
+**Default: no whole-equation rows.** HearSay composes speech from atomic tokens (`qcalorimeter`, `Ccalorimeter`, `ΔT`, `×`, etc.). Instructors test full lines in **Screen Reader Lab** after importing atomic rows.
+
+| Do | Don't |
+|---|---|
+| `qcalorimeter` → `q of calorimeter` | `qcalorimeter = Ccalorimeter × ΔT` → (whole line) |
+| `ΔT` → `delta T` | `ΔT = T2 − T1` → (whole line) |
+| `g` → `grams` | `200 g` → `two hundred grams` (use unit row only) |
+
+**Canvas / quizzes:** stacked fractions and equation layout → **MathSay** (https://jordan77-lang.github.io/Hearsay/mathsay/), not CSV equation patterns.
+
+**Rare exception:** one full-line row **only if** instructor confirms Screen Reader Lab still misreads after atomic rows are loaded, and the Pattern matches **verbatim** (complete, not truncated). Never add equation rows from PDF extract automatically.
 
 ---
 
@@ -106,7 +116,9 @@ When scanning a calorimetry lab, check **every form** below against the PDF:
 
 **Units / formulas:** `J/g°C`, `J/°C`, `4.18 J/g°C`, `H₂O`, `H₂`, `H₂O₂`, `%H₂O₂`
 
-**Phrases (optional, verbatim only):** Effective heat capacity equation; `qreaction = - ( qcalorimeter + qsolution )`
+**Phrases (optional, verbatim only):** Effective heat capacity equation — **omit unless Lab proves atomic rows fail**; prefer token rows only.
+
+**Do not add:** `50 g`, `200 g`, `100 kJ` quantity rows — use `g`, `kJ` unit rows instead.
 
 ---
 
@@ -116,7 +128,8 @@ When scanning a calorimetry lab, check **every form** below against the PDF:
 2. Group findings: **digit subscripts**, **glued word variables**, **formula subscripts**, **units**.
 3. Draft rows using section 3 Spoken rules — **never invent** patterns not in the document (label “suggested — confirm”).
 4. For each variable, ask: “Does your PDF show `T2` or `T₂`? Glued `msolution` or spaced `m solution`?” if ambiguous.
-5. Output CSV only after instructor confirms; include **Notepad test list** (5–10 patterns students will hit).
+5. Output CSV only after instructor confirms; include **Notepad test list** (5–10 **tokens**, not whole equations).
+6. **Do not** add whole-equation or `NNN g` quantity rows unless instructor confirms Lab failure.
 
 ---
 
@@ -129,8 +142,6 @@ T2,T of 2,plain final temperature,Yes
 T1,T of 1,plain initial temperature,Yes
 T₂,T of 2,unicode final temperature,Yes
 T₁,T of 1,unicode initial temperature,Yes
-ΔT = T2 − T1,delta T equals T of 2 minus T of 1,equation plain digits,Yes
-ΔT = T₂ − T₁,delta T equals T of 2 minus T of 1,equation unicode subscripts,Yes
 qcalorimeter,q of calorimeter,heat absorbed by calorimeter,Yes
 qsolution,q of solution,heat absorbed by solution,Yes
 qreaction,q of reaction,reaction energy,Yes
@@ -151,4 +162,4 @@ H₂O₂,H two O two,hydrogen peroxide,Yes
 
 ## 7. Screen Reader Lab (instructors)
 
-After CSV import, instructors can paste lab paragraphs into **Screen Reader Lab** (https://jordan77-lang.github.io/Hearsay/lab/) and toggle **NVDA** vs **JAWS** factory reading to see why dictionary rows matter. Green = class dictionary; blue = default reader.
+After CSV import, paste lab paragraphs into **Screen Reader Lab** (https://jordan77-lang.github.io/Hearsay/lab/). If full equations read correctly in the **green (dictionary) column** with token rows only, you do **not** need whole-equation CSV rows. For Canvas equation HTML, use **MathSay** (https://jordan77-lang.github.io/Hearsay/mathsay/).

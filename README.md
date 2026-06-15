@@ -75,10 +75,9 @@ spoken). HearSay loads **`entries` first** when you reload a class. Legacy
 on top. CHEM classes (`chem113`, …) still merge on the bundled `.dic` base;
 other class slugs use Supabase rows only.
 
-**Site pages:** [Dictionary](dictionary/) (edit `entries`, import CSV, NVDA/JAWS/VoiceOver exports),
-[Screen Reader Lab](lab/) (test plain quiz speech), [MathSay](mathsay/) (equation MathML + Canvas export),
-and landing [index.html](index.html).
-Canvas Translate (`playground/`) remains in the repo but is hidden from the UI until re-enabled in `src/site-config.js`. Connect once per browser — legacy
+**Site pages:** [Dictionary](dictionary/) · [Screen Reader Lab](lab/) · [MathSay](mathsay/) · [Home](index.html)
+
+Legacy `/playground/` redirects to MathSay. Connect once per browser — legacy
 [external Builder](https://jordan77-lang.github.io/screenreader/dictionary-builder.html)
 credentials (`screenReaderBackendUrl` / `screenReaderBackendAnonKey`) migrate to HearSay automatically.
 
@@ -129,12 +128,9 @@ curriculum) and merges class rules on top when Supabase loads. A future
 **sign-in-first** mode (no class dictionary until ☁ Connect; demo sample only
 on the load screen) is planned for multi-department use — see *Roadmap* below.
 
-## Equation typer
+## MathSay (Canvas equations)
 
-A LaTeX-style equation field (`_` subscript, `^` superscript, `\frac{a}{b}`,
-`\Delta`, `\times`, `\div`, `\to`, …) with live MathML rendering, a spoken
-preview run through your dictionary, and one-click copy of the MathML (for the
-Canvas `</>` editor) or the accessible-text version.
+[MathSay](mathsay/) builds LaTeX equations with live MathML preview, dictionary vs factory speech columns, and Canvas export (stacked MathML, dual notation for word fractions, accessible text). Use for quiz stems and fractions — not whole equations in the dictionary CSV.
 
 ## What the tool does
 
@@ -154,7 +150,8 @@ Canvas `</>` editor) or the accessible-text version.
 
 ```
 manifest.json            Chrome extension (MV3) manifest
-playground/              Canvas Translate (hidden from nav; set SHOW_CANVAS_TRANSLATE in site-config)
+mathsay/                 MathSay — LaTeX/MathML for Canvas (primary)
+playground/              Redirects to mathsay/ (legacy URL)
 lab/                     Screen Reader Lab (raw vs dictionary speech)
 dictionary/              Class dictionary editor + NVDA export
 src/                     App logic (core engine, UI, Supabase, lab, dictionary)
@@ -207,11 +204,11 @@ npm run build:pages
 npm run serve
 ```
 
-Open `http://localhost:8123/` for the landing page, **Screen Reader Lab** at `/lab/`, or **Dictionary** at `/dictionary/`.
+Open `http://localhost:8123/` for the landing page, **MathSay** at `/mathsay/`, **Screen Reader Lab** at `/lab/`, or **Dictionary** at `/dictionary/`.
 
 ### Web app
 
-Use **Screen Reader Lab** and **Dictionary** from the landing page. Canvas Translate (`/playground/`) is available for development when enabled in `src/site-config.js`.
+Use **MathSay** for Canvas equation HTML, **Screen Reader Lab** to test quiz speech, and **Dictionary** to edit terms and export student add-ons.
 
 ### Chrome extension
 

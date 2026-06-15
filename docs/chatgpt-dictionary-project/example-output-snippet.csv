@@ -4,12 +4,13 @@ T2,T of 2,plain final temperature,Yes
 T1,T of 1,plain initial temperature,Yes
 T₂,T of 2,unicode final temperature,Yes
 T₁,T of 1,unicode initial temperature,Yes
-ΔT = T2 − T1,delta T equals T of 2 minus T of 1,equation plain digits,Yes
-ΔT = T₂ − T₁,delta T equals T of 2 minus T of 1,equation unicode subscripts,Yes
 mL,milliliters,volume unit,Yes
-J/g°C,jools per gram degree Celsius,lab manual equation,Yes
+J/g°C,jools per gram degree Celsius,specific heat capacity unit,Yes
 J/°C,jools per degree Celsius,heat capacity unit,Yes
 kJ/mol,killuh jools per mol,energy unit; instructor chose phrasing,Yes
+kJ,kilojools,energy unit,Yes
+J,jools,energy unit,Yes
+g,grams,mass unit,Yes
 H2O,H two O,water formula plain,Yes
 H₂O,H two O,water formula unicode,Yes
 H₂O₂,H two O two,hydrogen peroxide,Yes
@@ -23,4 +24,7 @@ csolution,c sub solution,specific heat of solution,Yes
 Ccalorimeter,capital C of calorimeter,heat capacity of calorimeter,No
 cH₂O,c of H two O,specific heat variable for water,Yes
 cH₂,c of H two,specific heat variable for hydrogen gas,Yes
-DI water,D I water,deionized water,Yes
+DI,D I,deionized water abbreviation,No
+DI water,D I water,deionized water phrase,Yes
+NASA,NASS uh,acronym; instructor confirmed,Yes
+monopropellant,mono propellant,propulsion term,Yes

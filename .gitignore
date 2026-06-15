@@ -8,4 +8,7 @@ test-document/
 supabase/config.local.json
 supabase/config.public.json
 .env
-.env.local
+!.env.local
+# Local instructor test files (not course templates)
+docs/Mod*.csv
+docs/*pronunciations*.csv

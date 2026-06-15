@@ -153,12 +153,16 @@ qsolution,q of solution,heat absorbed by solution,Yes</pre>
 
 <h2 class="page-break">6. How to write Pattern and Spoken</h2>
 
-<h3>6.1 Pattern = “what the computer sees”</h3>
+<h3>6.1 Pattern = atomic tokens (not sentences)</h3>
+<div class="callout warn">
+<strong>Default rule.</strong> One CSV row = one <strong>token</strong> screen readers misread (acronym, unit, symbol, variable, formula). <strong>Not</strong> whole equations, not lab-specific quantities like <code>50 g</code>, not rows where Spoken equals Pattern.
+</div>
 <ul>
-  <li>Copy from real stems, not from memory.</li>
-  <li>Include symbols exactly: <code>J/g°C</code>, not “joules per gram C”.</li>
-  <li>Add separate rows for variants: <code>DI water</code>, <code>DIwater</code>, <code>DI-water</code>.</li>
-  <li>Subscripts in plain text: <code>T2</code>, <code>T₂</code>, <code>qcalorimeter</code>, <code>q_solution</code> — each may need its own row.</li>
+  <li><strong>Include:</strong> NASA, mL, J/g°C, ΔT, qcalorimeter, H₂O₂, monopropellant (when Spoken changes).</li>
+  <li><strong>Exclude:</strong> <code>qcalorimeter = Ccalorimeter × ΔT</code>, <code>ΔT = T2 − T1</code>, <code>200 g</code>, <code>100 kJ</code> — atomic rows + HearSay composition (or NVDA regex for number+unit) cover these.</li>
+  <li><strong>Canvas equations:</strong> point instructors to <strong>MathSay</strong> (<code>/mathsay/</code>) for MathML and dual-notation export — not dictionary equation rows.</li>
+  <li>Copy Patterns from real stems, not from memory. Symbols exactly: <code>J/g°C</code>, not “joules per gram C”.</li>
+  <li>Separate rows for variants: <code>DI water</code>, <code>DIwater</code>; <code>T2</code>, <code>T₂</code>; <code>qcalorimeter</code>, <code>q_solution</code> if both appear.</li>
 </ul>
 
 <h3>6.2 Spoken = “what the ear should hear”</h3>
@@ -206,11 +210,11 @@ qsolution,q of solution,heat absorbed by solution,Yes</pre>
   <li><code>ΔT</code> → <code>delta T</code></li>
 </ul>
 
-<h4>Variant checklist per lab</h4>
-<p>Add a row for <strong>each</strong> form that appears: <code>T2</code> and <code>T₂</code>; <code>qcalorimeter</code> and <code>q_calorimeter</code>; <code>J/g°C</code> and <code>J/°C</code>; optional verbatim equation lines such as <code>ΔT = T2 − T1</code> or the Effective heat capacity sentence.</p>
+<h4>Variant checklist per lab (tokens only)</h4>
+<p>Add a row for <strong>each token form</strong> that appears: <code>T2</code> and <code>T₂</code>; <code>qcalorimeter</code> and <code>q_calorimeter</code>; <code>J/g°C</code> and <code>J/°C</code>; <code>H2O2</code> and <code>H₂O₂</code>. <strong>Do not</strong> add whole-equation rows (e.g. <code>ΔT = T2 − T1</code>) unless the instructor confirms Screen Reader Lab still misreads after atomic rows are imported.</p>
 
 <div class="callout">
-<strong>Peroxide calorimetry example.</strong> Scan for: ΔT, T1/T2/T₁/T₂, qcalorimeter, qsolution, qreaction, msolution, mperoxidesolution, csolution, Ccalorimeter, cH₂O, cH₂, J/g°C, H₂O, H₂O₂, %H₂O₂. Example rows are in <code>example-output-snippet.csv</code> and <code>SUBSCRIPT-RULES.md</code>.
+<strong>Peroxide / calorimetry token scan.</strong> ΔT, T1/T2/T₁/T₂, qcalorimeter, qsolution, qreaction, msolution, mperoxidesolution, csolution, Ccalorimeter, cH₂O, cH₂, J/g°C, J/°C, kJ, J, mL, H₂O, H₂O₂, %H₂O₂, acronyms (NASA, RCS). Example rows: <code>example-output-snippet.csv</code> and <code>SUBSCRIPT-RULES.md</code>. Equations → MathSay, not CSV.
 </div>
 
 <h2 class="page-break">7. Discipline-specific guidance (for the ChatGPT model)</h2>
@@ -231,7 +235,7 @@ qsolution,q of solution,heat absorbed by solution,Yes</pre>
     <tr><td>Reaction</td><td>→</td><td>yields</td></tr>
   </tbody>
 </table>
-<p>Chemistry classes in HearSay can merge <strong>bundled regex rules</strong> for units after numbers (e.g. <code>10 mL</code>). Instructor CSV should still list important literals and phrases.</p>
+<p>Chemistry classes in HearSay can merge <strong>bundled regex rules</strong> for units after numbers (e.g. <code>10 mL</code>). Instructor CSV should list <strong>unit tokens</strong> (mL, g, kJ) — not every number+unit pair from the lab (e.g. not <code>50 g</code>, <code>200 g</code>).</p>
 
 <h3>Biology</h3>
 <ul>
@@ -243,10 +247,11 @@ qsolution,q of solution,heat absorbed by solution,Yes</pre>
 
 <h3>Mathematics</h3>
 <ul>
-  <li>Prefer Canvas equation editor for stacked fractions.</li>
+  <li><strong>Dictionary:</strong> atomic symbols and variables only (<code>Δx</code>, <code>x^2</code> if flat text).</li>
+  <li><strong>Canvas:</strong> stacked fractions and equations → <strong>MathSay</strong> (<code>/mathsay/</code>) for MathML or dual-notation HTML — not whole-equation CSV rows.</li>
   <li>Plain text: <code>x^2</code> → <code>x squared</code>; <code>Δx</code> → <code>delta x</code>.</li>
   <li>Parentheses: spoken <code>open parenthesis</code> / <code>close parenthesis</code> when symbols are skipped.</li>
-  <li>Do not pattern entire equations unless they appear verbatim and misread.</li>
+  <li><strong>Never</strong> add entire equations to the CSV by default — even if they appear verbatim in the PDF.</li>
 </ul>
 
 <h3>Art history</h3>
@@ -286,21 +291,25 @@ Terms: kJ/mol, J/g°C, qcalorimeter, DI water, ΔT
 [PASTE ANY EXTRA CONTEXT]</pre>
 
 <h3>Review for gaps</h3>
-<pre>Review this CSV for missing chemistry units, subscripts, and Greek letters.
-Suggest up to 15 new rows. Output complete CSV.
+<pre>Review this CSV for missing atomic tokens only (units, variables, formulas, acronyms).
+Remove whole-equation rows, quantity rows (50 g), and no-op rows. Output complete CSV.
 [PASTE CURRENT CSV]</pre>
 
 <h2>9. Quality checklist (ChatGPT before delivery)</h2>
 <ul>
   <li>Header row exactly: Pattern, Spoken, Note, Ignore case</li>
   <li>No blank Pattern or Spoken cells</li>
+  <li><strong>Every row is an atomic token</strong> — not a sentence, equation, or lab-specific quantity (<code>50 g</code>)</li>
+  <li><strong>No row where Spoken equals Pattern</strong> (omit no-op rows)</li>
+  <li><strong>No whole-equation rows</strong> unless instructor confirmed Lab failure after atomic import</li>
+  <li>No truncated or incomplete Patterns from PDF extract</li>
   <li>Every Pattern grounded in instructor text or explicit approval</li>
   <li>Uncertain terms confirmed via choices — not guessed in CSV</li>
   <li>Spoken is natural TTS English, not abbreviations unless intentional</li>
   <li>No regex in Pattern unless instructor is advanced</li>
-  <li>Includes test phrases for student Notepad check</li>
+  <li>Includes <strong>5–10 Notepad test tokens</strong> (not whole paragraphs)</li>
   <li>Notes cite source when possible</li>
-  <li>Short summary: how many rows from paste vs confirmed choices vs omitted pending</li>
+  <li>Short summary: token count, equation rows omitted, pending items</li>
 </ul>
 
 <h2>10. What ChatGPT should not do</h2>
@@ -312,6 +321,8 @@ Suggest up to 15 new rows. Output complete CSV.
   <li>Guess pronunciations for proper nouns or ambiguous symbols</li>
   <li>Present uncertain terms as final CSV rows without instructor choice</li>
   <li>Invent terms that never appeared in course materials</li>
+  <li>Add whole equations, lab quantity rows (<code>200 g</code>), or no-op rows (Spoken = Pattern) by default</li>
+  <li>Add truncated PDF equation extracts</li>
 </ul>
 
 <h2>11. After import on HearSay</h2>

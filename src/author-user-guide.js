@@ -98,6 +98,20 @@ export function buildAuthorUserGuideSections() {
         note: "Google Docs equations sometimes lose their fraction bar on copy. HearSay detects glued fractions and inserts “divided by” so speech stays consistent.",
       },
       {
+        id: "mathsay",
+        title: "MathSay (Canvas equations)",
+        body: [
+          "Build LaTeX equations with live MathML preview and copy Canvas-safe HTML for quizzes or pages.",
+          "Speech preview shows dictionary speech vs factory NVDA and JAWS readings. Word-heavy fractions default to dual notation (visible symbol plus spoken gloss) for New Quizzes.",
+        ],
+        bullets: [
+          "Templates and palette for fractions, subscripts, Greek letters, and common chemistry symbols.",
+          "Speech strategy: Auto picks stacked MathML for numeric fractions and dual notation for word denominators.",
+          "Copy Canvas HTML into the quiz or page HTML editor (</> view). Copy MathML or accessible text separately if needed.",
+          "Connect your class in Dictionary first so dictionary speech preview matches your saved terms.",
+        ],
+      },
+      {
         id: "dictionary",
         title: "Dictionary editor",
         body: [
@@ -119,7 +133,7 @@ export function buildAuthorUserGuideSections() {
           {
             title: "Terms table",
             bullets: [
-              "Pattern — exact text students see (e.g. delta T, mL, J/g deg C).",
+              "Pattern — atomic token students see (e.g. mL, J/g deg C, qcalorimeter). Not whole equations.",
               "Spoken — how the screen reader should say it (e.g. delta T, milliliters).",
               "Note — optional reminder for authors; included as comments in exported dictionary files.",
               "Ignore case — common dictionary setting (Yes/No); applies to NVDA and similar exports.",
@@ -177,6 +191,7 @@ export function buildAuthorUserGuideSections() {
           "Add terms manually, import CSV, or use Starter terms when creating a class.",
           "Open Screen Reader Lab, select your class, paste sample quiz text (or Pull from page in the extension).",
           "Listen with Hear. Fix terms in Dictionary until green highlights match what you want students to hear.",
+          "Use MathSay for Canvas equation and fraction HTML (dual notation or MathML as appropriate).",
           "Download screen reader dictionary files from Dictionary -> Download for students (NVDA add-on, .dic, JAWS TSV, or VoiceOver CSV as needed).",
           "Share the files with students using the install instructions for their screen reader. They install once per computer; no Canvas changes required.",
         ],

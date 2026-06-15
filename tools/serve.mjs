@@ -1,4 +1,4 @@
-// Minimal static file server for local development of the playground.
+// Minimal static file server for local development (HearSay site).
 // Usage: node tools/serve.mjs [port]
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";

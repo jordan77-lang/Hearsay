@@ -10,8 +10,9 @@ Upload these under **Project → Files / Knowledge**. Every chat in the project 
 |------|-----------|---------|
 | **HearSay-Dictionary-Assistant-Guide.pdf** | Yes | Full rules, PDF-scan workflow, discipline examples, anti-hallucination, HearSay handoff |
 | **hearsay-dictionary-template.csv** | Yes | Exact CSV columns HearSay expects |
-| **example-output-snippet.csv** | Recommended | 6–10 sample rows showing good Pattern/Spoken/Note style |
-| **INSTRUCTIONS-FOR-CHATGPT-PROJECT.txt** | No | Paste into **Instructions** field only — do not also upload as knowledge (redundant) |
+| **example-output-snippet.csv** | Recommended | Token-only sample rows (no whole equations) |
+| **SUBSCRIPT-RULES.md** | Recommended (chem labs) | Atomic token rules for calorimetry/subscripts |
+| **INSTRUCTIONS-FOR-CHATGPT-PROJECT.txt** | No | Paste into **Instructions** field only — do not upload as knowledge |
 
 Optional (not required):
 
@@ -51,7 +52,7 @@ flowchart LR
 
 1. **ChatGPT** — scan PDF → collaborate → CSV  
 2. **HearSay Dictionary** — import CSV, edit, connect Supabase, save class  
-3. **HearSay** — export **NVDA add-on** + student install PDF for the class  
+3. **HearSay** — Lab test → **MathSay** for Canvas equations → export **NVDA add-on** for students  
 4. **Students** — install once; dictionary applies in Canvas/plain text
 
 Nothing in HearSay needs to change for this workflow; the gap ChatGPT fills is **PDF → structured CSV** before import.
@@ -62,7 +63,7 @@ Tell instructors to:
 
 - Re-export slides/Word as PDF with selectable text (not image-only scan)
 - Paste 5–20 lines of quiz text into the same chat
-- Use HearSay **Screen Reader Lab** after import to test plain-text speech
+- Use HearSay **Screen Reader Lab** after import; **MathSay** for Canvas equation HTML
 
 ## Character limit reminder
 
