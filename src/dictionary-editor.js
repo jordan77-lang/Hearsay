@@ -62,7 +62,10 @@ function escapeHtml(s) {
 }
 
 function escapeAttr(s) {
-  return escapeHtml(s);
+  return escapeHtml(s)
+    .replace(/\r/g, "&#13;")
+    .replace(/\n/g, "&#10;")
+    .replace(/\t/g, "&#9;");
 }
 
 /** Label text plus inline ? help popover. */
@@ -154,6 +157,7 @@ export async function mountDictionaryEditor(root, {
   let saving = false;
   let savedRowsSnapshot = "[]";
   let lastDictReloadAt = 0;
+  let destroyed = false;
 
   function cloneRows(rows) {
     return rows.map((r) => ({ ...r }));
@@ -531,6 +535,7 @@ export async function mountDictionaryEditor(root, {
   }
 
   function setStatus(msg) {
+    if (destroyed || !statusEl) return;
     statusMsg = msg;
     statusEl.textContent = msg;
   }
@@ -969,6 +974,7 @@ export async function mountDictionaryEditor(root, {
   }
 
   function renderTable({ scrollToHit = false } = {}) {
+    if (destroyed || !tbody) return;
     const readOnly = isDemoDictionaryId(activeSlug);
     const rows = getActiveRows();
     const indices = filteredIndices(rows);
@@ -1202,7 +1208,7 @@ export async function mountDictionaryEditor(root, {
   }
 
   async function saveActiveClass({ skipConfirm = false, actionDescription } = {}) {
-    if (saving || !guardEditableClass("Saving terms")) return false;
+    if (destroyed || saving || !guardEditableClass("Saving terms")) return false;
     const rows = getActiveRows()
       .map((r) => ({
         text: String(r.text ?? "").trim(),
@@ -1455,12 +1461,20 @@ export async function mountDictionaryEditor(root, {
         modeLabel = "replaced";
       }
       setActiveRows(nextRows);
+      previewActiveDictionary();
       renderTable();
       showAddError("");
-      const saved = await saveActiveClass({
-        skipConfirm: true,
-        actionDescription: `Imported ${imported.length} row(s) (${modeLabel}) · ${nextRows.length} total.`,
-      });
+      let saved = false;
+      try {
+        saved = await saveActiveClass({
+          skipConfirm: true,
+          actionDescription: `Imported ${imported.length} row(s) (${modeLabel}) · ${nextRows.length} total.`,
+        });
+      } catch (err) {
+        showAddError(err.message ?? String(err));
+        setStatus(`Imported ${imported.length} row(s) locally · save failed — use Save class to retry`);
+        return;
+      }
       if (!saved) {
         setStatus(`Imported ${imported.length} row(s) (${modeLabel}) · not saved — use Save class or Pull to revert`);
       }
@@ -1591,9 +1605,9 @@ export async function mountDictionaryEditor(root, {
     setStatus(`${getActiveRows().length} demo terms (read-only)`);
   }
 
-  const unsubDictionarySync = onDictionaryUpdated(({ classSlug, source, viaStorage }) => {
-    if (source === "editor" && !viaStorage) return;
-    if (isDemoDictionaryId(activeSlug) || !api) return;
+  const unsubDictionarySync = onDictionaryUpdated(({ classSlug, source }) => {
+    if (source === "editor") return;
+    if (destroyed || isDemoDictionaryId(activeSlug) || !api) return;
     if (!dictionarySyncMatchesClass(classSlug, activeSlug) && classSlug) {
       void api.fetchEntryRecords(classSlug).then((records) => {
         entriesByClass[classSlug] = records;
@@ -1619,6 +1633,7 @@ export async function mountDictionaryEditor(root, {
     saveActiveClass,
     getActiveSlug: () => activeSlug,
     destroy: () => {
+      destroyed = true;
       unsubDictionarySync();
       document.removeEventListener("visibilitychange", onEditorVisible);
       window.removeEventListener("focus", onEditorFocus);

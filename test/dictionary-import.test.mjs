@@ -10,6 +10,14 @@ import {
   parseImportFile,
 } from "../src/dictionary-import.js";
 
+test("parseImportText strips UTF-8 BOM from header row", () => {
+  const csv = "\uFEFFPattern,Spoken\nΔT,delta T\n";
+  const raw = parseImportText(csv, "csv");
+  const rows = normalizeImportRows(raw);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].text, "ΔT");
+});
+
 test("parseImportText maps Pattern and Spoken headers", () => {
   const csv = "Pattern,Spoken,Note\nΔT,delta T,heat\n";
   const raw = parseImportText(csv, "csv");

@@ -14,6 +14,7 @@ import { SHOW_CANVAS_TRANSLATE, SHOW_MATHSAY } from "./site-config.js";
  *   base — path prefix to site root (e.g. ".." from /lab/)
  */
 export function mountSiteNav(container, { active = "", base = "" } = {}) {
+  if (!container) return;
   initTheme();
   const root = base ? `${base.replace(/\/$/, "")}/` : "./";
   const dictionary = `${root}dictionary/`;

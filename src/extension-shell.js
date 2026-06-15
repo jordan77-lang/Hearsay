@@ -9,7 +9,7 @@ import {
 import { isSupabaseConnected } from "./supabase/connect-guard.js";
 import { mountScreenReaderLab } from "./screen-reader-lab.js";
 import { mountDictionaryEditor } from "./dictionary-editor.js";
-import { notifyDictionaryUpdated, onSupabaseConnectionChanged, onDictionaryUpdated } from "./dictionary-sync.js";
+import { onSupabaseConnectionChanged, onDictionaryUpdated } from "./dictionary-sync.js";
 import { createDictionaryApi, loadSupabaseConfigFromBrowser } from "./supabase/dictionary-api.js";
 
 const VIEW_KEY = "hearsay-ext-view";
@@ -113,7 +113,6 @@ export async function mountExtensionShell(root) {
         context: "extension",
         onNavigate: showView,
         onDictionarySaved: ({ classSlug }) => {
-          notifyDictionaryUpdated({ classSlug });
           void reloadSharedDictionary(classSlug);
           refreshStatus();
         },

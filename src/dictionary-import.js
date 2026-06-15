@@ -64,9 +64,13 @@ function parseCsvLine(line) {
  * @param {string} text
  * @param {"csv"|"tsv"} format
  */
+function stripImportBom(text) {
+  return String(text ?? "").replace(/^\uFEFF/, "");
+}
+
 export function parseImportText(text, format = "csv") {
   const delim = format === "tsv" ? "\t" : ",";
-  const lines = String(text ?? "")
+  const lines = stripImportBom(text)
     .replace(/\r\n/g, "\n")
     .split("\n")
     .filter((l) => l.trim() && !l.trim().startsWith("#"));
