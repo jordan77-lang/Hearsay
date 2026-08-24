@@ -291,15 +291,15 @@ H₂\s?:\s?O₂	H two to O two	0	1
 # hydrogen-to-oxygen ratio with plain-text numbers
 H2\s?:\s?O2	H two to O two	0	1
 # metric length unit after a number
-(?<=\d)\s?mm\b	millimeters	0	1
+(?<=\d)\s?mm\b	millimeters	1	1
 # metric length unit after a number
-(?<=\d)\s?cm\b	centimeters	0	1
+(?<=\d)\s?cm\b	centimeters	1	1
 # metric length unit after a number
-(?<=\d)\s?dm\b	decimeters	0	1
+(?<=\d)\s?dm\b	decimeters	1	1
 # metric length unit after a number
-(?<=\d)\s?m\b	meters	0	1
+(?<=\d)\s?m\b	meters	1	1
 # metric length unit after a number
-(?<=\d)\s?km\b	kilometers	0	1
+(?<=\d)\s?km\b	kilometers	1	1
 # metric mass unit after a number
 (?<=\d)\s?µg\b	micrograms	0	1
 # metric mass unit after a number using u for micro

@@ -50,6 +50,7 @@ import {
 import { notifyDictionaryUpdated, onDictionaryUpdated, dictionarySyncMatchesClass, DICTIONARY_SYNC_STORAGE_KEY } from "./dictionary-sync.js";
 import { helpTip, bindHelpTips } from "./help-tip.js";
 import { previewTermSpeech } from "./core/dictionary.js";
+import { findRuleConflicts, summarizeConflicts } from "./core/rule-conflicts.js";
 import { createHearController } from "./hear-ui.js";
 import { preloadSpeech } from "./speech.js";
 
@@ -285,6 +286,7 @@ export async function mountDictionaryEditor(root, {
             </div>
           </div>
           <p id="hs-dict-ed-add-error" class="ss-dict-error hidden" role="alert"></p>
+          <div id="hs-dict-ed-conflicts" class="hs-dict-conflicts hidden" role="status" aria-live="polite"></div>
           <div class="hs-dict-editor-import-group" aria-label="Import">
             <span class="hs-dict-editor-import-label">${fieldLabel("Import CSV", HELP.import)}</span>
             <button type="button" class="ss-btn" id="hs-dict-ed-template-csv">Template CSV</button>
@@ -402,6 +404,7 @@ export async function mountDictionaryEditor(root, {
   const statusEl = root.querySelector("#hs-dict-ed-status");
   const errorEl = root.querySelector("#hs-dict-ed-error");
   const addErrorEl = root.querySelector("#hs-dict-ed-add-error");
+  const conflictsEl = root.querySelector("#hs-dict-ed-conflicts");
   const tbody = root.querySelector("#hs-dict-ed-tbody");
   const emptyEl = root.querySelector("#hs-dict-ed-empty");
   const scrollEl = root.querySelector("#hs-dict-ed-scroll");
@@ -440,6 +443,7 @@ export async function mountDictionaryEditor(root, {
     root.querySelector("#hs-dict-ed-new-spoken").value = "";
     root.querySelector("#hs-dict-ed-new-note").value = "";
     root.querySelector("#hs-dict-ed-new-case").value = "Yes";
+    clearConflicts();
   }
 
   function readNewEntryForm() {
@@ -459,6 +463,47 @@ export async function mountDictionaryEditor(root, {
     }
     errorEl.textContent = msg;
     errorEl.classList.remove("hidden");
+  }
+
+  // Advisory only: show how this term would interact with the rules already in
+  // the class so the author can choose, rather than discovering it in NVDA.
+  function renderConflicts() {
+    if (destroyed || !conflictsEl) return [];
+    const { pattern, spoken, ignore_case } = readNewEntryForm();
+    if (!pattern || !spoken) {
+      conflictsEl.innerHTML = "";
+      conflictsEl.classList.add("hidden");
+      return [];
+    }
+    const conflicts = findRuleConflicts(
+      { text: pattern, substitution: spoken, ignore_case },
+      getActiveRows(),
+    );
+    if (!conflicts.length) {
+      conflictsEl.innerHTML = "";
+      conflictsEl.classList.add("hidden");
+      return [];
+    }
+    conflictsEl.innerHTML =
+      `<p class="hs-dict-conflicts-head">${escapeHtml(summarizeConflicts(conflicts))}</p>` +
+      conflicts
+        .map(
+          (c) =>
+            `<p class="hs-dict-conflict hs-dict-conflict-${escapeAttr(c.severity)}">` +
+            `<span class="hs-dict-conflict-badge">${c.severity === "high" ? "Likely" : "Possible"}</span> ` +
+            `<b>${escapeHtml(c.message)}</b>` +
+            (c.detail ? ` <span class="ss-sub">${escapeHtml(c.detail)}</span>` : "") +
+            `</p>`,
+        )
+        .join("");
+    conflictsEl.classList.remove("hidden");
+    return conflicts;
+  }
+
+  function clearConflicts() {
+    if (!conflictsEl) return;
+    conflictsEl.innerHTML = "";
+    conflictsEl.classList.add("hidden");
   }
 
   function showAddError(msg) {
@@ -505,8 +550,16 @@ export async function mountDictionaryEditor(root, {
       showAddError("Enter Spoken text to add this term.");
       return false;
     }
+    // Advisory, never blocking: name the trade-off, then let the author decide.
+    const conflicts = renderConflicts();
+    const highConflicts = conflicts.filter((c) => c.severity === "high");
+    const conflictNote = highConflicts.length
+      ? `\n\n${summarizeConflicts(conflicts)}:\n` +
+        highConflicts.map((c) => `• ${c.message}`).join("\n") +
+        "\n\nAdd it anyway?"
+      : "";
     if (
-      !confirmSaveClass(`Add "${pattern}" → "${spoken}" and save this class.`)
+      !confirmSaveClass(`Add "${pattern}" → "${spoken}" and save this class.${conflictNote}`)
     ) {
       return false;
     }
@@ -1391,6 +1444,17 @@ export async function mountDictionaryEditor(root, {
         void tryAddNewTerm();
       }
     });
+  }
+
+  // Surface conflicts as the author types, so the choice is made before saving.
+  for (const sel of [
+    "#hs-dict-ed-new-pattern",
+    "#hs-dict-ed-new-spoken",
+    "#hs-dict-ed-new-case",
+  ]) {
+    const el = root.querySelector(sel);
+    el?.addEventListener("input", renderConflicts);
+    el?.addEventListener("change", renderConflicts);
   }
 
   root.querySelector("#hs-dict-ed-search").addEventListener("input", (e) => {

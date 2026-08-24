@@ -14,6 +14,21 @@ export function isLiteralLatexPattern(pattern) {
 }
 
 /** Literal vs regex vs whole-word — shared by .dic rows and entries import. */
+// NVDA gives a pattern a word boundary only where it begins/ends with a word
+// character. A pattern edged by a symbol splices its replacement straight onto
+// the neighbouring text: "100°C" -> "100degrees Celsius", "ΔT" -> "deltaT",
+// "(OD)" -> "open parenthesisODclose parenthesis". The bundled CHEM .dic pads
+// such replacements; do the same for class rows so authored, imported, and
+// bundled entries all behave alike. Pad only the edge that needs it, and never
+// a regex rule (type 1), whose author controls its own spacing.
+export function padSymbolReplacement(pattern, replacement) {
+  if (!replacement) return replacement;
+  const needsLead = !/^[A-Za-z0-9]/.test(pattern);
+  const needsTrail = !/[A-Za-z0-9]$/.test(pattern);
+  if (!needsLead && !needsTrail) return replacement;
+  return `${needsLead ? " " : ""}${replacement}${needsTrail ? " " : ""}`;
+}
+
 export function inferRuleType(pattern) {
   const p = String(pattern ?? "").trim();
   if (isLiteralLatexPattern(p)) return 0;
@@ -110,14 +125,15 @@ export function entriesToRuleRows(entries) {
     if (!pattern || !replacement) continue;
     const ignore = String(e.ignore_case ?? "Yes").trim();
     const case_sensitive = /^no$/i.test(ignore) || ignore === "0";
+    const rule_type = e.rule_type != null ? Number(e.rule_type) : inferRuleType(pattern);
     out.push(
       normalizeRuleRow({
         class_slug: e.class_slug,
         sort_order: Number(e.position) || i,
         pattern,
-        replacement,
+        replacement: rule_type === 1 ? replacement : padSymbolReplacement(pattern, replacement),
         case_sensitive,
-        rule_type: e.rule_type != null ? Number(e.rule_type) : inferRuleType(pattern),
+        rule_type,
         comment: String(e.note ?? "").trim() || null,
       }),
     );

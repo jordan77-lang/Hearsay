@@ -21,7 +21,9 @@ test("buildNvdaDic emits tab-separated dictionary lines", () => {
   const out = buildNvdaDic(sample);
   assert.match(out, /# volume/);
   assert.match(out, /^mL\tmilliliters\t0\t2/m);
-  assert.match(out, /^ΔT\tdelta T\t1\t0/m);
+  // Δ has no word boundary, so the replacement is padded on the leading edge —
+  // without it NVDA speaks "record deltaT" instead of "record delta T".
+  assert.match(out, /^ΔT\t delta T\t1\t0/m);
 });
 
 test("buildJawsTsv includes header row", () => {

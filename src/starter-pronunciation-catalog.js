@@ -4,9 +4,25 @@
 /** @typedef {{ id: string, label: string, rows: StarterRow[] }} StarterGroup */
 /** @typedef {{ id: string, label: string, rows?: StarterRow[], groups?: StarterGroup[] }} StarterCategory */
 
+// SI is case-significant: mm (millimeter) and mM (millimolar) are different
+// units, as are nm/nM and mJ/MJ. Case-insensitive unit rules make a
+// concentration read as a length, so units default to case-sensitive.
+const CASE_SENSITIVE_NOTES = new Set([
+  "length", "area", "volume", "mass", "mass (bio)", "amount", "concentration",
+  "energy", "power", "force", "pressure", "temperature", "frequency", "time",
+  "electric", "speed", "unit", "formula", "state", "variable", "enthalpy",
+  "hydrate", "acidity", "genetics", "microbiology", "optical density",
+  "biology", "reaction", "math",
+]);
+
 /** @param {string} id @param {string} text @param {string} substitution @param {string} [note] @param {string} [ignore_case] @param {number} [rule_type] NVDA type: 0=anywhere, 1=regex, 2=whole word */
-function row(id, text, substitution, note = "", ignore_case = "Yes", rule_type = undefined) {
-  const entry = { id, text, substitution, ignore_case, note };
+function row(id, text, substitution, note = "", ignore_case = undefined, rule_type = undefined) {
+  // Explicit ignore_case always wins; otherwise units and symbols are
+  // case-sensitive. (Spacing of symbol replacements is applied at export —
+  // see padSymbolReplacement in dictionary-export.js.)
+  const resolvedCase =
+    ignore_case ?? (!/[A-Za-z]/.test(text) || CASE_SENSITIVE_NOTES.has(note) ? "No" : "Yes");
+  const entry = { id, text, substitution, ignore_case: resolvedCase, note };
   if (rule_type != null) entry.rule_type = rule_type;
   return entry;
 }
@@ -19,14 +35,15 @@ const PUNCTUATION_ROWS = [
   row("punct-close-bracket", "]", "close bracket", "bracket", "No"),
   row("punct-open-brace", "{", "open brace", "brace", "No"),
   row("punct-close-brace", "}", "close brace", "brace", "No"),
-  row("punct-comma", ",", "comma", "punctuation", "No"),
-  row("punct-period", ".", "period", "punctuation", "No"),
-  row("punct-semicolon", ";", "semicolon", "punctuation", "No"),
-  row("punct-colon", ":", "colon", "punctuation", "No"),
-  row("punct-question", "?", "question mark", "punctuation", "No"),
-  row("punct-exclaim", "!", "exclamation mark", "punctuation", "No"),
+  // Prose punctuation (, . ; : ? !) is deliberately NOT offered: NVDA already
+  // speaks it per the student's own punctuation-verbosity setting, and a
+  // match-anywhere dictionary rule would override that choice in every app.
   row("punct-plus", "+", "plus", "operator", "No"),
-  row("punct-minus", "-", "minus", "operator", "No"),
+  // ASCII "-" is left out on purpose: in course prose it is overwhelmingly a
+  // word joiner (well-known, pre-lab), and a match-anywhere rule turns those
+  // into "wellminusknown". Real negatives use the unicode minus below; the
+  // digit-flanked regex covers "5 - 3" without touching hyphenated words.
+  row("punct-minus-digits", String.raw`(?<=\d\s?)-(?=\s?\d)`, "minus", "operator", "No", 1),
   row("punct-unicode-minus", "−", "minus", "operator", "No"),
   row("punct-times", "×", "times", "operator", "No"),
   row("punct-times-cross", "✕", "times", "operator", "No"),
@@ -72,6 +89,7 @@ const METRIC_ROWS = [
   row("metric-mmol", "mmol", "millimoles", "amount"),
   row("metric-umol", "μmol", "micromoles", "amount"),
   row("metric-nmol", "nmol", "nanomoles", "amount"),
+  row("metric-molar", String.raw`(?<=\d\s?)M\b`, "molar", "concentration", "No", 1),
   row("metric-mM", "mM", "millimolar", "concentration"),
   row("metric-uM", "μM", "micromolar", "concentration"),
   row("metric-nM", "nM", "nanomolar", "concentration"),
@@ -79,7 +97,7 @@ const METRIC_ROWS = [
   row("metric-kJ", "kJ", "killuh jools", "energy"),
   row("metric-MJ", "MJ", "megajoules", "energy"),
   row("metric-mJ", "mJ", "millijoules", "energy"),
-  row("metric-cal", "cal", "calories", "energy"),
+  row("metric-cal", String.raw`(?<=\d\s?)cal\b`, "calories", "energy", "No", 1),
   row("metric-kcal", "kcal", "kilocalories", "energy"),
   row("metric-kW", "kW", "kilowatts", "power"),
   row("metric-MW", "MW", "megawatts", "power"),
@@ -88,15 +106,16 @@ const METRIC_ROWS = [
   row("metric-kPa", "kPa", "kilopascals", "pressure"),
   row("metric-MPa", "MPa", "megapascals", "pressure"),
   row("metric-hPa", "hPa", "hectopascals", "pressure"),
-  row("metric-bar", "bar", "bar", "pressure"),
+  row("metric-bar", String.raw`(?<=\d\s?)bar\b`, "bar", "pressure", "No", 1),
   row("metric-atm", "atm", "atmospheres", "pressure"),
   row("metric-mmHg", "mmHg", "millimeters of mercury", "pressure"),
   row("metric-C", "°C", "degrees Celsius", "temperature"),
+  row("metric-K", String.raw`(?<=\d\s?)K\b`, "kelvin", "temperature", "No", 1),
   row("metric-Hz", "Hz", "hertz", "frequency"),
   row("metric-kHz", "kHz", "kilohertz", "frequency"),
   row("metric-MHz", "MHz", "megahertz", "frequency"),
   row("metric-GHz", "GHz", "gigahertz", "frequency"),
-  row("metric-min", "min", "minutes", "time"),
+  row("metric-min", String.raw`(?<=\d\s?)min\b`, "minutes", "time", "No", 1),
   row("metric-mV", "mV", "millivolts", "electric"),
   row("metric-kV", "kV", "kilovolts", "electric"),
   row("metric-mA", "mA", "milliamps", "electric"),
@@ -116,12 +135,12 @@ const IMPERIAL_ROWS = [
   row("imp-oz", "oz", "ounces", "mass"),
   row("imp-lb", "lb", "pounds", "mass"),
   row("imp-lbs", "lbs", "pounds", "mass"),
-  row("imp-ton", "ton", "tons", "mass"),
+  row("imp-ton", String.raw`(?<=\d\s?)ton\b`, "tons", "mass", "No", 1),
   row("imp-fl-oz", "fl oz", "fluid ounces", "volume"),
   row("imp-tsp", "tsp", "teaspoons", "volume"),
   row("imp-tbsp", "tbsp", "tablespoons", "volume"),
-  row("imp-cup", "cup", "cups", "volume"),
-  row("imp-pt", "pt", "pints", "volume"),
+  row("imp-cup", String.raw`(?<=\d\s?)cup\b`, "cups", "volume", "No", 1),
+  row("imp-pt", String.raw`(?<=\d\s?)pt\b`, "pints", "volume", "No", 1),
   row("imp-qt", "qt", "quarts", "volume"),
   row("imp-gal", "gal", "gallons", "volume"),
   row("imp-F", "°F", "degrees Fahrenheit", "temperature"),
@@ -154,11 +173,21 @@ const SCIENCE_CHEM_ROWS = [
   row("chem-ug-per-mL", "μg/mL", "micrograms per milliliter", "unit"),
   row("chem-j-per-C", "J/°C", "jools per degree Celsius", "unit"),
   row("chem-ph", "pH", "P H", "acidity"),
+  // Common compounds read as their chemical NAME. Spelling them out letter by
+  // letter ("H C L") both sounds worse and is unsafe: a bare capital L or g in
+  // a replacement is re-matched by the liters/grams rules, so "HCl" would end
+  // up as "H C liters". Names avoid the cascade entirely.
   row("chem-nacl", "NaCl", "sodium chloride", "formula"),
-  row("chem-hcl", "HCl", "H C L", "formula"),
-  row("chem-naoh", "NaOH", "N A O H", "formula"),
-  row("chem-co2", "CO2", "C O 2", "formula"),
-  row("chem-nh3", "NH3", "N H 3", "formula"),
+  row("chem-hcl", "HCl", "hydrochloric acid", "formula"),
+  row("chem-naoh", "NaOH", "sodium hydroxide", "formula"),
+  row("chem-h2so4", "H2SO4", "sulfuric acid", "formula"),
+  row("chem-hno3", "HNO3", "nitric acid", "formula"),
+  row("chem-koh", "KOH", "potassium hydroxide", "formula"),
+  row("chem-caco3", "CaCO3", "calcium carbonate", "formula"),
+  row("chem-ch4", "CH4", "methane", "formula"),
+  row("chem-c6h12o6", "C6H12O6", "glucose", "formula"),
+  row("chem-co2", "CO2", "carbon dioxide", "formula"),
+  row("chem-nh3", "NH3", "ammonia", "formula"),
   row("chem-gas-up", "↑", "gas evolved", "state"),
   row("chem-ppt-down", "↓", "precipitate", "state"),
 ];
@@ -170,8 +199,8 @@ const SCIENCE_BIO_ROWS = [
   row("bio-mrna", "mRNA", "messenger R N A", "biology"),
   row("bio-atp", "ATP", "A T P", "biology"),
   row("bio-pcr", "PCR", "P C R", "biology"),
-  row("bio-bp", "bp", "base pairs", "genetics"),
-  row("bio-kb", "kb", "kilobase pairs", "genetics"),
+  row("bio-bp", String.raw`(?<=\d\s?)bp\b`, "base pairs", "genetics", "No", 1),
+  row("bio-kb", String.raw`(?<=\d\s?)kb\b`, "kilobase pairs", "genetics", "No", 1),
   row("bio-ug-per-mL", "µg/mL", "micrograms per milliliter", "concentration"),
   row("bio-cfu", "CFU", "colony forming units", "microbiology"),
   row("bio-od", "OD", "O D", "optical density"),

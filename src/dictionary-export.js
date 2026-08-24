@@ -3,7 +3,7 @@
 import { buildMergedExportDic, mergeBundledWithClassRules } from "./core/dictionary.js";
 import { DICTIONARY_DIC } from "./core/dictionary-data.js";
 import { normalizeSubscripts } from "./core/lexicon.js";
-import { parseDicLine } from "./supabase/dictionary-format.js";
+import { parseDicLine, padSymbolReplacement } from "./supabase/dictionary-format.js";
 import { shouldMergeBundledBase, shouldMergeBundledForClass } from "./supabase/dictionary-api.js";
 
 function sanitize(value) {
@@ -15,10 +15,15 @@ function normalizeIgnoreCase(value) {
   return v === "no" || v === "0" ? "No" : "Yes";
 }
 
+// Whole-word (type 2) for any purely alphabetic pattern. The previous 1-3
+// character limit let longer patterns (tbsp, etc., Fig.) match INSIDE words.
+// Patterns carrying non-word characters (m/s, J/g°C, (aq)) cannot use NVDA's
+// word boundaries and stay type 0.
 function estimateNvdaType(text) {
-  if (/^[A-Za-z]{1,3}$/.test(text)) return 2;
+  if (/^[A-Za-z]+$/.test(text)) return 2;
   return 0;
 }
+
 
 function escapeCsvField(value) {
   const s = String(value ?? "");
@@ -84,13 +89,28 @@ export function buildJawsTsv(rows) {
   return lines.join("\r\n");
 }
 
+// NVDA applies dictionary rules in file order against the running text, so a
+// general rule listed first eats the text a specific rule was meant to catch:
+// "(" -> "open parenthesis" fires before "(g)" -> "gas", leaving state symbols
+// dead. Emit longer patterns first so specific entries always win. Ties keep
+// the caller's order, which keeps exports stable.
+function orderRowsSpecificFirst(rows) {
+  return rows
+    .map((row, index) => ({ row, index }))
+    .sort((a, b) => {
+      const byLength = sanitize(b.row.text).length - sanitize(a.row.text).length;
+      return byLength !== 0 ? byLength : a.index - b.index;
+    })
+    .map((entry) => entry.row);
+}
+
 /**
  * @param {Array<{text,substitution,ignore_case,note}>} rows
  * @param {{ regexEntries?: Array<{pattern,replacement,caseSensitive,type,comments?}> }} opts
  */
 export function buildNvdaDic(rows, { regexEntries = [] } = {}) {
   const output = [];
-  for (const row of rows) {
+  for (const row of orderRowsSpecificFirst(rows)) {
     const text = sanitize(row.text);
     const replacement = sanitize(row.substitution);
     if (!text || !replacement) continue;
@@ -98,7 +118,8 @@ export function buildNvdaDic(rows, { regexEntries = [] } = {}) {
     if (note) output.push(`# ${note}`);
     const caseSensitive = normalizeIgnoreCase(row.ignore_case) === "No" ? 1 : 0;
     const type = row.rule_type != null ? Number(row.rule_type) : estimateNvdaType(text);
-    output.push(`${text}\t${replacement}\t${caseSensitive}\t${type}`);
+    const spoken = type === 1 ? replacement : padSymbolReplacement(text, replacement);
+    output.push(`${text}\t${spoken}\t${caseSensitive}\t${type}`);
   }
   for (const entry of regexEntries) {
     for (const c of entry.comments ?? []) output.push(`# ${c}`);

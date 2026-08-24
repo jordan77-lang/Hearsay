@@ -211,7 +211,11 @@ function isParentheticalLiteralRule(rule) {
 
 function isCompositionRule(rule) {
   if (isParentheticalLiteralRule(rule)) return true;
-  const p = rule.raw;
+  // Lookaround groups are anchors, not content: "(?<=\d\s?)ton\b" is the
+  // atomic unit "ton" restricted to a numeric context. Judge the rule by what
+  // it actually matches, or the "=" and "(" inside the lookaround would get it
+  // mistaken for a parenthesized equation and dropped from composed speech.
+  const p = rule.raw.replace(/\(\?<?[=!][^)]*\)/g, "");
   if (p.length > 40) return false;
   if (p.includes("=") && !BOND_NOTATION.test(p)) {
     if (!isEquationRule(rule)) return false;
