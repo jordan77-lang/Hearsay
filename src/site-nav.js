@@ -4,7 +4,7 @@ import {
   getStoredCourseId,
 } from "./supabase/dictionary-remote.js";
 import { isSupabaseConnected } from "./supabase/connect-guard.js";
-import { onSupabaseConnectionChanged } from "./dictionary-sync.js";
+import { onSupabaseConnectionChanged, notifySupabaseConnectionChanged } from "./dictionary-sync.js";
 import { mountThemeToggle, initTheme } from "./theme.js";
 import { SHOW_CANVAS_TRANSLATE, SHOW_MATHSAY } from "./site-config.js";
 
@@ -31,7 +31,13 @@ export function mountSiteNav(container, { active = "", base = "" } = {}) {
     const course = getStoredCourseId();
     return connected
       ? `Connected${course ? ` · ${course}` : ""}`
-      : "Not connected";
+      : "☁ Connect";
+  }
+
+  function statusTitle() {
+    return isSupabaseConnected()
+      ? "Cloud dictionary connected — click to change project or disconnect"
+      : "Connect to your Supabase project to load class dictionaries";
   }
 
   container.innerHTML = `
@@ -45,7 +51,7 @@ export function mountSiteNav(container, { active = "", base = "" } = {}) {
           <a role="listitem" class="hs-site-nav-link${active === "dictionary" ? " is-active" : ""}" href="${dictionary}">Dictionary</a>
         </div>
         <div class="hs-site-nav-end">
-          <span class="hs-site-nav-status ss-type" title="Supabase connection">${escapeHtml(statusText())}</span>
+          <button type="button" class="hs-site-nav-status ss-type${isSupabaseConnected() ? " is-connected" : ""}" id="hs-site-nav-connect" title="${escapeHtml(statusTitle())}">${escapeHtml(statusText())}</button>
           <span class="hs-theme-toggle-mount"></span>
         </div>
       </div>
@@ -54,11 +60,43 @@ export function mountSiteNav(container, { active = "", base = "" } = {}) {
   const themeMount = container.querySelector(".hs-theme-toggle-mount");
   if (themeMount) mountThemeToggle(themeMount);
 
-  if (container._hsNavConnectionUnsub) container._hsNavConnectionUnsub();
-  container._hsNavConnectionUnsub = onSupabaseConnectionChanged(() => {
+  function refreshStatus() {
     const statusEl = container.querySelector(".hs-site-nav-status");
-    if (statusEl) statusEl.textContent = statusText();
+    if (!statusEl) return;
+    statusEl.textContent = statusText();
+    statusEl.title = statusTitle();
+    statusEl.classList.toggle("is-connected", isSupabaseConnected());
+  }
+
+  // Connect is reachable from every page, including ones (MathSay, home) that
+  // consume the class dictionary but have no cloud panel of their own.
+  container.querySelector("#hs-site-nav-connect")?.addEventListener("click", async () => {
+    const [{ openCloudSettingsModal }, api] = await Promise.all([
+      import("./supabase/cloud-settings.js"),
+      import("./supabase/dictionary-api.js"),
+    ]);
+    const current = api.getStoredSupabaseConfig() ?? {};
+    openCloudSettingsModal({
+      url: current.url ?? "",
+      anonKey: current.anonKey ?? "",
+      onSave: (saved) => {
+        api.setStoredSupabaseConfig(saved);
+        notifySupabaseConnectionChanged();
+        refreshStatus();
+        // Pages read the dictionary at mount, so reload to pick up the class.
+        location.reload();
+      },
+      onClear: () => {
+        api.clearStoredSupabaseConfig();
+        notifySupabaseConnectionChanged();
+        refreshStatus();
+        location.reload();
+      },
+    });
   });
+
+  if (container._hsNavConnectionUnsub) container._hsNavConnectionUnsub();
+  container._hsNavConnectionUnsub = onSupabaseConnectionChanged(refreshStatus);
 }
 
 function escapeHtml(s) {

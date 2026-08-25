@@ -64,8 +64,18 @@ export function openCloudSettingsModal({ url = "", anonKey = "", onSave, onClear
     close();
   });
 
-  keyInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") overlay.querySelector("#ss-cloud-save").click();
+  for (const input of [urlInput, keyInput]) {
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") overlay.querySelector("#ss-cloud-save").click();
+    });
+  }
+
+  // Escape closes, matching every other modal in the app.
+  overlay.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      close();
+    }
   });
 
   document.body.appendChild(overlay);

@@ -81,7 +81,8 @@ Legacy `/playground/` redirects to MathSay. Connect once per browser — legacy
 [external Builder](https://jordan77-lang.github.io/screenreader/dictionary-builder.html)
 credentials (`screenReaderBackendUrl` / `screenReaderBackendAnonKey`) migrate to HearSay automatically.
 
-**Who connects:** Authors click **☁ Connect** and enter the project URL and
+**Who connects:** Authors click **☁ Connect** — in the top nav on any page, or
+in the cloud panel on Lab and Dictionary — and enter the project URL and
 **anon key** (shared privately with your team — do not commit it or publish it
 in a public repo). After connect, the app lists classes and loads rules for the
 selected class.

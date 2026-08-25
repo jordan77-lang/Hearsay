@@ -33,7 +33,9 @@ function formatDictionaryNote(dictionarySync) {
   if (source.startsWith("supabase")) {
     return `${count} rules${course ? ` · ${course}` : ""}`;
   }
-  return `${count} rules (bundled demo)`;
+  // Say plainly that this is NOT the author's class, or the dictionary speech
+  // column silently previews the wrong pronunciations.
+  return `${count} rules · sample chemistry dictionary — use ☁ Connect above to load your class`;
 }
 
 function insertSnippet(el, snippet) {

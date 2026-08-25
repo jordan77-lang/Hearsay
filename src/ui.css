@@ -1595,6 +1595,32 @@ mark.ss-hit.low { background: var(--low); }
   border-radius: var(--radius-sm);
   background: var(--panel-2);
   border: 1px solid var(--border-subtle);
+  font-family: inherit;
+  cursor: pointer;
+}
+button.hs-site-nav-status:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+button.hs-site-nav-status:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+/* Not connected is the state that needs acting on, so give it the accent. */
+button.hs-site-nav-status:not(.is-connected) {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent-muted);
+}
+button.hs-site-nav-status.is-connected::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--ok);
+  vertical-align: 1px;
 }
 .hs-theme-toggle {
   display: inline-flex;
