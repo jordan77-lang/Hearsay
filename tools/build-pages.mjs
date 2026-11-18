@@ -1,7 +1,8 @@
 // Assemble static files for GitHub Pages into _site/
 import { cpSync, existsSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
-import { join } from "node:path";
+import { join, relative } from "node:path";
+import { isReleasePath } from "./release-scope.mjs";
 
 const ROOT = process.cwd();
 const OUT = join(ROOT, "_site");
@@ -12,8 +13,12 @@ mkdirSync(OUT, { recursive: true });
 execSync("npm run pack:extension", { stdio: "inherit", cwd: ROOT });
 execSync("npm run build:user-guide", { stdio: "inherit", cwd: ROOT });
 
-for (const item of ["index.html", "playground", "mathsay", "dictionary", "lab", "src", "download", "docs"]) {
-  cpSync(join(ROOT, item), join(OUT, item), { recursive: true });
+for (const item of ["index.html", "playground", "mathsay", "dictionary", "lab", "workspace", "src", "download", "docs"]) {
+  if (!isReleasePath(item)) continue;
+  cpSync(join(ROOT, item), join(OUT, item), {
+    recursive: true,
+    filter: (source) => isReleasePath(relative(ROOT, source)),
+  });
 }
 
 const extensionZip = join(OUT, "download", "hearsay-chrome-extension.zip");

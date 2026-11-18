@@ -1,6 +1,7 @@
 // Build download/hearsay-chrome-extension.zip and dist/hearsay-chrome-extension/ for Load unpacked.
 
 import JSZip from "jszip";
+import { isReleasePath } from "./release-scope.mjs";
 import {
   cpSync,
   existsSync,
@@ -41,7 +42,10 @@ mkdirSync(UNPACKED, { recursive: true });
 for (const item of BUNDLE_ITEMS) {
   const src = join(ROOT, item);
   if (!existsSync(src)) continue;
-  cpSync(src, join(UNPACKED, item), { recursive: true });
+  cpSync(src, join(UNPACKED, item), {
+    recursive: true,
+    filter: (source) => isReleasePath(relative(ROOT, source)),
+  });
 }
 
 for (const file of ["INSTALL.bat", "INSTALL-Mac.command", "INSTALL.txt"]) {

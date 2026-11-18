@@ -52,164 +52,18 @@ function pdfText(value) {
 /** Plain-text guide sections (testable without jsPDF). */
 export function buildAuthorUserGuideSections() {
   return {
-    title: "HearSay Author User Guide",
-    subtitle: "Build class dictionaries, test speech, export screen reader dictionaries for students",
-    version: "June 2026",
-    intro: [
-      "HearSay helps course authors make science and math content pronounceable by screen readers — without asking students to edit personal dictionaries.",
-      "Use the web app or Chrome extension to edit a shared class dictionary in Supabase, preview how speech will sound, and export screen reader dictionary files for your class (NVDA, JAWS, VoiceOver, and more).",
-    ],
+    title: "HearSay Author User Guide", subtitle: "Review course pronunciation and prepare supplemental JAWS dictionaries", version: "JAWS-first review",
+    intro: ["HearSay combines content review and class dictionary maintenance in one workspace.", "Speech is an approximation using your browser voice. It does not reproduce JAWS in Word, Google Docs or a PDF. Verify the original document with JAWS before distributing a dictionary."],
     sections: [
-      {
-        id: "overview",
-        title: "What HearSay includes",
-        bullets: [
-          "Home — overview and links to every tool.",
-          "Screen Reader Lab — paste or pull course text and compare default screen reader speech vs your class dictionary.",
-          "Dictionary — connect to Supabase, edit pronunciation rows, import CSV, and export screen reader dictionaries for students.",
-          "Chrome extension — same Lab and Dictionary in a side panel while you browse your LMS or Google Docs.",
-        ],
-      },
-      {
-        id: "connect",
-        title: "Connect once (Cloud Connect)",
-        body: [
-          "Most authoring features need your team Supabase project. Click Cloud Connect on the Dictionary or Lab page and enter the project URL and anon key (shared privately with your team — never commit these to a public repo).",
-          "Credentials are stored in this browser only. The top navigation shows Connected and your class name when linked.",
-          "If you used the legacy Dictionary Builder, HearSay can migrate those saved credentials automatically.",
-          "Without a connection you can still use the offline Demo dictionary in Screen Reader Lab and browse the Dictionary UI, but saving, pulling classes, and exports require Cloud Connect.",
-        ],
-      },
-      {
-        id: "lab",
-        title: "Screen Reader Lab",
-        body: [
-          "Paste plain quiz or reading text — from Google Docs, Word, Canvas, or elsewhere. HearSay normalizes subscripts, superscripts, and glued variables (for example qcalorimeter, T2, DIwater).",
-          "Two speech columns update live as you type:",
-        ],
-        bullets: [
-          "Default screen reader — what students hear with no class dictionary loaded, at true factory settings. Use the Reader toggle to switch between NVDA (quieter: math symbols and subscripts spoken, parentheses and quotes pause silently) and JAWS (also names parentheses, quotes, colons, and dashes). Blue highlights show spelled-out symbols.",
-          "Default + dictionary — your saved class terms applied on top. Green = class dictionary; blue = default only where your class has no rule.",
-          "Use Hear on each column to listen. While playback runs, use Pause or Resume.",
-          "Flagged tokens — a list of words where pronunciation changes. Click highlighted speech to jump to a token. In the extension you can edit a flagged term inline.",
-          "Pick a class from the dropdown: Demo dictionary (offline chemistry sample) or your Supabase class after Connect.",
-          "Try Load sample for a calorimetry example. Clear resets the editor.",
-        ],
-        note: "Google Docs equations sometimes lose their fraction bar on copy. HearSay detects glued fractions and inserts “divided by” so speech stays consistent.",
-      },
-      {
-        id: "mathsay",
-        title: "MathSay (Canvas equations)",
-        body: [
-          "Build LaTeX equations with live MathML preview and copy Canvas-safe HTML for quizzes or pages.",
-          "Speech preview shows dictionary speech vs factory NVDA and JAWS readings. Word-heavy fractions default to dual notation (visible symbol plus spoken gloss) for New Quizzes.",
-        ],
-        bullets: [
-          "Templates and palette for fractions, subscripts, Greek letters, and common chemistry symbols.",
-          "Speech strategy: Auto picks stacked MathML for numeric fractions and dual notation for word denominators.",
-          "Copy Canvas HTML into the quiz or page HTML editor (</> view). Copy MathML or accessible text separately if needed.",
-          "Connect your class in Dictionary first so dictionary speech preview matches your saved terms.",
-        ],
-      },
-      {
-        id: "dictionary",
-        title: "Dictionary editor",
-        body: [
-          "The Dictionary page is where authors maintain pronunciation rules stored in Supabase entries for each class.",
-        ],
-        subsections: [
-          {
-            title: "Classes",
-            bullets: [
-              "Demo dictionary — read-only offline sample; good for exploring Lab speech.",
-              "Course dropdown — pick your class after Connect.",
-              "+ Add class — create a new slug (e.g. chem114). Choose starter terms or start empty.",
-              "Edit class — change display name and file prefix (slug is permanent).",
-              "Delete class — removes the class from Supabase (with confirmation).",
-              "Pull — reload all classes and rows from the cloud.",
-              "Save class — save all rows again with confirmation (table edits also auto-save).",
-            ],
-          },
-          {
-            title: "Terms table",
-            bullets: [
-              "Pattern — atomic token students see (e.g. mL, J/g deg C, qcalorimeter). Not whole equations.",
-              "Spoken — how the screen reader should say it (e.g. delta T, milliliters).",
-              "Note — optional reminder for authors; included as comments in exported dictionary files.",
-              "Ignore case — common dictionary setting (Yes/No); applies to NVDA and similar exports.",
-              "Hear on each row — preview that row before saving.",
-              "Delete — remove a row (confirms, then saves).",
-              "Edits in the table auto-save to Supabase and refresh Screen Reader Lab for that class.",
-              "Search — filter by words (all terms must match). Use Up/Down arrow keys or Enter to jump between hits.",
-            ],
-          },
-          {
-            title: "Add terms",
-            bullets: [
-              "Use the Add pronunciation form, or Import CSV (download Template CSV first).",
-              "Starter terms — when creating a class, pick a starter bundle, copy from another class, or browse the category catalog.",
-              "Hear on the add form tests speech before you add a row.",
-            ],
-          },
-        ],
-      },
-      {
-        id: "students",
-        title: "Export screen reader dictionaries",
-        body: [
-          "From Dictionary, open Download for students. Your pronunciation rows export to the format each screen reader expects — pick what matches your class.",
-        ],
-        bullets: [
-          "NVDA add-on (.nvda-addon) plus install PDF — packaged install for Windows students on NVDA 2026.1+ (double-click or Add-on Store).",
-          "NVDA .dic — raw dictionary file for manual NVDA import or advanced users.",
-          "JAWS source TSV — import in JAWS Dictionary Manager, export an .SBAK for students. Word subscripts use glued text (mcalorimeter, msolution). When importing .SBAK: merge into existing settings, keep current settings on conflicts, then restart JAWS.",
-          "Apple VoiceOver CSV — custom pronunciations on macOS.",
-          "More screen reader formats are planned; the same class terms feed every export.",
-          "Include regex rules (NVDA exports) — covers units after numbers (e.g. 10 mL) and patterns like parenthetical J/g deg C.",
-          "Add-on settings — for NVDA packages: set version, add-on ID, summary, and author. Bump Version when you redistribute an update.",
-        ],
-      },
-      {
-        id: "extension",
-        title: "Chrome extension",
-        body: [
-          "Install from the home page: download hearsay-chrome-extension.zip from the Download section, extract it, open chrome://extensions, enable Developer mode, Load unpacked, and select the extracted folder (not the zip).",
-        ],
-        bullets: [
-          "Pin HearSay from the puzzle icon, then click the toolbar icon to open the side panel.",
-          "Tabs: Screen Reader Lab and Dictionary — same tools as the website.",
-          "Cloud Connect once in either tab (shared credentials).",
-          "Pull from page (Lab tab) — select text on the active browser tab (LMS page, syllabus, quiz) and pull it into the Lab editor.",
-          "Switch between Lab and Dictionary without losing your Connect session.",
-        ],
-      },
-      {
-        id: "workflow",
-        title: "Typical author workflow",
-        steps: [
-          "Click Cloud Connect and pick or create your class in Dictionary.",
-          "Add terms manually, import CSV, or use Starter terms when creating a class.",
-          "Open Screen Reader Lab, select your class, paste sample quiz text (or Pull from page in the extension).",
-          "Listen with Hear. Fix terms in Dictionary until green highlights match what you want students to hear.",
-          "Use MathSay for Canvas equation and fraction HTML (dual notation or MathML as appropriate).",
-          "Download screen reader dictionary files from Dictionary -> Download for students (NVDA add-on, .dic, JAWS TSV, or VoiceOver CSV as needed).",
-          "Share the files with students using the install instructions for their screen reader. They install once per computer; no Canvas changes required.",
-        ],
-      },
-      {
-        id: "tips",
-        title: "Tips and troubleshooting",
-        bullets: [
-          "Demo dictionary vs class — Demo is offline and read-only. Your real class rows live in Supabase after Connect.",
-          "Not connected — Save, Pull, Add class, and exports show a message and open Cloud Connect instead of failing silently.",
-          "Screen Reader Lab shows combined speech (default + dictionary), not dictionary substitution alone.",
-          "Chemistry bundled rules — Demo includes bundled chemistry pronunciations. Real classes use only their saved rows plus optional regex rules where supported.",
-          "Test before sharing — use Lab with your class loaded, then spot-check speech on sample terms (kJ/mol, 10 mL, J/g deg C) in the reader your students use.",
-          "Team privacy — treat the Supabase anon key like a team password; use Row Level Security appropriate for your project.",
-        ],
-      },
-    ],
-    footer: "HearSay · Author user guide · hearsay pronunciation assistant for course authors",
+      { id: "overview", title: "One class workspace", bullets: ["Review content: import, paste, analyze, listen and adjust pronunciations in one place.", "Class dictionary: search saved entries, stage edits, import CSV and prepare JAWS source.", "The Chrome extension uses the same workspace alongside your source page."] },
+      { id: "connect", title: "Choose your class once", body: ["Choose the class at the top of the workspace. Settings (top right) opens a panel with the project connection, class administration and AI connection. Connection settings are remembered in this browser.", "Demo dictionary is an offline, read-only sample. Select an editable connected class to save shared terms."] },
+      { id: "lab", title: "Review content", steps: ["Import DOCX or selectable-text PDF, paste content, or use Pull from page in the extension. Files are read locally; images are excluded.", "Check the extracted text and warnings, then choose Get AI suggestions for this document. All extracted text is sent in one request. DOCX is preferred. Use text without AI loads it for manual review. For pasted text, choose Get AI suggestions. If text is highlighted in the box, only the highlight is sent and its suggestions join the current queue. Terms already in the class dictionary are not suggested again.", "HearSay accepts up to 500,000 text characters; the selected ASU model's token limit also applies. Limit errors keep the text and previous review. Nothing is silently shortened. AI review can miss terms.", "In the same row, choose Listen to: Whole passage, Sentence, Word or Highlighted, then play Default JAWS or Class dictionary. Sentence and Word follow your cursor in the text box; Prev and Next step by sentence or word. The Default and Dictionary cells show both pronunciations, and the text being spoken is highlighted in the text box as it is read. The playing button becomes Stop.", "Under Add a term, highlight a phrase in the text box or type it, then choose Add term. Manual terms and AI suggestions use the same pronunciation editor, including units such as kJ/mol.", "Edit, listen and approve entries. For supported scientific-notation suggestions, Use reusable entry covers a shared exponent phrase across coefficients; it is not a universal exponent rule."], note: "The passage and its formatting representation remain separate from pronunciation substitutions. Import does not establish that JAWS will pronounce the source incorrectly." },
+      { id: "queue", title: "Review queue and drafts", bullets: ["Approve and next stages the reading; Skip and Review later retain the decision without publishing an entry.", "Review wording, passage and sentence position persist for the class in this browser. Switching views keeps the document preview and current fields mounted.", "When changes are staged, a save bar appears at the bottom of the window listing additions, replacements and removals. Save publishes one combined batch and creates one Undo entry; right after saving, the bar offers Undo.", "A failed save retains drafts and approvals. Refresh class checks, keep drafts in Settings retains wording and requires renewed approval after shared dictionary changes.", "Recover previous Lab work exposes older passages and term drafts. Existing Lab storage is kept.", "Clear content and review clears that local review. Saved dictionary terms are kept."] },
+      { id: "dictionary", title: "Class dictionary", body: ["Table edits, removals and CSV imports stay as local drafts until you choose Save in the save bar.", "Add a term returns to the shared review editor. Search and maintenance of saved entries remain available in Class dictionary.", "Discard in the save bar restores table entries and returns approvals to pending while keeping suggested wording. Undo last dictionary change (above the table) checks for intervening shared edits before restoring a saved batch."] },
+      { id: "extension", title: "Capture from your browser", steps: ["Open the source page, select text or focus its editor, then open the HearSay side panel.", "In Review content, choose Replace passage or Append selection before Pull from page. Appending requires a selection.", "The captured passage goes directly into the same source field used for import, paste and AI analysis. Capture details identify the page and warn about truncation.", "Switch between Review content and Class dictionary without transferring text or losing your place." ] },
+      { id: "students", title: "Share with students", body: ["Share with students (beside the view tabs) opens the class export section. Save or discard staged changes before exporting.", "JAWS source TSV is a preparation list, not a student-ready installer. Native JDF or SBAK packaging and actual JAWS validation are still required before distribution. Preserve students' personal pronunciations." ] },
+      { id: "workflow", title: "Typical workflow", steps: ["Choose the class once.", "Add course content.", "Review suggestions and listen; add manual terms as needed.", "Approve readings and review the combined change summary.", "Save changes to the class dictionary.", "Prepare and validate the student dictionary."] }
+    ], footer: "HearSay - Author user guide"
   };
 }
 

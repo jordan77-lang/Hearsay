@@ -1,4 +1,5 @@
-// Embedded Dictionary Builder (Phase 3): edit Supabase entries, import, Advanced exports.
+// Course dictionary editor; JAWS is the active export target.
+import { dictionaryHistory, rememberDictionaryChange, undoDictionaryChange, cleanHistoryRows } from "./dictionary-history.js";
 
 import { mountSiteNav } from "./site-nav.js";
 import { openCloudSettingsModal } from "./supabase/cloud-settings.js";
@@ -53,6 +54,14 @@ import { previewTermSpeech } from "./core/dictionary.js";
 import { findRuleConflicts, summarizeConflicts } from "./core/rule-conflicts.js";
 import { createHearController } from "./hear-ui.js";
 import { preloadSpeech } from "./speech.js";
+import { mountAiDictionaryAssistant } from "./ai-dictionary-assistant.js";
+import { mergeApprovedRows, sameDictionaryRows } from "./core/ai-review.js";
+import { capturePassage, loadReviewSession, saveReviewSession } from "./core/review-session.js";
+import { arrangeWorkspace } from "./workspace-layout.js";
+import { TEAM_SUPABASE } from "./supabase/team-config.js";
+import { isTeamSignedIn, signOutTeam, onTeamSessionChanged } from "./supabase/team-auth.js";
+import { openTeamSignIn } from "./supabase/team-signin.js";
+import { dictionaryChanges, combineWorkspaceChanges, rebaseWorkspaceRows } from "./core/workspace-changes.js";
 
 function escapeHtml(s) {
   return String(s)
@@ -126,10 +135,10 @@ const HELP = {
   import: `<p><b>Template CSV</b> — same columns as the ChatGPT Dictionary project: Pattern, Spoken, Note, Ignore case.</p>
     <p><b>Import</b> — load a <code>.csv</code> from ChatGPT (not TSV or Excel), then confirm saving to Supabase.</p>`,
   advanced: `<p>Optional files for NVDA, JAWS, or Apple VoiceOver dictionary tools.</p>`,
-  students: `<p><b>Export screen reader dictionaries</b> from the same class terms: NVDA add-on (Windows), NVDA .dic, JAWS TSV, or Apple VoiceOver CSV. Pick the format your students use.</p>
+  students: `<p>JAWS source TSV is a preparation file, not a student-ready installer.</p><div hidden>
     <p>For NVDA on Windows, the <b>.nvda-addon</b> plus install PDF is the simplest path (NVDA <b>2026.1+</b>). The PDF also covers Add-on Store → <b>Install from external source</b> if double-click fails.</p>
     <p><b>JAWS:</b> import the TSV in Dictionary Manager, export an <b>.SBAK</b>, then on student machines choose <b>No, merge the settings from backup into existing settings</b>; if JAWS asks about conflicts, <b>Keep current settings</b>; restart JAWS. Word subscripts export as glued text (<code>mcalorimeter</code>, <code>msolution</code>).</p>
-    <p>Preview your class in <b>Screen Reader Lab</b> before you share files. Bump <b>Version</b> when you redistribute an NVDA add-on update.</p>`,
+    <p>Preview your class in <b>Screen Reader Lab</b> before you share files. Bump <b>Version</b> when you redistribute an NVDA add-on update.</p></div>`,
   connect: `<p>Your team Supabase <b>URL</b> and <b>anon key</b>. Stored in this browser only (same credentials as the legacy Dictionary Builder).</p>`,
 };
 
@@ -142,6 +151,8 @@ export async function mountDictionaryEditor(root, {
   context = "web",
   onDictionarySaved,
   onNavigate,
+  workspace = false,
+  initialView = "review",
 } = {}) {
   const isExtension = context === "extension";
   let config = await loadSupabaseConfigFromBrowser();
@@ -159,6 +170,36 @@ export async function mountDictionaryEditor(root, {
   let savedRowsSnapshot = "[]";
   let lastDictReloadAt = 0;
   let destroyed = false;
+  let aiAssistant = null;
+  let workspaceUi = null;
+  let switchingClass = false;
+
+  function draftStorage() { try { return localStorage; } catch { return null; } }
+  function draftKey() { return `hearsay-editor-draft:${config?.url || "local"}:${activeSlug}`; }
+  function persistEditorDraft() {
+    if (destroyed || isDemoDictionaryId(activeSlug)) return;
+    const form = {};
+    for (const id of ["new-pattern", "new-spoken", "new-note", "new-case"]) form[id] = root.querySelector(`#hs-dict-ed-${id}`)?.value ?? "";
+    const dirty = JSON.stringify(cleanHistoryRows(getActiveRows())) !== JSON.stringify(cleanHistoryRows(JSON.parse(savedRowsSnapshot)));
+    try { draftStorage()?.setItem(draftKey(), JSON.stringify({ rows: dirty ? cloneRows(getActiveRows()) : null, base: savedRowsSnapshot, form, filter, scroll: window.scrollY, tableScroll: root.querySelector("#hs-dict-ed-scroll")?.scrollTop || 0 })); }
+    catch { setStatus("Browser storage is full or unavailable; keep this view open to retain unsaved edits."); }
+    refreshWorkspaceSummary();
+  }
+  function restoreEditorDraft() {
+    if (isDemoDictionaryId(activeSlug)) return;
+    try {
+      const draft = JSON.parse(draftStorage()?.getItem(draftKey()) || "null");
+      if (!draft) return;
+      if (Array.isArray(draft.rows)) {
+        if (workspace && typeof draft.base === "string" && Array.isArray(JSON.parse(draft.base))) savedRowsSnapshot = draft.base;
+        setActiveRows(draft.rows); previewActiveDictionary();
+        setStatus(workspace ? "Restored local edits. Review and save changes to publish them to the class dictionary." : "Restored local edits. Review and Save class to publish them.");
+      }
+      for (const [id, value] of Object.entries(draft.form ?? {})) { const field = root.querySelector(`#hs-dict-ed-${id}`); if (field) field.value = value; }
+      filter = draft.filter || ""; root.querySelector("#hs-dict-ed-search").value = filter;
+      renderTable(); requestAnimationFrame(() => { if (!destroyed) { window.scrollTo(0, draft.scroll || 0); const table = root.querySelector("#hs-dict-ed-scroll"); if (table) table.scrollTop = draft.tableScroll || 0; } });
+    } catch { /* A corrupt local draft must not prevent opening the dictionary. */ }
+  }
 
   function cloneRows(rows) {
     return rows.map((r) => ({ ...r }));
@@ -192,7 +233,7 @@ export async function mountDictionaryEditor(root, {
     <main class="ss-wrap hs-dict-editor">
       <header class="hs-dict-editor-head ss-page-header">
         <h1 class="ss-title hs-dict-editor-title">Dictionary ${helpTip("<p>Start with the <b>demo dictionary</b> offline, or connect and pick your class.</p><p><b>Save class</b> updates Supabase and refreshes <b>Screen Reader Lab</b> for that class. <b>▶ Hear</b> tests a row before save.</p>")}</h1>
-        <p class="ss-sub">Connect → edit your class → save → export screen reader dictionaries for students.${
+        <p class="ss-sub">Select your course → edit pronunciations → review in the Lab → export JAWS source.${
           isExtension
             ? ` Test speech in <button type="button" class="hs-inline-link hs-ext-nav-link" data-hs-ext-nav="lab">Screen Reader Lab</button>.`
             : ""
@@ -202,8 +243,10 @@ export async function mountDictionaryEditor(root, {
       <section class="hs-dict-editor-card hs-dict-editor-connect" aria-labelledby="hs-dict-ed-connect-h">
         <div class="hs-dict-editor-card-head">
           <h2 id="hs-dict-ed-connect-h" class="hs-dict-editor-card-title">Connection ${helpTip(HELP.connect)}</h2>
+          <button type="button" class="ss-btn primary" id="hs-dict-ed-team" hidden>Team sign-in</button>
           <button type="button" class="ss-btn primary" id="hs-dict-ed-cloud">☁ Connect</button>
         </div>
+        <button type="button" class="ss-btn" id="hs-dict-ed-undo" disabled>Undo last dictionary change</button>
         <p id="hs-dict-ed-connect-note" class="ss-sub hs-dict-editor-connect-note"></p>
       </section>
 
@@ -297,23 +340,25 @@ export async function mountDictionaryEditor(root, {
         <p id="hs-dict-ed-error" class="ss-dict-error hidden" role="alert"></p>
       </section>
 
+      <section id="hs-ai-assistant" class="hs-dict-editor-card" aria-labelledby="hs-ai-heading" hidden></section>
+
       <section class="hs-dict-editor-card hs-dict-editor-download" aria-labelledby="hs-dict-ed-download-h">
         <h2 id="hs-dict-ed-download-h" class="hs-dict-editor-card-title hs-dict-editor-card-title-inline">
-          Download for students ${helpTip(HELP.students)}
+          Export course pronunciations ${helpTip(HELP.students)}
         </h2>
-        <p class="ss-sub">Export NVDA, JAWS, or VoiceOver dictionary files from the same class terms. The NVDA add-on includes a student install PDF; other formats download as a single file.</p>
-        <p id="hs-dict-ed-regex-status" class="hs-dict-editor-regex-status ss-type" aria-live="polite"></p>
+        <p class="ss-sub">Download your class's pronunciations as a JAWS source list (TSV). It is not yet a file students can install directly; test it in JAWS before sharing.</p>
+        <p id="hs-dict-ed-regex-status" hidden class="hs-dict-editor-regex-status ss-type" aria-live="polite"></p>
         <div class="hs-dict-editor-export-btns">
-          <button type="button" class="ss-btn primary" id="hs-dict-ed-export-addon">NVDA add-on (.nvda-addon)</button>
-          <button type="button" class="ss-btn" id="hs-dict-ed-export-nvda">NVDA .dic</button>
-          <button type="button" class="ss-btn" id="hs-dict-ed-export-jaws">JAWS source TSV</button>
-          <button type="button" class="ss-btn" id="hs-dict-ed-export-apple">Apple VoiceOver CSV</button>
+          <button type="button" hidden class="ss-btn" id="hs-dict-ed-export-addon">NVDA add-on (.nvda-addon)</button>
+          <button type="button" hidden class="ss-btn" id="hs-dict-ed-export-nvda">NVDA .dic</button>
+          <button type="button" class="ss-btn primary" id="hs-dict-ed-export-jaws">JAWS source TSV</button>
+          <button type="button" hidden class="ss-btn" id="hs-dict-ed-export-apple">Apple VoiceOver CSV</button>
         </div>
-        <label class="hs-dict-editor-merge-regex">
+        <label class="hs-dict-editor-merge-regex" hidden>
           <input type="checkbox" id="hs-dict-ed-merge-regex" checked />
           Include NVDA regex rules (units after numbers, parenthetical J/g°C, etc.)
         </label>
-        <details class="hs-dict-editor-addon-meta">
+        <details class="hs-dict-editor-addon-meta" hidden>
           <summary class="hs-dict-editor-addon-meta-summary">Add-on settings (version, ID)</summary>
           <div class="hs-dict-editor-addon-grid">
             <label class="hs-dict-editor-field">
@@ -348,7 +393,7 @@ export async function mountDictionaryEditor(root, {
         <div class="hs-dict-editor-terms-head">
           <h2 id="hs-dict-ed-terms-h" class="hs-dict-editor-card-title hs-dict-editor-card-title-inline">
             Terms <span id="hs-dict-ed-count" class="hs-dict-editor-count">0</span>
-            ${helpTip(HELP.terms)}
+            ${helpTip(workspace ? "<p>Edit saved entries here. Changes are kept as a browser draft. Use Save changes to class dictionary to publish the batch.</p>" : HELP.terms)}
           </h2>
           <div class="hs-dict-editor-search-bar">
             <div class="hs-dict-editor-search-main">
@@ -394,7 +439,8 @@ export async function mountDictionaryEditor(root, {
       </section>
     </main>`;
 
-  if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+  if (workspace) workspaceUi = arrangeWorkspace(root, { extension: isExtension, initialView, onAddTerm: () => aiAssistant?.focusManual(), onDiscard: discardWorkspaceChanges });
+  if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: workspace ? "workspace" : "dictionary", base, showConnection: !workspace });
   bindHelpTips(root);
 
   const connectNote = root.querySelector("#hs-dict-ed-connect-note");
@@ -478,7 +524,7 @@ export async function mountDictionaryEditor(root, {
     const conflicts = findRuleConflicts(
       { text: pattern, substitution: spoken, ignore_case },
       getActiveRows(),
-    );
+    ).filter((c) => c.severity !== "info");
     if (!conflicts.length) {
       conflictsEl.innerHTML = "";
       conflictsEl.classList.add("hidden");
@@ -550,6 +596,7 @@ export async function mountDictionaryEditor(root, {
       showAddError("Enter Spoken text to add this term.");
       return false;
     }
+    if (workspace) return aiAssistant?.addManualTerm(pattern, spoken, note) || false;
     // Advisory, never blocking: name the trade-off, then let the author decide.
     const conflicts = renderConflicts();
     const highConflicts = conflicts.filter((c) => c.severity === "high");
@@ -591,6 +638,81 @@ export async function mountDictionaryEditor(root, {
     if (destroyed || !statusEl) return;
     statusMsg = msg;
     statusEl.textContent = msg;
+    const undo = root.querySelector("#hs-dict-ed-undo");
+    if (undo) undo.disabled = saving || !api || isDemoDictionaryId(activeSlug) || !dictionaryHistory(draftStorage(), config?.url || "local", activeSlug).length;
+    refreshWorkspaceSummary();
+  }
+
+  function hasStagedChanges() {
+    return !sameDictionaryRows(getActiveRows(), JSON.parse(savedRowsSnapshot)) || Boolean(aiAssistant?.getPlan().approved.length);
+  }
+  function refreshWorkspaceSummary() {
+    if (!workspaceUi || destroyed) return;
+    const baseline = JSON.parse(savedRowsSnapshot), plan = aiAssistant?.getPlan() || { approved: [], pending: 0, busy: false };
+    let rows = getActiveRows(), issue = "";
+    try { rows = combineWorkspaceChanges(baseline, rows, plan.approved); }
+    catch (error) { issue = error.message; }
+    if (plan.sourceChanged && plan.approved.length) issue = "The passage changed. Restore the analyzed passage or analyze again before saving approvals.";
+    workspaceUi.summary({ ...dictionaryChanges(baseline, rows), pending: plan.pending, busy: saving || plan.busy || switchingClass,
+      editable: Boolean(api) && !isDemoDictionaryId(activeSlug), error: issue, classLabel: getActiveProfile()?.label || activeSlug, count: baseline.length, plannedRows: rows });
+  }
+  // The built-in team project only accepts edits from the signed-in team account.
+  function usesTeamProject() { return Boolean(TEAM_SUPABASE.url) && String(config?.url ?? "").replace(/\/+$/, "") === TEAM_SUPABASE.url; }
+  function needsTeamSignIn() { return usesTeamProject() && !isTeamSignedIn(TEAM_SUPABASE.url); }
+  async function ensureTeamSignIn(reason) {
+    if (!needsTeamSignIn()) return true;
+    const ok = await openTeamSignIn({ config: TEAM_SUPABASE, reason });
+    updateConnectNote();
+    return ok;
+  }
+  async function saveWorkspaceChanges() {
+    if (!isDemoDictionaryId(activeSlug) && !(await ensureTeamSignIn("Enter the team password to save to the class dictionary."))) return false;
+    const plan = aiAssistant?.getPlan();
+    if (!plan || plan.busy || saving || !guardEditableClass("Saving dictionary changes")) return false;
+    const baseline = JSON.parse(savedRowsSnapshot), original = cloneRows(getActiveRows()), requestScope = `${config?.url}:${activeSlug}`;
+    try {
+      if (plan.approved.length && plan.sourceChanged) throw new Error("The passage changed. Restore the analyzed passage or analyze it again before saving approvals.");
+      if (plan.approved.length && !sameDictionaryRows(plan.baseline, baseline)) throw new Error("The saved dictionary changed during review. In Settings, refresh class checks, then approve your readings again.");
+      const next = combineWorkspaceChanges(baseline, original, plan.approved), changes = dictionaryChanges(baseline, next);
+      if (!changes.additions.length && !changes.replacements.length && !changes.removals.length) return false;
+      // Plain-language confirmation naming exactly what will change.
+      const reading = term => next.find(item => item.text === term)?.substitution;
+      const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+      const steps = [changes.additions.length && `add ${plural(changes.additions.length, "term")}`, changes.replacements.length && `change ${plural(changes.replacements.length, "reading")}`, changes.removals.length && `remove ${plural(changes.removals.length, "term")}`].filter(Boolean);
+      const lines = [...changes.additions.map(term => `+ ${term} → ${reading(term)}`), ...changes.replacements.map(term => `~ ${term} → ${reading(term)}`), ...changes.removals.map(term => `− ${term}`)];
+      const shown = lines.slice(0, 20).join("\n") + (lines.length > 20 ? `\n…and ${lines.length - 20} more` : "");
+      const label = getActiveProfile()?.label || activeSlug;
+      const message = `Save to the ${label} class dictionary?\n\nYou are about to ${steps.join(", ")}:\n\n${shown}\n\nEveryone using this class dictionary will hear these readings.`;
+      if (!window.confirm(message)) return false;
+      aiAssistant.setSaving(true); setActiveRows(next);
+      const success = await saveActiveClass({ skipConfirm: true, expectedBefore: legacyEntrySlugs.has(activeSlug) ? [] : baseline, actionDescription: `Class workspace: ${changes.additions.length + changes.replacements.length + changes.removals.length} changes` });
+      if (destroyed || requestScope !== `${config?.url}:${activeSlug}`) return success;
+      if (success) aiAssistant.markSaved();
+      else { setActiveRows(original); previewActiveDictionary(); renderTable(); persistEditorDraft(); }
+      return success;
+    } catch (error) { showClassError(error.message); setStatus("Not saved. Your draft and review decisions are kept."); return false; }
+    finally { if (!destroyed && requestScope === `${config?.url}:${activeSlug}`) { aiAssistant?.setSaving(false); refreshWorkspaceSummary(); } }
+  }
+  function discardWorkspaceChanges() {
+    if (saving || aiAssistant?.getPlan().busy) return;
+    setActiveRows(cloneRows(JSON.parse(savedRowsSnapshot))); aiAssistant?.discardApprovals();
+    previewActiveDictionary(); renderTable(); persistEditorDraft(); showClassError("");
+    setStatus("Staged dictionary changes discarded. Review wording is kept and can be approved again.");
+  }
+  async function refreshWorkspaceChecks() {
+    if (saving || aiAssistant?.getPlan().busy || !guardEditableClass("Refreshing class checks")) return;
+    const project = config?.url, course = activeSlug;
+    aiAssistant?.setSaving(true);
+    try {
+      const remote = await api.fetchEntryRecords(course);
+      if (destroyed || project !== config?.url || course !== activeSlug) return;
+      const rebased = rebaseWorkspaceRows(JSON.parse(savedRowsSnapshot), getActiveRows(), remote);
+      if (rebased.conflicts.length && !window.confirm("These entries changed both in your draft and in the shared dictionary:\n\n" + rebased.conflicts.map(item => `${item.term}: your draft ${item.local?.substitution || "[removed]"}; shared ${item.remote?.substitution || "[removed]"}`).join("\n") + "\n\nKeep your staged versions for these entries? Nothing is saved yet. Cancel keeps your existing draft and class checks.")) return;
+      rememberSavedSnapshot(remote); setActiveRows(rebased.rows); aiAssistant?.rebase(remote);
+      previewActiveDictionary(); renderTable(); persistEditorDraft(); showClassError("");
+      setStatus("Class checks refreshed. Local edits and suggested wording are kept; review and approve against the latest saved dictionary.");
+    } catch (error) { showClassError(error.message); }
+    finally { if (!destroyed && project === config?.url && course === activeSlug) { aiAssistant?.setSaving(false); refreshWorkspaceSummary(); } }
   }
 
   function getDemoEntryRows() {
@@ -607,22 +729,35 @@ export async function mountDictionaryEditor(root, {
 
   function applyDemoWorkspace() {
     entriesByClass[DEMO_DICTIONARY_ID] = getDemoEntryRows();
+    if (workspace) rememberSavedSnapshot();
     loadBundledChemistryDictionary("demo");
   }
 
   function updateConnectNote() {
     const signedIn = isSupabaseConnected();
+    const cloudButton = root.querySelector("#hs-dict-ed-cloud");
+    if (cloudButton) cloudButton.textContent = signedIn ? "Connection settings" : "☁ Connect";
     const demo = isDemoDictionaryId(activeSlug);
-    connectNote.textContent = signedIn
+    const fullNote = signedIn
       ? demo
         ? "Connected — demo dictionary is read-only. Select your class to edit and save terms."
-        : "Connected — edits save automatically to Supabase for the active class."
+        : workspace ? "Cloud dictionary connected." : "Connected — edits save automatically to Supabase for the active class."
       : demo
         ? "Not connected — browsing the offline demo. Use ☁ Connect to edit and save your classes."
         : "Not connected — use ☁ Connect before saving or editing class terms.";
+    // In the workspace the note sits beside the class picker, so it is short;
+    // the full sentence stays available as its tooltip.
+    const team = usesTeamProject(), teamIn = team && isTeamSignedIn(TEAM_SUPABASE.url);
+    connectNote.textContent = !workspace ? fullNote : signedIn
+      ? demo ? "Demo: read-only" : team ? (teamIn ? "Signed in" : "Read-only") : "Connected"
+      : demo ? "Offline demo" : "Not connected";
+    connectNote.title = team && !teamIn && !demo ? "Anyone can listen and review. Sign in with the team password (Save asks for it) to edit this class dictionary." : fullNote;
+    connectNote.classList.toggle("is-connected", signedIn && (!team || teamIn || demo));
+    const teamButton = root.querySelector("#hs-dict-ed-team");
+    if (teamButton) { teamButton.hidden = !team; teamButton.textContent = teamIn ? "Sign out of team" : "Team sign-in"; }
     connectSection?.classList.toggle("is-connected", signedIn);
     connectSection?.classList.toggle("needs-connect", !signedIn);
-    classSelect.disabled = false;
+    classSelect.disabled = saving;
     pullBtn.disabled = saving || demo;
     saveBtn.disabled = saving || demo;
     saveBtn.title = signedIn ? "Save all rows to Supabase" : supabaseConnectMessage("Saving this class");
@@ -632,12 +767,14 @@ export async function mountDictionaryEditor(root, {
     editClassBtn.disabled = saving || demo;
     editClassBtn.title = signedIn ? "Edit display name and file prefix" : supabaseConnectMessage("Editing class info");
     deleteClassBtn.disabled = saving || demo || !isDeletableClassSlug(activeSlug);
-    root.querySelector("#hs-dict-ed-add")?.toggleAttribute("disabled", demo);
-    root.querySelector("#hs-dict-ed-hear")?.toggleAttribute("disabled", demo);
+    root.querySelector("#hs-dict-ed-add")?.toggleAttribute("disabled", demo || saving);
+    root.querySelector("#hs-dict-ed-hear")?.toggleAttribute("disabled", demo || saving);
     for (const sel of ["#hs-dict-ed-new-pattern", "#hs-dict-ed-new-spoken", "#hs-dict-ed-new-note", "#hs-dict-ed-new-case"]) {
-      root.querySelector(sel)?.toggleAttribute("disabled", demo);
+      root.querySelector(sel)?.toggleAttribute("disabled", demo || saving);
     }
-    root.querySelector("#hs-dict-ed-import-btn")?.toggleAttribute("disabled", demo);
+    root.querySelector("#hs-dict-ed-import-btn")?.toggleAttribute("disabled", demo || saving);
+    aiAssistant?.scopeChanged();
+    refreshWorkspaceSummary();
   }
 
   function showNewClassPanel(show) {
@@ -672,7 +809,9 @@ export async function mountDictionaryEditor(root, {
 
   function previewActiveDictionary() {
     if (isDemoDictionaryId(activeSlug)) return;
-    const rows = getActiveRows().filter(
+    // In the workspace, speech uses the SAVED class dictionary only: staged
+    // table edits are not read aloud as the class reading until they are saved.
+    const rows = (workspace ? JSON.parse(savedRowsSnapshot) : getActiveRows()).filter(
       (r) => String(r.text ?? "").trim() && String(r.substitution ?? "").trim(),
     );
     applyLocalDictionaryPreview(activeSlug, rows);
@@ -709,7 +848,7 @@ export async function mountDictionaryEditor(root, {
       showEditClassPanel(false);
       setStatus(`Updated class info · ${label} (${activeSlug})`);
       notifyEditorSync({ classSlug: activeSlug });
-      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: workspace ? "workspace" : "dictionary", base, showConnection: !workspace });
       return true;
     } catch (err) {
       showClassError(err.message ?? String(err));
@@ -803,7 +942,7 @@ export async function mountDictionaryEditor(root, {
       syncAddonForm();
       setStatus(`Deleted ${label} (${deletedSlug})`);
       notifyEditorSync({ classSlug: activeSlug, deleted: deletedSlug });
-      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: workspace ? "workspace" : "dictionary", base, showConnection: !workspace });
     } catch (err) {
       showClassError(err.message ?? String(err));
       setStatus("");
@@ -846,6 +985,7 @@ export async function mountDictionaryEditor(root, {
       classProfiles.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
       entriesByClass[created.id] = [];
       activeSlug = created.id;
+      if (workspace) rememberSavedSnapshot([]);
       setStoredCourseId(activeSlug);
       renderClassSelect();
       classSelect.value = activeSlug;
@@ -865,6 +1005,7 @@ export async function mountDictionaryEditor(root, {
           renderTable();
           updateExportMeta();
           applyLocalDictionaryPreview(created.id, rows);
+          if (workspace) { persistEditorDraft(); setStatus("Starter entries staged. Save changes to class dictionary when ready."); return; }
           const detail = rows.length
             ? `Save ${rows.length} starter term${rows.length === 1 ? "" : "s"} to the new class.`
             : "Save an empty dictionary for the new class.";
@@ -880,6 +1021,7 @@ export async function mountDictionaryEditor(root, {
           setActiveRows([]);
           renderTable();
           applyLocalDictionaryPreview(created.id, []);
+          if (workspace) { persistEditorDraft(); setStatus("New class ready. Import content or add a term in Review content."); return; }
           const detail = "Save an empty dictionary for the new class.";
           if (!confirmSaveClass(detail)) {
             setStatus(`Created ${created.label} (${created.id}) · empty dictionary not saved yet`);
@@ -888,7 +1030,7 @@ export async function mountDictionaryEditor(root, {
           await saveActiveClass({ skipConfirm: true, actionDescription: detail });
         },
       });
-      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: workspace ? "workspace" : "dictionary", base, showConnection: !workspace });
     } catch (err) {
       showClassError(err.message ?? String(err));
       setStatus("");
@@ -1028,6 +1170,7 @@ export async function mountDictionaryEditor(root, {
 
   function renderTable({ scrollToHit = false } = {}) {
     if (destroyed || !tbody) return;
+    aiAssistant?.scopeChanged();
     const readOnly = isDemoDictionaryId(activeSlug);
     const rows = getActiveRows();
     const indices = filteredIndices(rows);
@@ -1098,19 +1241,19 @@ export async function mountDictionaryEditor(root, {
       el.addEventListener("change", async () => {
         const list = getActiveRows();
         if (!list[idx]) return;
-        const before = cloneRows(list);
         list[idx] = { ...list[idx], [field]: el.value };
         setActiveRows(list);
         previewActiveDictionary();
         const label = field === "text" ? "Pattern" : field === "substitution" ? "Spoken" : field;
+        if (workspace) { persistEditorDraft(); aiAssistant?.scopeChanged(); setStatus("Dictionary edit staged. Save changes to class dictionary when ready."); return; }
         const saved = await saveActiveClass({
           skipConfirm: true,
           actionDescription: `Updated ${label} on row ${idx + 1}.`,
         });
         if (!saved) {
-          setActiveRows(before);
           renderTable();
-          setStatus(`${before.length} row(s) · save failed — reverted change`);
+          persistEditorDraft();
+          setStatus("Save failed — your local edit is retained. Use Save class to retry.");
         }
       });
       el.addEventListener("input", () => {
@@ -1118,6 +1261,7 @@ export async function mountDictionaryEditor(root, {
         if (!list[idx]) return;
         list[idx] = { ...list[idx], [field]: el.value };
         previewActiveDictionary();
+        if (workspace) { persistEditorDraft(); aiAssistant?.scopeChanged(); }
       });
     });
 
@@ -1127,7 +1271,7 @@ export async function mountDictionaryEditor(root, {
         const list = getActiveRows();
         const removed = list[idx];
         if (!removed) return;
-        if (
+        if (!workspace &&
           !confirmSaveClass(
             `Delete "${removed.text}" and save this class (${list.length - 1} row${list.length - 1 === 1 ? "" : "s"} remaining).`,
           )
@@ -1137,6 +1281,7 @@ export async function mountDictionaryEditor(root, {
         const next = list.filter((_, i) => i !== idx);
         setActiveRows(next);
         renderTable();
+        if (workspace) { previewActiveDictionary(); persistEditorDraft(); setStatus(`Removal of ${removed.text} staged. Save changes when ready.`); return; }
         const saved = await saveActiveClass({
           skipConfirm: true,
           actionDescription: `Deleted "${removed.text}".`,
@@ -1203,6 +1348,7 @@ export async function mountDictionaryEditor(root, {
 
   async function reloadIfDictionaryStale() {
     if (!api || isDemoDictionaryId(activeSlug)) return;
+    if (workspace && hasStagedChanges()) return;
     try {
       const raw = localStorage.getItem(DICTIONARY_SYNC_STORAGE_KEY);
       if (!raw) return;
@@ -1214,19 +1360,24 @@ export async function mountDictionaryEditor(root, {
       if (dictionarySyncMatchesClass(classSlug, activeSlug)) {
         setActiveRows(entriesByClass[activeSlug] ?? []);
         await api.loadCourseDictionary(activeSlug);
+        if (workspace) rememberSavedSnapshot();
         renderTable();
       }
       lastDictReloadAt = Date.now();
     } catch (_) {}
   }
 
-  async function pullWorkspace() {
+  async function pullWorkspace({ allowStaged = false, quiet = false } = {}) {
     if (!guardSupabase("Pulling from Supabase")) return;
+    if (workspace && !allowStaged && hasStagedChanges()) { setStatus("Your staged changes are kept. Save or discard them before refreshing the saved dictionary."); return; }
     showClassError("");
-    setStatus("Loading…");
+    // Background refreshes stay silent so the header does not flash or shift.
+    if (!quiet) setStatus("Loading…");
+    const requestApi = api;
     try {
       const { classes, entriesByClass: byClass, legacyClassSlugs = [] } =
         await api.pullEntriesWorkspace();
+      if (destroyed || requestApi !== api) return;
       classProfiles = classes;
       entriesByClass = byClass;
       legacyEntrySlugs = new Set(legacyClassSlugs);
@@ -1249,18 +1400,20 @@ export async function mountDictionaryEditor(root, {
       const legacyNote = legacyEntrySlugs.has(activeSlug)
         ? " · from legacy dictionary_rules — Save class to copy into entries"
         : "";
-      setStatus(`Loaded ${classProfiles.length} class(es) · ${n} row(s) in ${activeSlug}${legacyNote}`);
+      setStatus(workspace ? "" : `Loaded ${classProfiles.length} class(es) · ${n} row(s) in ${activeSlug}${legacyNote}`);
       rememberSavedSnapshot();
       lastDictReloadAt = Date.now();
-      notifyEditorSync({ classSlug: activeSlug });
-      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+      restoreEditorDraft();
+      // A pull is a read: tell this tab's listeners, never other tabs.
+      notifyEditorSync({ classSlug: activeSlug, localOnly: true });
+      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: workspace ? "workspace" : "dictionary", base, showConnection: !workspace });
     } catch (err) {
       showClassError(err.message ?? String(err));
       setStatus("");
     }
   }
 
-  async function saveActiveClass({ skipConfirm = false, actionDescription } = {}) {
+  async function saveActiveClass({ skipConfirm = false, actionDescription, expectedBefore } = {}) {
     if (destroyed || saving || !guardEditableClass("Saving terms")) return false;
     const rows = getActiveRows()
       .map((r) => ({
@@ -1275,28 +1428,49 @@ export async function mountDictionaryEditor(root, {
     if (!skipConfirm && !confirmSaveClass(actionDescription)) return false;
 
     saving = true;
+    const saveCourse = activeSlug, saveApi = api, saveScope = config?.url || "local";
+    classSelect.disabled = true;
+    tbody.querySelectorAll("input, select, button").forEach(el => el.disabled = true);
     updateConnectNote();
     showClassError("");
     setStatus("Saving…");
     try {
       applyLocalDictionaryPreview(activeSlug, rows);
-      const { count } = await api.saveEntryRecords(activeSlug, rows);
+      const before = await saveApi.fetchEntryRecords(saveCourse);
+      if (expectedBefore && !sameDictionaryRows(before, expectedBefore)) {
+        throw new Error(workspace ? "The shared dictionary changed since this draft. Your changes are kept. Review the latest class checks before saving." : "The shared dictionary changed after analysis. Refresh class checks in the AI review before saving.");
+      }
+      const { count } = await saveApi.saveEntryRecords(saveCourse, rows);
+      const historySaved = rememberDictionaryChange(draftStorage(), saveScope, saveCourse, before, rows, actionDescription || "dictionary change");
+      if (destroyed || saveCourse !== activeSlug || saveScope !== (config?.url || "local")) {
+        try {
+          const key = `hearsay-editor-draft:${saveScope}:${saveCourse}`, local = JSON.parse(draftStorage()?.getItem(key) || "{}");
+          // A reopened workspace may have a newer table draft. Clear only the
+          // exact rows completed by this request, never a subsequent edit.
+          if (Array.isArray(local.rows) && sameDictionaryRows(local.rows, rows)) draftStorage()?.setItem(key, JSON.stringify({ ...local, rows: null, base: JSON.stringify(rows) }));
+        } catch {}
+        notifyDictionaryUpdated({ classSlug: saveCourse, source: "workspace-completed" }); return true;
+      }
       setActiveRows(rows);
       rememberSavedSnapshot(rows);
       legacyEntrySlugs.delete(activeSlug);
-      await api.loadCourseDictionary(activeSlug);
+      // The remote write succeeded; a failed preview reload must not report it as unsaved.
+      let reloadWarning = "";
+      try { await api.loadCourseDictionary(activeSlug); }
+      catch { reloadWarning = " · Saved, but preview reload failed; Pull to refresh"; }
       lastDictReloadAt = Date.now();
-      setStatus(`Saved ${count} row(s) to Supabase · ${activeSlug}`);
-      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+      persistEditorDraft();
+      setStatus(workspace ? `Changes saved to ${getActiveProfile()?.label || activeSlug}.${reloadWarning}` : `Saved ${count} row(s) · ${activeSlug}${historySaved ? " · Undo available" : " · Undo unavailable in browser storage"}${reloadWarning}`);
+      if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: workspace ? "workspace" : "dictionary", base, showConnection: !workspace });
       notifyEditorSync({ classSlug: activeSlug });
       onDictionarySaved?.({ classSlug: activeSlug, count });
       return true;
     } catch (err) {
       try {
-        const rows = JSON.parse(savedRowsSnapshot);
         if (Array.isArray(rows)) {
           setActiveRows(rows);
           renderTable();
+          persistEditorDraft();
         }
       } catch (_) {}
       showClassError(err.message ?? String(err));
@@ -1304,7 +1478,7 @@ export async function mountDictionaryEditor(root, {
       return false;
     } finally {
       saving = false;
-      updateConnectNote();
+      if (!destroyed) { renderTable(); classSelect.disabled = false; updateConnectNote(); setStatus(statusMsg); }
     }
   }
 
@@ -1313,13 +1487,16 @@ export async function mountDictionaryEditor(root, {
       url: config?.url ?? "",
       anonKey: config?.anonKey ?? "",
       onSave: async (saved) => {
+        if (workspace) persistEditorDraft();
         setStoredSupabaseConfig(saved);
         config = { ...config, ...saved };
         api = createDictionaryApi(config);
+        if (workspace) { entriesByClass = {}; classProfiles = []; savedRowsSnapshot = "[]"; }
         updateConnectNote();
-        await pullWorkspace();
+        await pullWorkspace({ allowStaged: workspace });
       },
       onClear: async () => {
+        if (workspace) persistEditorDraft();
         clearStoredSupabaseConfig();
         config = await loadSupabaseConfigFromBrowser();
         api = config?.url && config?.anonKey ? createDictionaryApi(config) : null;
@@ -1333,15 +1510,21 @@ export async function mountDictionaryEditor(root, {
         renderTable();
         setStatus(`${getDemoEntryRows().length} demo terms (read-only)`);
         showClassError("");
-        if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: "dictionary", base });
+        if (!isExtension) mountSiteNav(root.querySelector(".hs-site-nav-mount"), { active: workspace ? "workspace" : "dictionary", base, showConnection: !workspace });
       },
     });
   }
 
   root.querySelector("#hs-dict-ed-cloud").addEventListener("click", openSettings);
-  pullBtn.addEventListener("click", pullWorkspace);
+  root.querySelector("#hs-dict-ed-team").addEventListener("click", async () => {
+    if (isTeamSignedIn(TEAM_SUPABASE.url)) { signOutTeam(); setStatus("Signed out. You can still listen and review; Save will ask for the team password."); }
+    else if (await openTeamSignIn({ config: TEAM_SUPABASE })) setStatus("Signed in. You can now save to class dictionaries.");
+    updateConnectNote();
+  });
+  const unsubscribeTeam = onTeamSessionChanged(() => { if (!destroyed) updateConnectNote(); });
+  pullBtn.addEventListener("click", workspace ? refreshWorkspaceChecks : pullWorkspace);
   saveBtn.addEventListener("click", () => {
-    void saveActiveClass();
+    void (workspace ? saveWorkspaceChanges() : saveActiveClass());
   });
 
   addClassToggleBtn.addEventListener("click", () => {
@@ -1381,6 +1564,8 @@ export async function mountDictionaryEditor(root, {
   });
 
   classSelect.addEventListener("change", async () => {
+    if (workspace && (switchingClass || saving || aiAssistant?.getPlan().busy)) { classSelect.value = activeSlug; return; }
+    persistEditorDraft();
     showEditClassPanel(false);
     const nextSlug = classSelect.value;
     if (!isDemoDictionaryId(nextSlug) && !guardSupabase("Loading your class")) {
@@ -1388,14 +1573,19 @@ export async function mountDictionaryEditor(root, {
       return;
     }
     activeSlug = nextSlug;
+    if (workspace) savedRowsSnapshot = JSON.stringify(cloneRows(getActiveRows()));
+    for (const id of ["new-pattern", "new-spoken", "new-note"]) root.querySelector(`#hs-dict-ed-${id}`).value = "";
+    root.querySelector("#hs-dict-ed-new-case").value = "Yes";
     setStoredCourseId(activeSlug);
     updateConnectNote();
+    if (workspace) { switchingClass = true; aiAssistant?.setSaving(true); refreshWorkspaceSummary(); }
     syncAddonForm();
     updateExportMeta();
     if (isDemoDictionaryId(activeSlug)) {
       applyDemoWorkspace();
       renderTable();
       setStatus(`${getActiveRows().length} demo terms (read-only)`);
+      if (workspace) { switchingClass = false; aiAssistant?.setSaving(false); refreshWorkspaceSummary(); }
       return;
     }
     renderTable();
@@ -1404,14 +1594,17 @@ export async function mountDictionaryEditor(root, {
         if (!isDemoDictionaryId(activeSlug)) {
           await refreshActiveClassFromRemote();
         }
-        notifyEditorSync({ classSlug: activeSlug });
+        notifyEditorSync({ classSlug: activeSlug, localOnly: true });
       } catch {
         /* keep prior in-memory rules */
       }
     }
     const n = getActiveRows().length;
+    if (destroyed) return;
     rememberSavedSnapshot();
     setStatus(`${n} row(s) · ${activeSlug}`);
+    restoreEditorDraft();
+    if (workspace) { switchingClass = false; aiAssistant?.setSaving(false); migrateEditorForm(); refreshWorkspaceSummary(); }
   });
 
   root.querySelector("#hs-dict-ed-hear").addEventListener("click", (e) => {
@@ -1528,6 +1721,7 @@ export async function mountDictionaryEditor(root, {
       previewActiveDictionary();
       renderTable();
       showAddError("");
+      if (workspace) { persistEditorDraft(); setStatus(`Imported ${imported.length} dictionary entries as a local draft. Save changes to publish them.`); return; }
       let saved = false;
       try {
         saved = await saveActiveClass({
@@ -1669,16 +1863,91 @@ export async function mountDictionaryEditor(root, {
     setStatus(`${getActiveRows().length} demo terms (read-only)`);
   }
 
-  const unsubDictionarySync = onDictionaryUpdated(({ classSlug, source }) => {
-    if (source === "editor") return;
-    if (destroyed || isDemoDictionaryId(activeSlug) || !api) return;
+  restoreEditorDraft();
+  aiAssistant = mountAiDictionaryAssistant(root.querySelector("#hs-ai-assistant"), {
+    context: isExtension ? "extension" : "web",
+    getCourse: () => `${config?.url || "local"}:${activeSlug}`,
+    getCourseLabel: () => getActiveProfile()?.label || activeSlug,
+    getRows: getActiveRows,
+    getSavedRows: () => workspace ? JSON.parse(savedRowsSnapshot) : getActiveRows(),
+    unified: workspace, onReviewChanged: refreshWorkspaceSummary,
+    helperContainer: workspace ? root.querySelector("#hs-workspace-settings") : null,
+    getLegacyScope: () => config?.url || "local", getCourseId: () => activeSlug,
+    onUseLabPassage: () => loadReviewSession(draftStorage(), config?.url || "local").passage,
+    canSave: () => Boolean(api) && !isDemoDictionaryId(activeSlug) && !saving,
+    onRefresh: async () => {
+      if (saving || !guardEditableClass("Refreshing class checks")) throw new Error("Connect and select an editable class.");
+      if (!sameDictionaryRows(getActiveRows(), JSON.parse(savedRowsSnapshot))) throw new Error("Save or discard your local dictionary table edits first.");
+      const course = activeSlug, refreshApi = api, remote = await api.fetchEntryRecords(activeSlug);
+      if (course !== activeSlug || refreshApi !== api) throw new Error("Class or connection changed during refresh. Try again.");
+      setActiveRows(remote); rememberSavedSnapshot(remote); previewActiveDictionary(); renderTable();
+      return remote;
+    },
+    onSave: async (approved, baseline) => {
+      if (saving || !guardEditableClass("Saving approved pronunciations")) return false;
+      const before = cloneRows(getActiveRows());
+      if (!sameDictionaryRows(before, JSON.parse(savedRowsSnapshot))) throw new Error("Save or discard your local dictionary table edits first.");
+      if (!sameDictionaryRows(before, baseline)) throw new Error("The dictionary changed since analysis. Refresh class checks, then review the proposed changes.");
+      const next = mergeApprovedRows(before, approved);
+      const updates = approved.filter(({ row }) => before.some(other => other.text === row.text)).length;
+      const description = `Save ${approved.length - updates} new pronunciations and ${updates} replacements from AI review.\n\n` + approved.map(({ row }) => `${row.text} → ${row.substitution}`).join("\n");
+      if (!confirmSaveClass(description)) return false;
+      setActiveRows(next);
+      const saved = await saveActiveClass({ skipConfirm: true, expectedBefore: baseline, actionDescription: `AI review: ${approved.length} pronunciations` });
+      if (!saved) { setActiveRows(before); previewActiveDictionary(); renderTable(); persistEditorDraft(); }
+      return saved;
+    },
+    onOpenLab: passage => {
+      if (!passage.trim()) return false;
+      const scope = config?.url || "local", store = draftStorage(), previous = loadReviewSession(store, scope);
+      if (previous.passage && previous.passage !== passage && !window.confirm("Replace the passage and unsaved review work currently in Lab? Saved dictionary terms are kept.")) return false;
+      const next = previous.passage === passage ? { ...previous, courseId: activeSlug } : capturePassage({ ...previous, courseId: activeSlug }, { text: passage, source: "AI dictionary review" });
+      if (!saveReviewSession(store, next, scope)) { showClassError("Could not transfer the passage to Lab. Your AI review is preserved."); return false; }
+      setStoredCourseId(activeSlug);
+      if (isExtension) onNavigate?.("lab");
+      else window.location.href = `${base}/lab/`;
+      return true;
+    },
+  });
+  if (workspace) {
+    migrateEditorForm();
+    refreshWorkspaceSummary();
+  }
+  function migrateEditorForm() {
+    const old = readNewEntryForm();
+    if (old.pattern && aiAssistant?.addManualTerm(old.pattern, old.spoken, old.note, old.ignore_case)) { clearNewEntryForm(); persistEditorDraft(); }
+  }
+  root.addEventListener("input", persistEditorDraft);
+  const persistOnPageHide = () => persistEditorDraft();
+  window.addEventListener("pagehide", persistOnPageHide);
+  window.addEventListener("scroll", persistOnPageHide, { passive: true });
+  scrollEl?.addEventListener("scroll", persistOnPageHide, { passive: true });
+  root.querySelector("#hs-dict-ed-undo").addEventListener("click", async () => {
+    if (saving || !api || isDemoDictionaryId(activeSlug)) return;
+    if (JSON.stringify(cleanHistoryRows(getActiveRows())) !== JSON.stringify(cleanHistoryRows(JSON.parse(savedRowsSnapshot)))) {
+      setStatus("Save your local edits before undoing a saved change."); return;
+    }
+    const course = activeSlug; saving = true; classSelect.disabled = true; setStatus("Undoing…");
+    try {
+      const change = await undoDictionaryChange(api, draftStorage(), config?.url || "local", course);
+      await refreshActiveClassFromRemote(); persistEditorDraft();
+      notifyEditorSync({ classSlug: course }); setStatus(`Undid ${change.label}.`);
+    } catch (error) { showClassError(error.message); }
+    finally { saving = false; classSelect.disabled = false; setStatus(statusMsg); }
+  });
+
+  const unsubDictionarySync = onDictionaryUpdated(({ classSlug, source, viaStorage }) => {
+    if (source === "editor" && (!workspace || !viaStorage)) return;
+    if (destroyed || saving || isDemoDictionaryId(activeSlug) || !api) return;
+    if (workspace && hasStagedChanges()) { setStatus("The saved dictionary changed elsewhere. Your staged work is kept; saving will check for conflicts."); return; }
+    persistEditorDraft();
     if (!dictionarySyncMatchesClass(classSlug, activeSlug) && classSlug) {
       void api.fetchEntryRecords(classSlug).then((records) => {
         entriesByClass[classSlug] = records;
       });
       return;
     }
-    void pullWorkspace();
+    void pullWorkspace({ quiet: true });
   });
 
   const onEditorVisible = () => {
@@ -1688,6 +1957,13 @@ export async function mountDictionaryEditor(root, {
   const onEditorPageShow = (e) => {
     if (e.persisted) void reloadIfDictionaryStale();
   };
+  // Leaving with unsaved dictionary changes asks first. (Drafts are also kept in
+  // this browser, but an author should not assume a staged term is saved.)
+  const onBeforeUnload = (event) => {
+    if (!workspace || destroyed || !hasStagedChanges()) return;
+    event.preventDefault(); event.returnValue = "";
+  };
+  window.addEventListener("beforeunload", onBeforeUnload);
   document.addEventListener("visibilitychange", onEditorVisible);
   window.addEventListener("focus", onEditorFocus);
   window.addEventListener("pageshow", onEditorPageShow);
@@ -1696,10 +1972,21 @@ export async function mountDictionaryEditor(root, {
     pullWorkspace,
     saveActiveClass,
     getActiveSlug: () => activeSlug,
+    showView: (view, options) => workspaceUi?.showView(view, options),
+    getView: () => workspaceUi?.getView(),
     destroy: () => {
+      persistEditorDraft();
+      root.removeEventListener("input", persistEditorDraft);
+      window.removeEventListener("pagehide", persistOnPageHide);
+      window.removeEventListener("scroll", persistOnPageHide);
+      scrollEl?.removeEventListener("scroll", persistOnPageHide);
       destroyed = true;
+      aiAssistant?.destroy();
+      workspaceUi?.destroy();
       unsubDictionarySync();
       document.removeEventListener("visibilitychange", onEditorVisible);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      unsubscribeTeam();
       window.removeEventListener("focus", onEditorFocus);
       window.removeEventListener("pageshow", onEditorPageShow);
     },

@@ -17,6 +17,7 @@
   --high: #ff7b7b;
   --medium: #ffc266;
   --low: #5ee0a8;
+  --diff-class: #8cc8ff;
   --ok: #5ee0a8;
   --code-bg: #0a0e13;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
@@ -48,6 +49,7 @@
   --high: #cf222e;
   --medium: #9a6700;
   --low: #116329;
+  --diff-class: #0550ae;
   --ok: #116329;
   --code-bg: #eef2f6;
   --shadow-sm: 0 1px 2px rgba(26, 35, 50, 0.06);
@@ -2963,3 +2965,347 @@ button.hs-ext-nav-link:hover {
   background: color-mix(in srgb, var(--medium) 22%, transparent);
   color: var(--medium);
 }
+
+/* JAWS-first review workspace, shared by the website and narrow extension panel. */
+[hidden] { display: none !important; }
+/* Unified author workspace; the same structure stacks in the extension. */
+.hs-workspace { max-width: 960px; } /* same column as the site nav (.hs-site-nav-inner) */
+.hs-workspace .hs-dict-editor-head { display: block; margin-bottom: .25rem; }
+.hs-workspace-title, .hs-workspace-toolbar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.hs-workspace-title h1 { font-size: 1.25rem; margin: 0 0 .5rem; }
+.hs-workspace-toolbar { align-items: flex-end; }
+.hs-workspace #hs-dict-ed-connect-note { margin: .35rem 0 0; font-size: .8125rem; }
+.hs-workspace #hs-dict-ed-connect-note:empty { display: none; }
+/* Reserve the status line so transient messages ("Saving…") never shift the page. */
+.hs-workspace #hs-dict-ed-status { margin: .35rem 0 0; min-height: 1.25rem; font-size: .8125rem; line-height: 1.25rem; text-transform: none; letter-spacing: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hs-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.hs-workspace-toolbar [data-slot="course"] { flex: 1 1 15rem; max-width: 34rem; }
+.hs-workspace-toolbar select { max-width: 100%; width: 100%; }
+/* Tabs and the student export share one row. */
+.hs-workspace-tabrow { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding: .5rem 0 .75rem; margin: .25rem 0 1rem; }
+.hs-workspace-tabs { display: flex; gap: .5rem; }
+.hs-workspace-tabs [aria-selected="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 700; }
+.hs-workspace [role="tabpanel"] { min-width: 0; }
+.hs-workspace #hs-ai-assistant { border: 0; padding: 0; background: transparent; }
+/* One column: the Course content card, then suggestions below it. */
+.hs-content-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+.hs-content-card, .hs-content-review-column { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1rem 1.25rem; }
+.hs-content-card > * { min-width: 0; margin-block: 0; }
+/* Suggestions sit inside the card, under the pronunciation cells. */
+.hs-content-card > .hs-content-review-column { background: none; border: 0; border-top: 1px solid var(--border); border-radius: 0; padding: .75rem 0 0; }
+.hs-content-card > .hs-content-review-column #hs-ai-review { margin-block: 0; }
+/* Empty placeholders must not add grid gaps. */
+#hs-content-capture:not(:has(.hs-content-capture, #hs-content-source-details:not(:empty))) { display: none; }
+.hs-exponent-paste:not(:has(> :not([hidden]))) { display: none; }
+.hs-content-card .hs-document-import { margin-bottom: 0; }
+.hs-content-card > h3 { margin: 0; font-size: 1.15rem; }
+.hs-content-card #hs-content-tools > section { border-top: 1px solid var(--border); padding-top: 1rem; }
+.hs-workspace #hs-content-heading { margin: 0 0 .5rem; font-size: 1.05rem; }
+/* One action row: Get AI suggestions, then listening. */
+.hs-content-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+#hs-content-listen { display: contents; }
+.hs-listen { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding-left: .75rem; margin-left: .25rem; border-left: 1px solid var(--border); }
+#hs-ai-assistant .hs-listen-label { display: inline; margin: 0; font-weight: 600; }
+.hs-content-paste-label { font-weight: 500; margin: 0; color: var(--muted); }
+.hs-content-notes { display: grid; gap: .25rem; }
+.hs-content-notes > * { margin: 0; }
+.hs-content-nav { flex-wrap: nowrap !important; min-width: 0; }
+.hs-content-sentence { min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .875rem; }
+.hs-workspace .hs-content-hint { margin: .35rem 0; }
+/* Word highlighting: a layer over the text box with identical layout. */
+.hs-source-wrap { position: relative; }
+.hs-source-wrap > textarea { display: block; margin: .25rem 0; }
+.hs-source-backdrop { position: absolute; box-sizing: border-box; overflow: hidden; pointer-events: none; white-space: pre-wrap; overflow-wrap: break-word; word-break: normal; color: transparent; border: 0; margin: 0; }
+/* Prev/Next sit in the action row as compact arrow buttons. */
+.hs-listen .hs-step { min-width: 2.25rem; padding-inline: .5rem; font-size: 1.1rem; line-height: 1; }
+/* Default | Dictionary pronunciation cells under the action row. */
+.hs-speech { display: grid; gap: .35rem; }
+.hs-workspace .hs-speech-where { margin: 0; font-size: .8125rem; font-weight: 600; color: var(--muted); }
+.hs-speech-cells { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+/* What differs from the written text, shown by text colour:
+   amber = default JAWS reads it differently, blue = the class dictionary changes it. */
+.hs-diff-symbol { color: var(--medium); }
+.hs-diff-course { color: var(--diff-class); }
+/* The current word sits on a blue highlight: show it in normal text colour there. */
+.hs-speech-cell mark .hs-diff-course, .hs-source-backdrop mark .hs-diff-course { color: var(--text); }
+.hs-speech-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem 1rem; }
+.hs-workspace .hs-speech-legend { margin: 0; display: flex; flex-wrap: wrap; gap: .35rem 1rem; font-size: .75rem; font-weight: 600; }
+/* In the text box the overlay repeats the same glyphs in the same place: a
+   coloured word gets the box's own background (--box-bg, set from the text box)
+   so the plain text underneath does not show through. Layered tints keep the
+   sentence and current-word highlights on coloured words too. */
+.hs-source-backdrop .hs-diff-symbol, .hs-source-backdrop .hs-diff-course { background: var(--box-bg); }
+.hs-source-backdrop .hs-reading-sentence .hs-diff-symbol, .hs-source-backdrop .hs-reading-sentence .hs-diff-course { background: linear-gradient(color-mix(in srgb, var(--accent) 14%, transparent), color-mix(in srgb, var(--accent) 14%, transparent)), var(--box-bg); }
+.hs-source-backdrop mark .hs-diff-symbol, .hs-source-backdrop mark .hs-diff-course { background: linear-gradient(color-mix(in srgb, var(--accent) 45%, transparent), color-mix(in srgb, var(--accent) 45%, transparent)), var(--box-bg); }
+.hs-speech-cell { min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .5rem .75rem; background: var(--surface); }
+.hs-speech-cell.is-speaking { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.hs-speech-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .35rem; }
+.hs-speech-head .hs-speech-label { margin-bottom: 0; }
+.hs-speech-head .hs-play { padding: .2rem .65rem; min-height: 0; font-size: .8125rem; }
+.hs-speech-head { align-items: flex-start; }
+.hs-speech-controls { display: grid; justify-items: end; gap: .3rem; }
+.hs-speech-steps { display: flex; gap: .3rem; }
+.hs-speech-steps .hs-step { min-width: 2rem; min-height: 0; padding: .1rem .5rem; font-size: 1rem; line-height: 1.2; }
+.hs-play.is-paused { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.hs-speech-label { display: block; font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-bottom: .2rem; }
+.hs-speech-cell p { margin: 0; min-height: 1.5em; line-height: 1.5; overflow-wrap: anywhere; }
+.hs-speech-cell mark { background: color-mix(in srgb, var(--accent) 45%, transparent); color: inherit; border-radius: 3px; padding: 0 .1em; }
+@media (max-width: 520px) { .hs-speech-cells { grid-template-columns: minmax(0, 1fr); } }
+.hs-source-backdrop .hs-reading-sentence { background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 3px; }
+/* Playing: the pressed button turns into Stop with a pulsing dot. */
+.hs-play.is-playing { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 700; }
+.hs-play.is-playing::before { content: ""; display: inline-block; width: .55rem; height: .55rem; margin-right: .45rem; border-radius: 50%; background: currentColor; vertical-align: middle; animation: hs-pulse 1s ease-in-out infinite; }
+@keyframes hs-pulse { 50% { opacity: .25; transform: scale(.7); } }
+@media (prefers-reduced-motion: reduce) { .hs-play.is-playing::before { animation: none; } }
+@media (min-width: 801px) { .hs-content-actions, .hs-listen { flex-wrap: nowrap; } .hs-content-actions .ss-btn { white-space: nowrap; } }
+.hs-source-backdrop mark { color: transparent; background: color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 3px; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
+@media (max-width: 800px) {
+  .hs-listen { padding-left: 0; margin-left: 0; border-left: 0; }
+  .hs-content-nav { flex-wrap: wrap !important; }
+}
+.hs-content-card > .hs-dict-editor-actions { margin: 0; }
+.hs-workspace textarea, .hs-workspace input[type="file"] { width: 100%; max-width: 100%; }
+.hs-workspace textarea { resize: vertical; margin: .5rem 0; }
+.hs-workspace input.ss-input { min-height: 38px; resize: none; }
+.hs-workspace details > summary { cursor: pointer; font-weight: 600; margin-bottom: .6rem; }
+.hs-workspace .ss-sub { font-size: .8125rem; line-height: 1.5; }
+.hs-workspace #hs-content-tools h3, .hs-workspace #hs-ai-review h3 { margin: 0 0 .5rem; font-size: 1.05rem; }
+.hs-workspace #hs-content-tools label, .hs-workspace #hs-ai-results label { display: block; margin-top: .6rem; }
+.hs-workspace #hs-content-tools .hs-review-actions label { margin: 0; }
+.hs-workspace #hs-content-text { margin: .6rem 0; white-space: pre-wrap; }
+.hs-workspace #hs-content-manual { flex: 1 1 12rem; min-width: 0; }
+.hs-workspace .hs-content-add-label { font-weight: 600; margin-top: 1rem !important; }
+.hs-workspace .hs-content-nav #hs-content-position { margin-inline: .25rem; }
+.hs-document-import { display: grid; gap: .35rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.hs-document-import .ss-sub, .hs-document-import p { margin: 0; }
+/* Compact top row of the Course content card: title · source · Import button.
+   Import status and the extracted-text preview wrap onto their own lines. */
+.hs-content-top { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; }
+.hs-content-top > h3 { order: 0; margin: 0; }
+.hs-content-top > #hs-content-capture { order: 2; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.hs-content-top > #hs-content-capture p { margin: 0; }
+.hs-content-top > #hs-ai-document-import, .hs-content-top .hs-document-import { display: contents; }
+.hs-content-top .hs-document-pick { order: 1; }
+.hs-content-top [id$="-status"], .hs-content-top [id$="-result"] { order: 3; flex-basis: 100%; margin: 0; }
+.hs-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.hs-file-input:focus-visible + .hs-file-button { outline: 3px solid var(--accent); outline-offset: 3px; }
+.hs-file-input:disabled + .hs-file-button { opacity: .55; cursor: not-allowed; }
+.hs-file-button { cursor: pointer; display: inline-flex; align-items: center; margin: 0; }
+.hs-workspace #hs-document-status:empty { display: none; }
+.hs-ai-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: .25rem; }
+.hs-workspace #hs-ai-disclosure { margin: .5rem 0 .25rem; }
+.hs-workspace .hs-ai-options { margin-top: .25rem; }
+.hs-workspace .hs-ai-options > summary { font-weight: 500; font-size: .8125rem; color: var(--muted); }
+.hs-ai-queue-nav { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+#hs-ai-assistant .hs-ai-queue-nav label { display: flex; align-items: center; gap: .4rem; margin: 0; }
+.hs-workspace #hs-ai-progress { margin: 0 0 .5rem; }
+.hs-workspace .hs-ai-decision { font-size: .8125rem; color: var(--muted); margin: 0; }
+.hs-workspace .hs-ai-suggestion blockquote { white-space: pre-wrap; overflow-wrap: anywhere; margin: .75rem 0; padding-left: .75rem; border-left: 3px solid var(--border); }
+.hs-workspace .hs-ai-suggestion input:not([type="checkbox"]) { width: 100%; }
+.hs-workspace #hs-ai-status:empty { display: none; }
+.hs-workspace #hs-content-empty { margin: 0; }
+/* Dictionary tab: actions above the table. */
+.hs-workspace-dictionary-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .75rem; }
+.hs-workspace-dictionary-tools .hs-dict-editor-import-group { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin: 0; width: auto; padding: 0; border: 0; }
+.hs-workspace-dictionary-tools #hs-dict-ed-undo { margin-left: auto; }
+.hs-workspace #hs-workspace-preparation { margin-top: 1rem; padding: 1rem; }
+.hs-workspace #hs-workspace-preparation .hs-dict-editor-download { border: 0; padding: 0; background: transparent; }
+/* Settings: a panel over the page, not pushed into the workflow. */
+.hs-workspace-settings { position: fixed; inset: 0 0 0 auto; z-index: 60; width: min(34rem, 100vw); overflow-y: auto; background: var(--bg); border-left: 1px solid var(--border); box-shadow: var(--shadow-md); padding: 1rem; display: grid; gap: 1rem; align-content: start; }
+.hs-workspace-settings-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.hs-workspace-settings-head h2 { margin: 0; }
+.hs-workspace-settings .hs-dict-editor-card { margin: 0; }
+/* Save bar: only visible when there is something to save or undo. */
+.hs-workspace.has-savebar { padding-bottom: 6rem; }
+.hs-workspace-savebar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25); }
+.hs-workspace-savebar-inner { max-width: 960px; margin: 0 auto; padding: .75rem 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+.hs-workspace-savebar-text { min-width: 0; flex: 1 1 16rem; }
+.hs-workspace #hs-workspace-summary { margin: 0; font-size: .9375rem; font-weight: 600; line-height: 1.5; letter-spacing: normal; text-transform: none; }
+.hs-workspace #hs-workspace-change-list { margin-top: .25rem; font-size: .8125rem; }
+.hs-workspace #hs-workspace-change-list > summary { margin: 0; font-weight: 500; color: var(--muted); }
+.hs-workspace #hs-workspace-change-list ul { max-height: 30vh; overflow: auto; margin: .35rem 0 0; }
+.hs-workspace-savebar-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.hs-workspace :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 800px) {
+  .hs-content-card, .hs-content-review-column { padding: .85rem; }
+  .hs-workspace .ss-btn { white-space: normal; }
+  .hs-workspace-toolbar [data-slot="course"] { flex: 1 1 100%; max-width: none; }
+  .hs-workspace-dictionary-tools #hs-dict-ed-undo { margin-left: 0; }
+}
+.hs-review { max-width: 1160px; display: grid; gap: 1.25rem; }
+.hs-review-course, .hs-review-actions, .hs-review-playback { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+.hs-review-course label { display: flex; align-items: center; gap: .65rem; font-weight: 600; }
+.hs-review-course { border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
+.hs-review-source { background: var(--panel); padding: 1rem; border: 1px solid var(--border); border-radius: .75rem; }
+.hs-review-source summary { font-weight: 600; cursor: pointer; margin-bottom: .65rem; }
+.hs-review-source textarea { width: 100%; margin: .5rem 0; resize: vertical; min-height: 6rem; }
+.hs-review h2 { font-size: 1.05rem; margin: .25rem auto .25rem 0; }
+.hs-review h3 { font-size: .95rem; margin: 0 0 .5rem; }
+.hs-review-playback { position: sticky; top: 0; z-index: 4; background: var(--panel); padding: .75rem 0; border-bottom: 1px solid var(--border); }
+.hs-review-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 310px); gap: 1.5rem; margin-top: 1rem; align-items: start; }
+.hs-review-layout > * { min-width: 0; }
+.hs-review-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1.15rem; line-height: 1.8; border: 1px solid var(--border); border-radius: .6rem; padding: 1rem; max-height: 45vh; overflow-y: auto; background: var(--panel); margin-bottom: .6rem; }
+.hs-review-text::selection, .hs-review-text *::selection { background: #bfdbfe; color: #10213b; }
+.hs-review-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+.hs-review-comparison section { padding: .9rem; background: var(--panel); border: 1px solid var(--border); border-radius: .6rem; min-width: 0; }
+.hs-review-comparison p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; }
+.hs-review-editor { display: grid; gap: .6rem; border: 1px solid var(--border); border-radius: .75rem; background: var(--panel); padding: 1rem; }
+.hs-review-editor > label { font-size: .85rem; }
+.hs-review-editor .ss-input { width: 100%; min-width: 0; }
+.hs-review-change { display: inline-block; margin: .25rem .35rem .25rem 0; border: 1px solid var(--border); border-radius: .4rem; padding: .45rem; background: var(--panel); color: var(--text); cursor: pointer; text-align: left; }
+.hs-review-change.is-symbol { border-left: 3px solid #3b82f6; }
+.hs-review-change.is-course { border-left: 3px solid #16865b; }
+.hs-review-queue ul { list-style: none; padding: 0; display: grid; gap: .35rem; }
+.hs-review-queue-item { display: flex; justify-content: space-between; gap: 1rem; text-align: left; width: 100%; padding: .75rem; border: 1px solid var(--border); border-radius: .5rem; background: var(--panel); color: var(--text); cursor: pointer; overflow-wrap: anywhere; }
+.hs-review #review-status { min-height: 1.5em; }
+.hs-review #review-sources p { overflow-wrap: anywhere; }
+.hs-review button:focus-visible, .hs-review select:focus-visible, .hs-review-text:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 760px) {
+  .hs-review-layout, .hs-review-comparison { grid-template-columns: 1fr; }
+  .hs-review-queue-item { flex-direction: column; gap: .25rem; }
+  .hs-review-playback { position: static; }
+  .hs-review { gap: 1rem; }
+}
+/* Local AI review: keep evidence readable and each proposal distinct. */
+.hs-ai-suggestion {
+  border-top: 1px solid currentColor;
+  padding-block: 1rem;
+  overflow-wrap: anywhere;
+}
+.hs-ai-suggestion .hs-dict-editor-field { margin-block: .65rem; }
+#hs-ai-source { width: 100%; box-sizing: border-box; }
+#hs-ai-assistant > details, #hs-ai-review, #hs-ai-save-panel { margin-block: 1rem; }
+#hs-ai-assistant summary { cursor: pointer; padding-block: .5rem; }
+#hs-ai-assistant h4 { font-size: 1rem; margin-block: .25rem; }
+#hs-ai-assistant blockquote { margin-inline: 0; padding: .75rem 1rem; border-left: 3px solid var(--accent); background: var(--panel); }
+#hs-ai-assistant label { display: block; margin-block: .5rem; }
+#hs-ai-save-panel { padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); }
+#hs-ai-save-changes { max-height: 14rem; overflow: auto; overflow-wrap: anywhere; }
+#hs-ai-assistant :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+/* Alignment pass: one row of suggestion decisions, equal control heights, even spacing. */
+.hs-ai-suggestion { display: grid; gap: .5rem; }
+.hs-ai-suggestion > * { margin-block: 0; }
+.hs-ai-suggestion > .hs-ai-decision-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+.hs-content-actions :is(.ss-btn, select) { min-height: 38px; box-sizing: border-box; }
+.hs-workspace #hs-ai-review > h3 { margin: 0 0 .25rem; }
+.hs-workspace .hs-content-review-column > #hs-ai-status { margin: 0; }
+
+/* Import → paste line → text box sit close together. */
+#hs-ai-assistant .hs-content-paste-label { margin: 0 0 -.4rem; }
+#hs-ai-assistant .hs-source-wrap > textarea { margin: 0; }
+
+/* Suggestions: one header line, then compact cards. */
+.hs-ai-review-head { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .75rem; }
+.hs-workspace .hs-ai-review-head h3 { margin: 0; }
+.hs-workspace .hs-ai-review-head #hs-ai-progress { margin: 0; }
+.hs-ai-pager { margin-left: auto; display: flex; align-items: center; gap: .35rem; }
+.hs-ai-pager #hs-ai-position { min-width: 4.5rem; text-align: center; margin: 0; }
+.hs-ai-card { margin-top: .6rem; padding: .75rem .9rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+.hs-ai-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+#hs-ai-assistant .hs-ai-card-head h4 { margin: 0; font-size: 1.05rem; overflow-wrap: anywhere; }
+.hs-ai-card-head .hs-ai-decision { flex: none; padding: .1rem .5rem; border: 1px solid var(--border); border-radius: 999px; font-size: .75rem; }
+#hs-ai-assistant .hs-ai-card .hs-ai-context { margin: 0; padding: .4rem .65rem; border-left: 3px solid var(--accent); background: var(--panel); font-size: .9rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.hs-ai-card .hs-ai-why, .hs-ai-card .hs-ai-note { margin: 0; }
+.hs-ai-read { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .5rem; }
+#hs-ai-assistant .hs-ai-read label, .hs-workspace #hs-ai-results .hs-ai-read label { display: inline; margin: 0; font-weight: 600; }
+.hs-ai-read .hs-ai-hear { min-width: 2.5rem; }
+#hs-ai-assistant .hs-ai-card label.hs-ai-check { display: flex; gap: .5rem; align-items: flex-start; margin: 0; font-size: .875rem; }
+.hs-ai-card .hs-ai-decision-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.hs-ai-card .hs-ai-more { margin-left: auto; }
+.hs-ai-card .hs-ai-more[open] { flex-basis: 100%; margin-left: 0; }
+.hs-workspace .hs-ai-card .hs-ai-more > summary { margin: 0; font-weight: 500; font-size: .8125rem; color: var(--muted); }
+#hs-ai-assistant .hs-ai-card .hs-ai-more label { display: flex; align-items: center; gap: .5rem; margin: .4rem 0 0; }
+.hs-ai-card .hs-conflicts:not([hidden]) { margin: 0; padding-left: 1.1rem; display: grid; gap: .35rem; font-size: .875rem; }
+.hs-content-top [id$="-status"]:not(:empty) { font-size: .8125rem; color: var(--muted); }
+
+/* Each colour caption sits above its own cell. */
+.hs-speech-col { min-width: 0; display: grid; gap: .25rem; align-content: start; }
+.hs-workspace .hs-speech-caption { margin: 0; font-size: .75rem; font-weight: 600; }
+
+/* Suggestion card v2: term + context on one row; Default JAWS beside the editable suggestion. */
+.hs-ai-card .hs-ai-card-head { align-items: center; }
+.hs-ai-card .hs-ai-card-head h4 { flex: none; }
+.hs-ai-card .hs-ai-context { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .9rem; }
+.hs-ai-readings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.hs-ai-reading { min-width: 0; display: grid; gap: .25rem; }
+#hs-ai-assistant .hs-ai-reading-label, .hs-workspace #hs-ai-results .hs-ai-reading-label { display: block; margin: 0; font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.hs-ai-reading-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem; align-items: center; }
+.hs-ai-default { display: flex; align-items: center; min-height: 38px; box-sizing: border-box; padding: .35rem .6rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--panel); overflow-wrap: anywhere; }
+.hs-ai-card .hs-ai-reading-row input { width: 100%; min-width: 0; }
+
+@media (max-width: 640px) { .hs-ai-readings { grid-template-columns: minmax(0, 1fr); } .hs-ai-card .hs-ai-context { white-space: normal; } }
+
+/* Card v2 fixes: context is inline text, and the reading field matches the Default box height. */
+#hs-ai-assistant .hs-ai-card .hs-ai-card-head .hs-ai-context { margin: 0; padding: 0; border: 0; background: none; }
+.hs-ai-card .hs-ai-reading-row input.ss-input { height: 38px; min-height: 38px; box-sizing: border-box; }
+
+/* Term and Context each carry a small label above them. */
+.hs-ai-card .hs-ai-card-head { align-items: flex-end; }
+.hs-ai-field { min-width: 0; display: grid; gap: .2rem; }
+.hs-ai-field-term { flex: none; }
+.hs-ai-field-context { flex: 1 1 auto; }
+.hs-ai-field-context .hs-ai-context { display: block; }
+.hs-ai-card .hs-ai-card-head .hs-ai-decision { align-self: flex-start; }
+
+/* Card head uses the same two columns as the readings: Term over Default JAWS, Context over Suggested. */
+.hs-ai-card { position: relative; }
+.hs-ai-card .hs-ai-card-head { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; align-items: start; }
+.hs-ai-card .hs-ai-field-term, .hs-ai-card .hs-ai-field-context { grid-row: 1; }
+.hs-ai-card .hs-ai-field-term { grid-column: 1; }
+.hs-ai-card .hs-ai-field-context { grid-column: 2; padding-right: 6.5rem; }
+.hs-ai-card .hs-ai-card-head .hs-ai-decision { position: absolute; top: .75rem; right: .9rem; }
+
+#hs-ai-assistant .hs-ai-card .hs-ai-field h4 { line-height: 1.4; }
+.hs-ai-card .hs-ai-field-context .hs-ai-context { line-height: 1.4; font-size: 1rem; }
+@media (max-width: 640px) { .hs-ai-card .hs-ai-card-head { grid-template-columns: minmax(0, 1fr); } .hs-ai-card .hs-ai-field-context { grid-column: 1; grid-row: 2; padding-right: 0; } .hs-ai-card .hs-ai-field-term { padding-right: 6.5rem; } }
+
+/* Ignore case sits visibly beside Add / Skip / Next. */
+#hs-ai-assistant .hs-ai-card label.hs-ai-case { display: inline-flex; align-items: center; gap: .4rem; margin: 0 0 0 auto; font-size: .875rem; }
+.hs-ai-card .hs-ai-case + .hs-ai-more { margin-left: .5rem; }
+
+/* Top row: tabs left; class picker and Settings right. Notes on one small line below. */
+.hs-workspace-tabrow > .hs-workspace-toolbar { margin-left: auto; display: flex; align-items: center; flex-wrap: nowrap; gap: .5rem; }
+.hs-workspace-tabrow > .hs-workspace-toolbar [data-slot="course"] { flex: none; max-width: none; }
+.hs-workspace-tabrow .hs-dict-editor-field-class { display: flex; flex-direction: row; align-items: center; gap: .5rem; margin: 0; }
+.hs-workspace-tabrow .hs-dict-editor-field-class .hs-dict-editor-label { margin: 0; font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.hs-workspace-tabrow .hs-dict-editor-field-class select { width: 16rem; max-width: 45vw; }
+.hs-workspace-notes { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 1rem; margin: 0 0 .35rem; }
+.hs-workspace-notes [data-slot] { min-width: 0; }
+.hs-workspace .hs-workspace-notes #hs-dict-ed-connect-note { margin: 0; }
+.hs-workspace .hs-workspace-notes #hs-dict-ed-status { margin: 0; min-height: 0; }
+@media (max-width: 800px) { .hs-workspace-tabrow > .hs-workspace-toolbar { margin-left: 0; flex: 1 1 100%; } .hs-workspace-tabrow .hs-dict-editor-field-class { flex: 1 1 auto; } .hs-workspace-tabrow .hs-dict-editor-field-class select { width: 100%; max-width: none; } .hs-workspace-tabrow > .hs-workspace-toolbar [data-slot="course"] { flex: 1 1 auto; } }
+
+.hs-workspace-tabrow #hs-workspace-settings-toggle { white-space: nowrap; }
+/* The header only holds the hidden page title now: no blank band above the tab row. */
+.hs-workspace:not(.hs-ext-workspace) > .hs-dict-editor-head:not(:has(.hs-workspace-title)) { margin: 0; padding: 0; min-height: 0; }
+.hs-workspace > .hs-workspace-tabrow { margin-top: 0; }
+
+/* The AI/status message sits under the action row. */
+.hs-content-card > #hs-ai-status { margin: -.25rem 0 0; font-size: .875rem; }
+
+/* Connection note beside the class picker: short text with a status dot. */
+.hs-workspace-tabrow [data-slot="connection"] { min-width: 0; }
+.hs-workspace .hs-workspace-tabrow #hs-dict-ed-connect-note { margin: 0; font-size: .8125rem; color: var(--muted); white-space: nowrap; line-height: 1.3; cursor: help; }
+.hs-workspace-tabrow #hs-dict-ed-connect-note::before { content: ""; display: inline-block; width: .5rem; height: .5rem; margin-right: .35rem; border-radius: 50%; background: var(--medium); vertical-align: middle; }
+.hs-workspace-tabrow #hs-dict-ed-connect-note.is-connected::before { background: var(--ok); }
+/* The status line only takes space when it has a message (errors, "Saving…"): no blank band under the top row. */
+.hs-workspace-notes:not(:has(#hs-dict-ed-status:not(:empty)):has(#hs-dict-ed-error.hidden)) { display: none; }
+
+@media (max-width: 800px) { .hs-workspace-tabrow > .hs-workspace-toolbar { flex-wrap: wrap; } .hs-workspace-tabrow > .hs-workspace-toolbar [data-slot="course"] { flex: 1 1 100%; } .hs-workspace-tabrow [data-slot="connection"] { flex: 1 1 auto; } }
+
+.hs-workspace > .hs-workspace-tabrow { margin-bottom: .35rem; }
+.hs-workspace > .hs-workspace-notes + [role="tabpanel"] { margin-top: 0; }
+
+/* Nav: HearSay (the workspace) first, highlighted when open; Chrome extension second. */
+.hs-site-nav-brand { padding: 4px 10px; border-radius: 999px; }
+.hs-site-nav-brand.is-active { color: var(--accent); background: var(--accent-muted); }
+/* Chrome extension page */
+.hs-landing-download { margin: 1.25rem 0 0; }
+.hs-landing-download .ss-btn { display: inline-flex; align-items: center; min-height: 42px; padding: .5rem 1.1rem; text-decoration: none; font-weight: 600; }
+
+/* Save sits in the top row beside the class picker. */
+.hs-workspace-tabrow #hs-dict-ed-save { white-space: nowrap; min-width: 5.5rem; }
+.hs-workspace-tabrow #hs-dict-ed-save:disabled { opacity: .6; }
+
+/* Read-only status (team project, not signed in) uses the amber dot. */

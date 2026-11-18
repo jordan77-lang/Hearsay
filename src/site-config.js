@@ -2,4 +2,5 @@
 export const SHOW_CANVAS_TRANSLATE = false;
 
 /** MathSay — equation-first LaTeX/MathML authoring for Canvas (/mathsay/). */
-export const SHOW_MATHSAY = true;
+// Paused: retain source for future work; omit from the active UI and releases.
+export const SHOW_MATHSAY = false;

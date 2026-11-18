@@ -1,10 +1,24 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  scrapePageTextInPage,
   pickBestScrapeResult,
   canPullFromTabUrl,
   pullSourceLabel,
 } from "../src/extension/page-scrape.js";
+import { runInNewContext } from "node:vm";
+
+test("injected scraper is self-contained and reports original length and truncation", () => {
+  const selected = "x".repeat(13001);
+  const captured = runInNewContext(`(${scrapePageTextInPage.toString()})()`, { window: { getSelection: () => ({ toString: () => selected }) } });
+  assert.equal(captured.text.length, 12000);
+  assert.equal(captured.totalLength, 13001);
+  assert.equal(captured.truncated, true);
+  assert.equal(captured.source, "selection");
+  const picked = pickBestScrapeResult([{ result: captured }]);
+  assert.equal(picked.truncated, true);
+  assert.equal(picked.totalLength, 13001);
+});
 
 test("pickBestScrapeResult prefers selection over body", () => {
   const picked = pickBestScrapeResult([

@@ -16,7 +16,10 @@ export function dictionarySyncMatchesClass(classSlug, activeClass) {
 
 /**
  * Broadcast that a class dictionary changed. All mounted HearSay instances should reload.
- * @param {{ classSlug?: string, source?: string, deleted?: string }} detail
+ * Pass `localOnly` for reads (pulls, class switches): they refresh this tab's
+ * listeners but must not reach other tabs, or two open workspaces reload each
+ * other forever.
+ * @param {{ classSlug?: string, source?: string, deleted?: string, localOnly?: boolean }} detail
  */
 export function notifyDictionaryUpdated(detail = {}) {
   const payload = {
@@ -26,7 +29,7 @@ export function notifyDictionaryUpdated(detail = {}) {
     deleted: detail.deleted ?? null,
     viaStorage: false,
   };
-  try {
+  if (!detail.localOnly) try {
     localStorage.setItem(
       DICTIONARY_SYNC_STORAGE_KEY,
       JSON.stringify({ ...payload, viaStorage: true }),

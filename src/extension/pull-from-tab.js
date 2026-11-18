@@ -44,6 +44,9 @@ export async function pullTextFromActiveTab(chromeApi = chrome) {
       text: picked.text,
       source: picked.source,
       tabUrl: tab.url,
+      tabTitle: tab.title ?? "",
+      truncated: picked.truncated,
+      totalLength: picked.totalLength,
     };
   } catch (err) {
     const msg = String(err?.message ?? err);

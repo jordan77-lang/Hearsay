@@ -779,9 +779,7 @@ function defaultSrVisibleSpeech(rawSlice) {
 }
 
 function defaultSrLinePlain(line) {
-  const visible = normalizeBaselinePaste(line);
-  if (!visible) return "";
-  return defaultSrSpeakVisible(normalizeMathMinusVisible(visible));
+  return defaultSrSpeakVisible(String(line ?? ""));
 }
 
 /** @typedef {{ html: string, tail: string, afterSpokenSymbol: boolean }} LabHtmlState */
@@ -1035,7 +1033,12 @@ function baselineSpeechFromVisibleLine(line) {
 }
 
 function formatBaselineLineHtml(line) {
-  return formatLabSpeechLineHtml(line, "baseline");
+  // Display and playback share the exact same source and symbol segmentation.
+  const state = { html: "", tail: "", afterSpokenSymbol: false };
+  for (const seg of defaultSrVisibleSegments(String(line ?? ""))) {
+    pushLabSpeech(state, seg.display, seg.spoken, seg.changed ? "baseline" : null);
+  }
+  return state.html;
 }
 
 /** One spoken line per input line — typical screen reader (no HearSay expansions). */

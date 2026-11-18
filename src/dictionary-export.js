@@ -71,7 +71,8 @@ export function buildAppleCsv(rows) {
 export function buildJawsTsv(rows) {
   const lines = [
     "# DSL chemistry pronunciation source for JAWS Dictionary Manager",
-    "# Import this TSV in JAWS Dictionary Manager, then export an .SBAK package from JAWS.",
+    "# Preparation list only: this TSV is not a student-loadable JAWS dictionary.",
+    "# Review and enter the entries in JAWS Dictionary Manager; test the native .JDF, then share it or export an .SBAK from JAWS.",
     "# Word subscripts use glued text (mcalorimeter, msolution) — how JAWS reads subscripts in pasted curriculum.",
     "#",
     "# Importing the class dictionary .SBAK in JAWS:",

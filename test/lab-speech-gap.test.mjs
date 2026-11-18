@@ -64,11 +64,11 @@ test("formatBaselineSpeechHtmlByLine follows the selected reader profile", () =>
   setDefaultSrProfile("nvda");
   assert.doesNotMatch(strip(formatBaselineSpeechHtmlByLine("(ΔT)")), /paren/i);
   assert.match(strip(formatBaselineSpeechHtmlByLine("× ΔT")), /times delta T/);
-  assert.match(strip(formatBaselineSpeechHtmlByLine("T2 −T1")), /T subscript 2 minus T subscript 1/);
+  assert.match(strip(formatBaselineSpeechHtmlByLine("T2 −T1")), /T2 minus T1/);
   setDefaultSrProfile("jaws");
   assert.match(strip(formatBaselineSpeechHtmlByLine("(ΔT)")), /left paren delta T right paren/);
   assert.doesNotMatch(strip(formatBaselineSpeechHtmlByLine("(ΔT)")), /open parenthesis/i);
-  assert.match(strip(formatBaselineSpeechHtmlByLine("T2 −T1")), /T 2 minus T 1/);
+  assert.match(strip(formatBaselineSpeechHtmlByLine("T2 −T1")), /T2 minus T1/);
   setDefaultSrProfile("nvda");
 });
 

@@ -1,0 +1,3 @@
+# Keep generated downloads byte-for-byte intact in Git.
+*.pdf binary
+*.zip binary

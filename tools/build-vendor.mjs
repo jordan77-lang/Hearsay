@@ -1,6 +1,6 @@
 // Bundle browser-only deps (JSZip, jsPDF) so the site does not rely on a CDN at runtime.
 import * as esbuild from "esbuild";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, cpSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
@@ -21,4 +21,9 @@ await esbuild.build({
   minify: true,
 });
 
-console.log("Wrote src/vendor/jszip.js and src/vendor/jspdf.js");
+const pdfOut = join(OUT, "pdfjs");
+mkdirSync(pdfOut, { recursive: true });
+for (const file of ["pdf.mjs", "pdf.worker.mjs"]) cpSync(join(ROOT, "node_modules", "pdfjs-dist", "legacy", "build", file), join(pdfOut, file));
+for (const directory of ["cmaps", "standard_fonts"]) cpSync(join(ROOT, "node_modules", "pdfjs-dist", directory), join(pdfOut, directory), { recursive: true });
+cpSync(join(ROOT, "node_modules", "pdfjs-dist", "LICENSE"), join(pdfOut, "LICENSE"));
+console.log("Wrote local JSZip, jsPDF and PDF.js browser dependencies");

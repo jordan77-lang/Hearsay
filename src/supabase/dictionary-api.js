@@ -1,6 +1,7 @@
 // Supabase dictionary CRUD: per-class rules + merged "all" course.
 
 import { createSupabaseClient, loadConfigFromPaths } from "./client.js";
+import { TEAM_SUPABASE } from "./team-config.js";
 import {
   addonEntriesToRows,
   entriesToRuleRows,
@@ -20,6 +21,7 @@ import {
   ruleCount,
 } from "../core/dictionary.js";
 import { notifySupabaseConnectionChanged } from "../dictionary-sync.js";
+import { helperUrl } from "../local-helper.js";
 
 export const COMBINED_COURSE_ID = "all";
 
@@ -821,14 +823,24 @@ export function createDictionaryApi(config) {
 export async function loadSupabaseConfigFromBrowser() {
   migrateBuilderSupabaseCredentials();
   const stored = getStoredSupabaseConfig();
-  const paths =
-    typeof location !== "undefined" && location.pathname.includes("/playground/")
-      ? ["../supabase/config.local.json", "../supabase/config.public.json"]
-      : ["supabase/config.local.json", "supabase/config.public.json"];
-
-  // Skip config file fetches when ☁ Connect already saved credentials (avoids 404 noise).
-  const fileConfig =
-    stored?.url && stored?.anonKey ? null : await loadConfigFromPaths(paths);
+  // Resolve from this module so /dictionary/, /lab/ and the home page agree.
+  // Private local files are never fetched directly by browser code.
+  let fileConfig = null;
+  if (!stored?.url || !stored?.anonKey) {
+    const extension = globalThis.location?.protocol === "chrome-extension:";
+    if (extension || ["localhost", "127.0.0.1"].includes(globalThis.location?.hostname)) {
+      try {
+        const response = await fetch(helperUrl("/api/supabase/config", extension), { method: "POST", signal: AbortSignal.timeout(2500) });
+        if (response.ok) fileConfig = await response.json();
+      } catch { /* Try deployed browser-safe configuration next. */ }
+    }
+    if (!fileConfig?.url || !fileConfig?.anonKey) fileConfig = await loadConfigFromPaths([new URL("../../supabase/config.public.json", import.meta.url).href]);
+    // Otherwise the team connection is built in: nobody has to enter a URL or key.
+    if ((!fileConfig?.url || !fileConfig?.anonKey) && TEAM_SUPABASE.url && TEAM_SUPABASE.anonKey) fileConfig = { ...TEAM_SUPABASE };
+    if (fileConfig?.url && fileConfig?.anonKey) {
+      try { setStoredSupabaseConfig(fileConfig); } catch { /* Storage restrictions can still require manual setup. */ }
+    }
+  }
 
   if (!fileConfig && !stored) return null;
   return {

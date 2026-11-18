@@ -10,7 +10,7 @@
 endobj
 4 0 obj
 <<
-/Length 7232
+/Length 8636
 >>
 stream
 0.200025 w
@@ -33,14 +33,14 @@ BT
 13.7999999999999989 TL
 0.796 0.835 0.882 rg
 48. 720. Td
-(Build class dictionaries, test speech, export screen reader dictionaries for students) Tj
+(Review course pronunciation and prepare supplemental JAWS dictionaries) Tj
 ET
 BT
 /F1 10 Tf
 11.5 TL
 0.796 0.835 0.882 rg
 48. 690. Td
-(June 2026) Tj
+(JAWS-first review) Tj
 ET
 0.97 0.98 0.99 rg
 0.89 0.91 0.94 RG
@@ -48,10 +48,10 @@ ET
 54. 644. m
 558. 644. l
 561.3137084989847381 644. 564. 641.3137084989847381 564. 638. c
-564. 539. l
-564. 535.6862915010152619 560.6862915010152619 533. 558. 533. c
-54. 533. l
-50.6862915010152406 533. 48. 536.3137084989847381 48. 539. c
+564. 569. l
+564. 565.6862915010152619 560.6862915010152619 563. 558. 563. c
+54. 563. l
+50.6862915010152406 563. 48. 566.3137084989847381 48. 569. c
 48. 638. l
 48. 641.3137084989847381 51.3137084989847594 644. 54. 644. c
 h
@@ -61,267 +61,316 @@ BT
 12.6499999999999986 TL
 0.2 0.255 0.333 rg
 62. 619. Td
-(HearSay helps course authors make science and math content pronounceable by screen readers -) Tj
+(HearSay combines content review and class dictionary maintenance in one workspace.) Tj
 ET
 BT
 /F1 11 Tf
 12.6499999999999986 TL
 0.2 0.255 0.333 rg
-62. 604. Td
-(without asking students to edit personal dictionaries.) Tj
+62. 600. Td
+(Speech is an approximation using your browser voice. It does not reproduce JAWS in Word, Google) Tj
 ET
 BT
 /F1 11 Tf
 12.6499999999999986 TL
 0.2 0.255 0.333 rg
 62. 585. Td
-(Use the web app or Chrome extension to edit a shared class dictionary in Supabase, preview how) Tj
-ET
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-62. 570. Td
-(speech will sound, and export screen reader dictionary files for your class \(NVDA, JAWS, VoiceOver,) Tj
-ET
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-62. 555. Td
-(and more\).) Tj
+(Docs or a PDF. Verify the original document with JAWS before distributing a dictionary.) Tj
 ET
 BT
 /F2 16 Tf
 18.3999999999999986 TL
 0.059 0.09 0.165 rg
-48. 517. Td
-(What HearSay includes) Tj
+48. 547. Td
+(One class workspace) Tj
 ET
 0.15 0.39 0.92 RG
 2. w
-48. 507. m
-96. 507. l
+48. 537. m
+96. 537. l
 S
 0.15 0.39 0.92 rg
-54. 492. m
-54. 493.1045694996615794 53.1045694996615865 494. 52. 494. c
-50.8954305003384135 494. 50. 493.1045694996615794 50. 492. c
-50. 490.8954305003384206 50.8954305003384135 490. 52. 490. c
-53.1045694996615865 490. 54. 490.8954305003384206 54. 492. c
+54. 522. m
+54. 523.1045694996615794 53.1045694996615865 524. 52. 524. c
+50.8954305003384135 524. 50. 523.1045694996615794 50. 522. c
+50. 520.8954305003384206 50.8954305003384135 520. 52. 520. c
+53.1045694996615865 520. 54. 520.8954305003384206 54. 522. c
 f
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 489. Td
-(Home - overview and links to every tool.) Tj
+64. 519. Td
+(Review content: import, paste, analyze, listen and adjust pronunciations in one place.) Tj
 ET
 0.15 0.39 0.92 rg
-54. 476. m
-54. 477.1045694996615794 53.1045694996615865 478. 52. 478. c
-50.8954305003384135 478. 50. 477.1045694996615794 50. 476. c
-50. 474.8954305003384206 50.8954305003384135 474. 52. 474. c
-53.1045694996615865 474. 54. 474.8954305003384206 54. 476. c
+54. 506. m
+54. 507.1045694996615794 53.1045694996615865 508. 52. 508. c
+50.8954305003384135 508. 50. 507.1045694996615794 50. 506. c
+50. 504.8954305003384206 50.8954305003384135 504. 52. 504. c
+53.1045694996615865 504. 54. 504.8954305003384206 54. 506. c
 f
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 473. Td
-(Screen Reader Lab - paste or pull course text and compare default screen reader speech vs your class) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 459. Td
-(dictionary.) Tj
+64. 503. Td
+(Class dictionary: search saved entries, stage edits, import CSV and prepare JAWS source.) Tj
 ET
 0.15 0.39 0.92 rg
-54. 446. m
-54. 447.1045694996615794 53.1045694996615865 448. 52. 448. c
-50.8954305003384135 448. 50. 447.1045694996615794 50. 446. c
-50. 444.8954305003384206 50.8954305003384135 444. 52. 444. c
-53.1045694996615865 444. 54. 444.8954305003384206 54. 446. c
+54. 490. m
+54. 491.1045694996615794 53.1045694996615865 492. 52. 492. c
+50.8954305003384135 492. 50. 491.1045694996615794 50. 490. c
+50. 488.8954305003384206 50.8954305003384135 488. 52. 488. c
+53.1045694996615865 488. 54. 488.8954305003384206 54. 490. c
 f
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 443. Td
-(Dictionary - connect to Supabase, edit pronunciation rows, import CSV, and export screen reader) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 429. Td
-(dictionaries for students.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 416. m
-54. 417.1045694996615794 53.1045694996615865 418. 52. 418. c
-50.8954305003384135 418. 50. 417.1045694996615794 50. 416. c
-50. 414.8954305003384206 50.8954305003384135 414. 52. 414. c
-53.1045694996615865 414. 54. 414.8954305003384206 54. 416. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 413. Td
-(Chrome extension - same Lab and Dictionary in a side panel while you browse your LMS or Google Docs.) Tj
+64. 487. Td
+(The Chrome extension uses the same workspace alongside your source page.) Tj
 ET
 BT
 /F2 16 Tf
 18.3999999999999986 TL
 0.059 0.09 0.165 rg
-48. 387. Td
-(Connect once \(Cloud Connect\)) Tj
+48. 461. Td
+(Choose your class once) Tj
 ET
 0.15 0.39 0.92 RG
 2. w
-48. 377. m
-96. 377. l
+48. 451. m
+96. 451. l
 S
 BT
 /F1 11 Tf
 12.6499999999999986 TL
 0.2 0.255 0.333 rg
-48. 359. Td
-(Most authoring features need your team Supabase project. Click Cloud Connect on the Dictionary or Lab) Tj
+48. 433. Td
+(Choose the class at the top of the workspace. Settings \(top right\) opens a panel with the project) Tj
 ET
 BT
 /F1 11 Tf
 12.6499999999999986 TL
 0.2 0.255 0.333 rg
-48. 344. Td
-(page and enter the project URL and anon key \(shared privately with your team - never commit these to a) Tj
+48. 418. Td
+(connection, class administration and AI connection. Connection settings are remembered in this browser.) Tj
 ET
 BT
 /F1 11 Tf
 12.6499999999999986 TL
 0.2 0.255 0.333 rg
-48. 329. Td
-(public repo\).) Tj
-ET
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 308. Td
-(Credentials are stored in this browser only. The top navigation shows Connected and your class name) Tj
-ET
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 293. Td
-(when linked.) Tj
-ET
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 272. Td
-(If you used the legacy Dictionary Builder, HearSay can migrate those saved credentials automatically.) Tj
-ET
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 251. Td
-(Without a connection you can still use the offline Demo dictionary in Screen Reader Lab and browse the) Tj
-ET
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 236. Td
-(Dictionary UI, but saving, pulling classes, and exports require Cloud Connect.) Tj
+48. 397. Td
+(Demo dictionary is an offline, read-only sample. Select an editable connected class to save shared terms.) Tj
 ET
 BT
 /F2 16 Tf
 18.3999999999999986 TL
 0.059 0.09 0.165 rg
-48. 209. Td
-(Screen Reader Lab) Tj
+48. 370. Td
+(Review content) Tj
 ET
 0.15 0.39 0.92 RG
 2. w
-48. 199. m
-96. 199. l
+48. 360. m
+96. 360. l
 S
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 181. Td
-(Paste plain quiz or reading text - from Google Docs, Word, Canvas, or elsewhere. HearSay normalizes) Tj
-ET
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 166. Td
-(subscripts, superscripts, and glued variables \(for example qcalorimeter, T2, DIwater\).) Tj
-ET
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 145. Td
-(Two speech columns update live as you type:) Tj
-ET
 0.15 0.39 0.92 rg
-54. 127. m
-54. 128.1045694996615794 53.1045694996615865 129. 52. 129. c
-50.8954305003384135 129. 50. 128.1045694996615794 50. 127. c
-50. 125.8954305003384206 50.8954305003384135 125. 52. 125. c
-53.1045694996615865 125. 54. 125.8954305003384206 54. 127. c
+70. 341. m
+70. 346.5228474983079536 65.5228474983079394 351. 60. 351. c
+54.4771525016920677 351. 50. 346.5228474983079536 50. 341. c
+50. 335.4771525016920464 54.4771525016920677 331. 60. 331. c
+65.5228474983079394 331. 70. 335.4771525016920464 70. 341. c
 f
 BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 124. Td
-(Default screen reader - what students hear with no class dictionary loaded, at true factory settings. Use the) Tj
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 337. Td
+(1) Tj
 ET
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 110. Td
-(Reader toggle to switch between NVDA \(quieter: math symbols and subscripts spoken, parentheses and) Tj
+80. 342. Td
+(Import DOCX or selectable-text PDF, paste content, or use Pull from page in the extension. Files are) Tj
 ET
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 96. Td
-(quotes pause silently\) and JAWS \(also names parentheses, quotes, colons, and dashes\). Blue highlights) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 82. Td
-(show spelled-out symbols.) Tj
+80. 328. Td
+(read locally; images are excluded.) Tj
 ET
 0.15 0.39 0.92 rg
-54. 69. m
-54. 70.1045694996615794 53.1045694996615865 71. 52. 71. c
-50.8954305003384135 71. 50. 70.1045694996615794 50. 69. c
-50. 67.8954305003384206 50.8954305003384135 67. 52. 67. c
-53.1045694996615865 67. 54. 67.8954305003384206 54. 69. c
+70. 309. m
+70. 314.5228474983079536 65.5228474983079394 319. 60. 319. c
+54.4771525016920677 319. 50. 314.5228474983079536 50. 309. c
+50. 303.4771525016920464 54.4771525016920677 299. 60. 299. c
+65.5228474983079394 299. 70. 303.4771525016920464 70. 309. c
 f
+BT
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 305. Td
+(2) Tj
+ET
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 66. Td
-(Default + dictionary - your saved class terms applied on top. Green = class dictionary; blue = default only) Tj
+80. 310. Td
+(Check the extracted text and warnings, then choose Get AI suggestions for this document. All extracted) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+80. 296. Td
+(text is sent in one request. DOCX is preferred. Use text without AI loads it for manual review. For pasted) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+80. 282. Td
+(text, choose Get AI suggestions. If text is highlighted in the box, only the highlight is sent and its) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+80. 268. Td
+(suggestions join the current queue. Terms already in the class dictionary are not suggested again.) Tj
+ET
+0.15 0.39 0.92 rg
+70. 249. m
+70. 254.5228474983078968 65.5228474983079394 259. 60. 259. c
+54.4771525016920677 259. 50. 254.5228474983078968 50. 249. c
+50. 243.4771525016921032 54.4771525016920677 239. 60. 239. c
+65.5228474983079394 239. 70. 243.4771525016921032 70. 249. c
+f
+BT
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 245. Td
+(3) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+80. 250. Td
+(HearSay accepts up to 500,000 text characters; the selected ASU model's token limit also applies. Limit) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+80. 236. Td
+(errors keep the text and previous review. Nothing is silently shortened. AI review can miss terms.) Tj
+ET
+0.15 0.39 0.92 rg
+70. 217. m
+70. 222.5228474983078968 65.5228474983079394 227. 60. 227. c
+54.4771525016920677 227. 50. 222.5228474983078968 50. 217. c
+50. 211.4771525016921032 54.4771525016920677 207. 60. 207. c
+65.5228474983079394 207. 70. 211.4771525016921032 70. 217. c
+f
+BT
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 213. Td
+(4) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+80. 218. Td
+(In the same row, choose Listen to: Whole passage, Sentence, Word or Highlighted, then play Default) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+80. 204. Td
+(JAWS or Class dictionary. Sentence and Word follow your cursor in the text box; Prev and Next step by) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+80. 190. Td
+(sentence or word. The Default and Dictionary cells show both pronunciations, and the text being spoken) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+80. 176. Td
+(is highlighted in the text box as it is read. The playing button becomes Stop.) Tj
+ET
+0.15 0.39 0.92 rg
+70. 157. m
+70. 162.5228474983078968 65.5228474983079394 167. 60. 167. c
+54.4771525016920677 167. 50. 162.5228474983078968 50. 157. c
+50. 151.4771525016921032 54.4771525016920677 147. 60. 147. c
+65.5228474983079394 147. 70. 151.4771525016921032 70. 157. c
+f
+BT
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 153. Td
+(5) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+80. 158. Td
+(Under Add a term, highlight a phrase in the text box or type it, then choose Add term. Manual terms and) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+80. 144. Td
+(AI suggestions use the same pronunciation editor, including units such as kJ/mol.) Tj
+ET
+0.15 0.39 0.92 rg
+70. 125. m
+70. 130.5228474983078968 65.5228474983079394 135. 60. 135. c
+54.4771525016920677 135. 50. 130.5228474983078968 50. 125. c
+50. 119.4771525016921032 54.4771525016920677 115. 60. 115. c
+65.5228474983079394 115. 70. 119.4771525016921032 70. 125. c
+f
+BT
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 121. Td
+(6) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+80. 126. Td
+(Edit, listen and approve entries. For supported scientific-notation suggestions, Use reusable entry covers) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+80. 112. Td
+(a shared exponent phrase across coefficients; it is not a universal exponent rule.) Tj
 ET
 0.89 0.91 0.94 RG
 0.5 w
@@ -333,14 +382,14 @@ BT
 9.1999999999999993 TL
 0.392 0.455 0.545 rg
 48. 36. Td
-(HearSay - Author user guide - hearsay pronunciation assistant for course authors) Tj
+(HearSay - Author user guide) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.392 0.455 0.545 rg
 523.3600000000000136 36. Td
-(Page 1 of 4) Tj
+(Page 1 of 3) Tj
 ET
 endstream
 endobj
@@ -354,462 +403,379 @@ endobj
 endobj
 6 0 obj
 <<
-/Length 12530
+/Length 8767
 >>
 stream
 2. w
 0.15 0.39 0.92 RG
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 744. Td
-(where your class has no rule.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 731. m
-54. 732.1045694996615794 53.1045694996615865 733. 52. 733. c
-50.8954305003384135 733. 50. 732.1045694996615794 50. 731. c
-50. 729.8954305003384206 50.8954305003384135 729. 52. 729. c
-53.1045694996615865 729. 54. 729.8954305003384206 54. 731. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 728. Td
-(Use Hear on each column to listen. While playback runs, use Pause or Resume.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 715. m
-54. 716.1045694996615794 53.1045694996615865 717. 52. 717. c
-50.8954305003384135 717. 50. 716.1045694996615794 50. 715. c
-50. 713.8954305003384206 50.8954305003384135 713. 52. 713. c
-53.1045694996615865 713. 54. 713.8954305003384206 54. 715. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 712. Td
-(Flagged tokens - a list of words where pronunciation changes. Click highlighted speech to jump to a token.) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 698. Td
-(In the extension you can edit a flagged term inline.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 685. m
-54. 686.1045694996615794 53.1045694996615865 687. 52. 687. c
-50.8954305003384135 687. 50. 686.1045694996615794 50. 685. c
-50. 683.8954305003384206 50.8954305003384135 683. 52. 683. c
-53.1045694996615865 683. 54. 683.8954305003384206 54. 685. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 682. Td
-(Pick a class from the dropdown: Demo dictionary \(offline chemistry sample\) or your Supabase class after) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 668. Td
-(Connect.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 655. m
-54. 656.1045694996615794 53.1045694996615865 657. 52. 657. c
-50.8954305003384135 657. 50. 656.1045694996615794 50. 655. c
-50. 653.8954305003384206 50.8954305003384135 653. 52. 653. c
-53.1045694996615865 653. 54. 653.8954305003384206 54. 655. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 652. Td
-(Try Load sample for a calorimetry example. Clear resets the editor.) Tj
-ET
 0.86 0.92 1. rg
 0.15 0.39 0.92 RG
 0.5 w
-52. 632. m
-560. 632. l
-562.2091389993231587 632. 564. 630.2091389993231587 564. 628. c
-564. 584. l
-564. 581.7908610006768413 561.7908610006768413 580. 560. 580. c
-52. 580. l
-49.7908610006768271 580. 48. 582.2091389993231587 48. 584. c
-48. 628. l
-48. 630.2091389993231587 50.2091389993231729 632. 52. 632. c
+52. 744. m
+560. 744. l
+562.2091389993231587 744. 564. 742.2091389993231587 564. 740. c
+564. 696. l
+564. 693.7908610006768413 561.7908610006768413 692. 560. 692. c
+52. 692. l
+49.7908610006768271 692. 48. 694.2091389993231587 48. 696. c
+48. 740. l
+48. 742.2091389993231587 50.2091389993231729 744. 52. 744. c
 h
 B
 BT
 /F3 10 Tf
 11.5 TL
 0.2 0.255 0.333 rg
-60. 610. Td
-(Google Docs equations sometimes lose their fraction bar on copy. HearSay detects glued fractions and inserts) Tj
+60. 722. Td
+(The passage and its formatting representation remain separate from pronunciation substitutions. Import does) Tj
 ET
 BT
 /F3 10 Tf
 11.5 TL
 0.2 0.255 0.333 rg
-60. 596. Td
-("divided by" so speech stays consistent.) Tj
+60. 708. Td
+(not establish that JAWS will pronounce the source incorrectly.) Tj
 ET
 BT
 /F2 16 Tf
 18.3999999999999986 TL
 0.059 0.09 0.165 rg
-48. 564. Td
-(MathSay \(Canvas equations\)) Tj
+48. 676. Td
+(Review queue and drafts) Tj
 ET
 0.15 0.39 0.92 RG
 2. w
-48. 554. m
-96. 554. l
+48. 666. m
+96. 666. l
 S
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 536. Td
-(Build LaTeX equations with live MathML preview and copy Canvas-safe HTML for quizzes or pages.) Tj
-ET
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 515. Td
-(Speech preview shows dictionary speech vs factory NVDA and JAWS readings. Word-heavy fractions) Tj
-ET
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 500. Td
-(default to dual notation \(visible symbol plus spoken gloss\) for New Quizzes.) Tj
-ET
 0.15 0.39 0.92 rg
-54. 482. m
-54. 483.1045694996615794 53.1045694996615865 484. 52. 484. c
-50.8954305003384135 484. 50. 483.1045694996615794 50. 482. c
-50. 480.8954305003384206 50.8954305003384135 480. 52. 480. c
-53.1045694996615865 480. 54. 480.8954305003384206 54. 482. c
+54. 651. m
+54. 652.1045694996615794 53.1045694996615865 653. 52. 653. c
+50.8954305003384135 653. 50. 652.1045694996615794 50. 651. c
+50. 649.8954305003384206 50.8954305003384135 649. 52. 649. c
+53.1045694996615865 649. 54. 649.8954305003384206 54. 651. c
 f
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 479. Td
-(Templates and palette for fractions, subscripts, Greek letters, and common chemistry symbols.) Tj
+64. 648. Td
+(Approve and next stages the reading; Skip and Review later retain the decision without publishing an entry.) Tj
 ET
 0.15 0.39 0.92 rg
-54. 466. m
-54. 467.1045694996615794 53.1045694996615865 468. 52. 468. c
-50.8954305003384135 468. 50. 467.1045694996615794 50. 466. c
-50. 464.8954305003384206 50.8954305003384135 464. 52. 464. c
-53.1045694996615865 464. 54. 464.8954305003384206 54. 466. c
+54. 635. m
+54. 636.1045694996615794 53.1045694996615865 637. 52. 637. c
+50.8954305003384135 637. 50. 636.1045694996615794 50. 635. c
+50. 633.8954305003384206 50.8954305003384135 633. 52. 633. c
+53.1045694996615865 633. 54. 633.8954305003384206 54. 635. c
 f
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 463. Td
-(Speech strategy: Auto picks stacked MathML for numeric fractions and dual notation for word denominators.) Tj
+64. 632. Td
+(Review wording, passage and sentence position persist for the class in this browser. Switching views keeps) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+64. 618. Td
+(the document preview and current fields mounted.) Tj
 ET
 0.15 0.39 0.92 rg
-54. 450. m
-54. 451.1045694996615794 53.1045694996615865 452. 52. 452. c
-50.8954305003384135 452. 50. 451.1045694996615794 50. 450. c
-50. 448.8954305003384206 50.8954305003384135 448. 52. 448. c
-53.1045694996615865 448. 54. 448.8954305003384206 54. 450. c
+54. 605. m
+54. 606.1045694996615794 53.1045694996615865 607. 52. 607. c
+50.8954305003384135 607. 50. 606.1045694996615794 50. 605. c
+50. 603.8954305003384206 50.8954305003384135 603. 52. 603. c
+53.1045694996615865 603. 54. 603.8954305003384206 54. 605. c
 f
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 447. Td
-(Copy Canvas HTML into the quiz or page HTML editor \(</> view\). Copy MathML or accessible text) Tj
+64. 602. Td
+(When changes are staged, a save bar appears at the bottom of the window listing additions, replacements) Tj
 ET
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 433. Td
-(separately if needed.) Tj
+64. 588. Td
+(and removals. Save publishes one combined batch and creates one Undo entry; right after saving, the bar) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+64. 574. Td
+(offers Undo.) Tj
 ET
 0.15 0.39 0.92 rg
-54. 420. m
-54. 421.1045694996615794 53.1045694996615865 422. 52. 422. c
-50.8954305003384135 422. 50. 421.1045694996615794 50. 420. c
-50. 418.8954305003384206 50.8954305003384135 418. 52. 418. c
-53.1045694996615865 418. 54. 418.8954305003384206 54. 420. c
+54. 561. m
+54. 562.1045694996615794 53.1045694996615865 563. 52. 563. c
+50.8954305003384135 563. 50. 562.1045694996615794 50. 561. c
+50. 559.8954305003384206 50.8954305003384135 559. 52. 559. c
+53.1045694996615865 559. 54. 559.8954305003384206 54. 561. c
 f
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 417. Td
-(Connect your class in Dictionary first so dictionary speech preview matches your saved terms.) Tj
+64. 558. Td
+(A failed save retains drafts and approvals. Refresh class checks, keep drafts in Settings retains wording and) Tj
+ET
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+64. 544. Td
+(requires renewed approval after shared dictionary changes.) Tj
+ET
+0.15 0.39 0.92 rg
+54. 531. m
+54. 532.1045694996615794 53.1045694996615865 533. 52. 533. c
+50.8954305003384135 533. 50. 532.1045694996615794 50. 531. c
+50. 529.8954305003384206 50.8954305003384135 529. 52. 529. c
+53.1045694996615865 529. 54. 529.8954305003384206 54. 531. c
+f
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+64. 528. Td
+(Recover previous Lab work exposes older passages and term drafts. Existing Lab storage is kept.) Tj
+ET
+0.15 0.39 0.92 rg
+54. 515. m
+54. 516.1045694996615794 53.1045694996615865 517. 52. 517. c
+50.8954305003384135 517. 50. 516.1045694996615794 50. 515. c
+50. 513.8954305003384206 50.8954305003384135 513. 52. 513. c
+53.1045694996615865 513. 54. 513.8954305003384206 54. 515. c
+f
+BT
+/F1 10.5 Tf
+12.0749999999999993 TL
+0.2 0.255 0.333 rg
+64. 512. Td
+(Clear content and review clears that local review. Saved dictionary terms are kept.) Tj
 ET
 BT
 /F2 16 Tf
 18.3999999999999986 TL
 0.059 0.09 0.165 rg
-48. 391. Td
-(Dictionary editor) Tj
+48. 486. Td
+(Class dictionary) Tj
 ET
 0.15 0.39 0.92 RG
 2. w
-48. 381. m
-96. 381. l
+48. 476. m
+96. 476. l
 S
 BT
 /F1 11 Tf
 12.6499999999999986 TL
 0.2 0.255 0.333 rg
-48. 363. Td
-(The Dictionary page is where authors maintain pronunciation rules stored in Supabase entries for each) Tj
+48. 458. Td
+(Table edits, removals and CSV imports stay as local drafts until you choose Save in the save bar.) Tj
 ET
 BT
 /F1 11 Tf
 12.6499999999999986 TL
 0.2 0.255 0.333 rg
-48. 348. Td
-(class.) Tj
+48. 437. Td
+(Add a term returns to the shared review editor. Search and maintenance of saved entries remain available) Tj
 ET
 BT
-/F2 12 Tf
-13.7999999999999989 TL
+/F1 11 Tf
+12.6499999999999986 TL
+0.2 0.255 0.333 rg
+48. 422. Td
+(in Class dictionary.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.2 0.255 0.333 rg
+48. 401. Td
+(Discard in the save bar restores table entries and returns approvals to pending while keeping suggested) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.2 0.255 0.333 rg
+48. 386. Td
+(wording. Undo last dictionary change \(above the table\) checks for intervening shared edits before restoring) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.2 0.255 0.333 rg
+48. 371. Td
+(a saved batch.) Tj
+ET
+BT
+/F2 16 Tf
+18.3999999999999986 TL
 0.059 0.09 0.165 rg
-48. 327. Td
-(Classes) Tj
+48. 344. Td
+(Capture from your browser) Tj
 ET
+0.15 0.39 0.92 RG
+2. w
+48. 334. m
+96. 334. l
+S
 0.15 0.39 0.92 rg
-54. 314. m
-54. 315.1045694996615794 53.1045694996615865 316. 52. 316. c
-50.8954305003384135 316. 50. 315.1045694996615794 50. 314. c
-50. 312.8954305003384206 50.8954305003384135 312. 52. 312. c
-53.1045694996615865 312. 54. 312.8954305003384206 54. 314. c
+70. 315. m
+70. 320.5228474983079536 65.5228474983079394 325. 60. 325. c
+54.4771525016920677 325. 50. 320.5228474983079536 50. 315. c
+50. 309.4771525016920464 54.4771525016920677 305. 60. 305. c
+65.5228474983079394 305. 70. 309.4771525016920464 70. 315. c
 f
+BT
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 311. Td
+(1) Tj
+ET
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 311. Td
-(Demo dictionary - read-only offline sample; good for exploring Lab speech.) Tj
+80. 316. Td
+(Open the source page, select text or focus its editor, then open the HearSay side panel.) Tj
 ET
 0.15 0.39 0.92 rg
-54. 298. m
-54. 299.1045694996615794 53.1045694996615865 300. 52. 300. c
-50.8954305003384135 300. 50. 299.1045694996615794 50. 298. c
-50. 296.8954305003384206 50.8954305003384135 296. 52. 296. c
-53.1045694996615865 296. 54. 296.8954305003384206 54. 298. c
+70. 297. m
+70. 302.5228474983079536 65.5228474983079394 307. 60. 307. c
+54.4771525016920677 307. 50. 302.5228474983079536 50. 297. c
+50. 291.4771525016920464 54.4771525016920677 287. 60. 287. c
+65.5228474983079394 287. 70. 291.4771525016920464 70. 297. c
 f
+BT
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 293. Td
+(2) Tj
+ET
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 295. Td
-(Course dropdown - pick your class after Connect.) Tj
+80. 298. Td
+(In Review content, choose Replace passage or Append selection before Pull from page. Appending) Tj
 ET
-0.15 0.39 0.92 rg
-54. 282. m
-54. 283.1045694996615794 53.1045694996615865 284. 52. 284. c
-50.8954305003384135 284. 50. 283.1045694996615794 50. 282. c
-50. 280.8954305003384206 50.8954305003384135 280. 52. 280. c
-53.1045694996615865 280. 54. 280.8954305003384206 54. 282. c
-f
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 279. Td
-(+ Add class - create a new slug \(e.g. chem114\). Choose starter terms or start empty.) Tj
+80. 284. Td
+(requires a selection.) Tj
 ET
 0.15 0.39 0.92 rg
-54. 266. m
-54. 267.1045694996615794 53.1045694996615865 268. 52. 268. c
-50.8954305003384135 268. 50. 267.1045694996615794 50. 266. c
-50. 264.8954305003384206 50.8954305003384135 264. 52. 264. c
-53.1045694996615865 264. 54. 264.8954305003384206 54. 266. c
+70. 265. m
+70. 270.5228474983078968 65.5228474983079394 275. 60. 275. c
+54.4771525016920677 275. 50. 270.5228474983078968 50. 265. c
+50. 259.4771525016921032 54.4771525016920677 255. 60. 255. c
+65.5228474983079394 255. 70. 259.4771525016921032 70. 265. c
 f
+BT
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 261. Td
+(3) Tj
+ET
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 263. Td
-(Edit class - change display name and file prefix \(slug is permanent\).) Tj
+80. 266. Td
+(The captured passage goes directly into the same source field used for import, paste and AI analysis.) Tj
 ET
-0.15 0.39 0.92 rg
-54. 250. m
-54. 251.1045694996615794 53.1045694996615865 252. 52. 252. c
-50.8954305003384135 252. 50. 251.1045694996615794 50. 250. c
-50. 248.8954305003384206 50.8954305003384135 248. 52. 248. c
-53.1045694996615865 248. 54. 248.8954305003384206 54. 250. c
-f
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 247. Td
-(Delete class - removes the class from Supabase \(with confirmation\).) Tj
+80. 252. Td
+(Capture details identify the page and warn about truncation.) Tj
 ET
 0.15 0.39 0.92 rg
-54. 234. m
-54. 235.1045694996615794 53.1045694996615865 236. 52. 236. c
-50.8954305003384135 236. 50. 235.1045694996615794 50. 234. c
-50. 232.8954305003384206 50.8954305003384135 232. 52. 232. c
-53.1045694996615865 232. 54. 232.8954305003384206 54. 234. c
+70. 233. m
+70. 238.5228474983078968 65.5228474983079394 243. 60. 243. c
+54.4771525016920677 243. 50. 238.5228474983078968 50. 233. c
+50. 227.4771525016921032 54.4771525016920677 223. 60. 223. c
+65.5228474983079394 223. 70. 227.4771525016921032 70. 233. c
 f
+BT
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 229. Td
+(4) Tj
+ET
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 231. Td
-(Pull - reload all classes and rows from the cloud.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 218. m
-54. 219.1045694996615794 53.1045694996615865 220. 52. 220. c
-50.8954305003384135 220. 50. 219.1045694996615794 50. 218. c
-50. 216.8954305003384206 50.8954305003384135 216. 52. 216. c
-53.1045694996615865 216. 54. 216.8954305003384206 54. 218. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 215. Td
-(Save class - save all rows again with confirmation \(table edits also auto-save\).) Tj
+80. 234. Td
+(Switch between Review content and Class dictionary without transferring text or losing your place.) Tj
 ET
 BT
-/F2 12 Tf
-13.7999999999999989 TL
+/F2 16 Tf
+18.3999999999999986 TL
 0.059 0.09 0.165 rg
-48. 195. Td
-(Terms table) Tj
+48. 202. Td
+(Share with students) Tj
 ET
-0.15 0.39 0.92 rg
-54. 182. m
-54. 183.1045694996615794 53.1045694996615865 184. 52. 184. c
-50.8954305003384135 184. 50. 183.1045694996615794 50. 182. c
-50. 180.8954305003384206 50.8954305003384135 180. 52. 180. c
-53.1045694996615865 180. 54. 180.8954305003384206 54. 182. c
-f
+0.15 0.39 0.92 RG
+2. w
+48. 192. m
+96. 192. l
+S
 BT
-/F1 10.5 Tf
-12.0749999999999993 TL
+/F1 11 Tf
+12.6499999999999986 TL
 0.2 0.255 0.333 rg
-64. 179. Td
-(Pattern - atomic token students see \(e.g. mL, J/g deg C, qcalorimeter\). Not whole equations.) Tj
+48. 174. Td
+(Share with students \(beside the view tabs\) opens the class export section. Save or discard staged) Tj
 ET
-0.15 0.39 0.92 rg
-54. 166. m
-54. 167.1045694996615794 53.1045694996615865 168. 52. 168. c
-50.8954305003384135 168. 50. 167.1045694996615794 50. 166. c
-50. 164.8954305003384206 50.8954305003384135 164. 52. 164. c
-53.1045694996615865 164. 54. 164.8954305003384206 54. 166. c
-f
 BT
-/F1 10.5 Tf
-12.0749999999999993 TL
+/F1 11 Tf
+12.6499999999999986 TL
 0.2 0.255 0.333 rg
-64. 163. Td
-(Spoken - how the screen reader should say it \(e.g. delta T, milliliters\).) Tj
+48. 159. Td
+(changes before exporting.) Tj
 ET
-0.15 0.39 0.92 rg
-54. 150. m
-54. 151.1045694996615794 53.1045694996615865 152. 52. 152. c
-50.8954305003384135 152. 50. 151.1045694996615794 50. 150. c
-50. 148.8954305003384206 50.8954305003384135 148. 52. 148. c
-53.1045694996615865 148. 54. 148.8954305003384206 54. 150. c
-f
 BT
-/F1 10.5 Tf
-12.0749999999999993 TL
+/F1 11 Tf
+12.6499999999999986 TL
 0.2 0.255 0.333 rg
-64. 147. Td
-(Note - optional reminder for authors; included as comments in exported dictionary files.) Tj
+48. 138. Td
+(JAWS source TSV is a preparation list, not a student-ready installer. Native JDF or SBAK packaging and) Tj
 ET
-0.15 0.39 0.92 rg
-54. 134. m
-54. 135.1045694996615794 53.1045694996615865 136. 52. 136. c
-50.8954305003384135 136. 50. 135.1045694996615794 50. 134. c
-50. 132.8954305003384206 50.8954305003384135 132. 52. 132. c
-53.1045694996615865 132. 54. 132.8954305003384206 54. 134. c
-f
 BT
-/F1 10.5 Tf
-12.0749999999999993 TL
+/F1 11 Tf
+12.6499999999999986 TL
 0.2 0.255 0.333 rg
-64. 131. Td
-(Ignore case - common dictionary setting \(Yes/No\); applies to NVDA and similar exports.) Tj
+48. 123. Td
+(actual JAWS validation are still required before distribution. Preserve students' personal pronunciations.) Tj
 ET
-0.15 0.39 0.92 rg
-54. 118. m
-54. 119.1045694996615794 53.1045694996615865 120. 52. 120. c
-50.8954305003384135 120. 50. 119.1045694996615794 50. 118. c
-50. 116.8954305003384206 50.8954305003384135 116. 52. 116. c
-53.1045694996615865 116. 54. 116.8954305003384206 54. 118. c
-f
 BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 115. Td
-(Hear on each row - preview that row before saving.) Tj
+/F2 16 Tf
+18.3999999999999986 TL
+0.059 0.09 0.165 rg
+48. 96. Td
+(Typical workflow) Tj
 ET
-0.15 0.39 0.92 rg
-54. 102. m
-54. 103.1045694996615794 53.1045694996615865 104. 52. 104. c
-50.8954305003384135 104. 50. 103.1045694996615794 50. 102. c
-50. 100.8954305003384206 50.8954305003384135 100. 52. 100. c
-53.1045694996615865 100. 54. 100.8954305003384206 54. 102. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 99. Td
-(Delete - remove a row \(confirms, then saves\).) Tj
-ET
-0.15 0.39 0.92 rg
-54. 86. m
-54. 87.1045694996615794 53.1045694996615865 88. 52. 88. c
-50.8954305003384135 88. 50. 87.1045694996615794 50. 86. c
-50. 84.8954305003384206 50.8954305003384135 84. 52. 84. c
-53.1045694996615865 84. 54. 84.8954305003384206 54. 86. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 83. Td
-(Edits in the table auto-save to Supabase and refresh Screen Reader Lab for that class.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 70. m
-54. 71.1045694996615794 53.1045694996615865 72. 52. 72. c
-50.8954305003384135 72. 50. 71.1045694996615794 50. 70. c
-50. 68.8954305003384206 50.8954305003384135 68. 52. 68. c
-53.1045694996615865 68. 54. 68.8954305003384206 54. 70. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 67. Td
-(Search - filter by words \(all terms must match\). Use Up/Down arrow keys or Enter to jump between hits.) Tj
-ET
+0.15 0.39 0.92 RG
+2. w
+48. 86. m
+96. 86. l
+S
 0.89 0.91 0.94 RG
 0.5 w
 48. 46. m
@@ -820,14 +786,14 @@ BT
 9.1999999999999993 TL
 0.392 0.455 0.545 rg
 48. 36. Td
-(HearSay - Author user guide - hearsay pronunciation assistant for course authors) Tj
+(HearSay - Author user guide) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.392 0.455 0.545 rg
 523.3600000000000136 36. Td
-(Page 2 of 4) Tj
+(Page 2 of 3) Tj
 ET
 endstream
 endobj
@@ -841,513 +807,7 @@ endobj
 endobj
 8 0 obj
 <<
-/Length 12160
->>
-stream
-2. w
-0.15 0.39 0.92 RG
-BT
-/F2 12 Tf
-13.7999999999999989 TL
-0.059 0.09 0.165 rg
-48. 744. Td
-(Add terms) Tj
-ET
-0.15 0.39 0.92 rg
-54. 731. m
-54. 732.1045694996615794 53.1045694996615865 733. 52. 733. c
-50.8954305003384135 733. 50. 732.1045694996615794 50. 731. c
-50. 729.8954305003384206 50.8954305003384135 729. 52. 729. c
-53.1045694996615865 729. 54. 729.8954305003384206 54. 731. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 728. Td
-(Use the Add pronunciation form, or Import CSV \(download Template CSV first\).) Tj
-ET
-0.15 0.39 0.92 rg
-54. 715. m
-54. 716.1045694996615794 53.1045694996615865 717. 52. 717. c
-50.8954305003384135 717. 50. 716.1045694996615794 50. 715. c
-50. 713.8954305003384206 50.8954305003384135 713. 52. 713. c
-53.1045694996615865 713. 54. 713.8954305003384206 54. 715. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 712. Td
-(Starter terms - when creating a class, pick a starter bundle, copy from another class, or browse the category) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 698. Td
-(catalog.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 685. m
-54. 686.1045694996615794 53.1045694996615865 687. 52. 687. c
-50.8954305003384135 687. 50. 686.1045694996615794 50. 685. c
-50. 683.8954305003384206 50.8954305003384135 683. 52. 683. c
-53.1045694996615865 683. 54. 683.8954305003384206 54. 685. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 682. Td
-(Hear on the add form tests speech before you add a row.) Tj
-ET
-BT
-/F2 16 Tf
-18.3999999999999986 TL
-0.059 0.09 0.165 rg
-48. 656. Td
-(Export screen reader dictionaries) Tj
-ET
-0.15 0.39 0.92 RG
-2. w
-48. 646. m
-96. 646. l
-S
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 628. Td
-(From Dictionary, open Download for students. Your pronunciation rows export to the format each screen) Tj
-ET
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 613. Td
-(reader expects - pick what matches your class.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 595. m
-54. 596.1045694996615794 53.1045694996615865 597. 52. 597. c
-50.8954305003384135 597. 50. 596.1045694996615794 50. 595. c
-50. 593.8954305003384206 50.8954305003384135 593. 52. 593. c
-53.1045694996615865 593. 54. 593.8954305003384206 54. 595. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 592. Td
-(NVDA add-on \(.nvda-addon\) plus install PDF - packaged install for Windows students on NVDA 2026.1+) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 578. Td
-(\(double-click or Add-on Store\).) Tj
-ET
-0.15 0.39 0.92 rg
-54. 565. m
-54. 566.1045694996615794 53.1045694996615865 567. 52. 567. c
-50.8954305003384135 567. 50. 566.1045694996615794 50. 565. c
-50. 563.8954305003384206 50.8954305003384135 563. 52. 563. c
-53.1045694996615865 563. 54. 563.8954305003384206 54. 565. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 562. Td
-(NVDA .dic - raw dictionary file for manual NVDA import or advanced users.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 549. m
-54. 550.1045694996615794 53.1045694996615865 551. 52. 551. c
-50.8954305003384135 551. 50. 550.1045694996615794 50. 549. c
-50. 547.8954305003384206 50.8954305003384135 547. 52. 547. c
-53.1045694996615865 547. 54. 547.8954305003384206 54. 549. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 546. Td
-(JAWS source TSV - import in JAWS Dictionary Manager, export an .SBAK for students. Word subscripts) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 532. Td
-(use glued text \(mcalorimeter, msolution\). When importing .SBAK: merge into existing settings, keep current) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 518. Td
-(settings on conflicts, then restart JAWS.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 505. m
-54. 506.1045694996615794 53.1045694996615865 507. 52. 507. c
-50.8954305003384135 507. 50. 506.1045694996615794 50. 505. c
-50. 503.8954305003384206 50.8954305003384135 503. 52. 503. c
-53.1045694996615865 503. 54. 503.8954305003384206 54. 505. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 502. Td
-(Apple VoiceOver CSV - custom pronunciations on macOS.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 489. m
-54. 490.1045694996615794 53.1045694996615865 491. 52. 491. c
-50.8954305003384135 491. 50. 490.1045694996615794 50. 489. c
-50. 487.8954305003384206 50.8954305003384135 487. 52. 487. c
-53.1045694996615865 487. 54. 487.8954305003384206 54. 489. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 486. Td
-(More screen reader formats are planned; the same class terms feed every export.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 473. m
-54. 474.1045694996615794 53.1045694996615865 475. 52. 475. c
-50.8954305003384135 475. 50. 474.1045694996615794 50. 473. c
-50. 471.8954305003384206 50.8954305003384135 471. 52. 471. c
-53.1045694996615865 471. 54. 471.8954305003384206 54. 473. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 470. Td
-(Include regex rules \(NVDA exports\) - covers units after numbers \(e.g. 10 mL\) and patterns like parenthetical) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 456. Td
-(J/g deg C.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 443. m
-54. 444.1045694996615794 53.1045694996615865 445. 52. 445. c
-50.8954305003384135 445. 50. 444.1045694996615794 50. 443. c
-50. 441.8954305003384206 50.8954305003384135 441. 52. 441. c
-53.1045694996615865 441. 54. 441.8954305003384206 54. 443. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 440. Td
-(Add-on settings - for NVDA packages: set version, add-on ID, summary, and author. Bump Version when) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 426. Td
-(you redistribute an update.) Tj
-ET
-BT
-/F2 16 Tf
-18.3999999999999986 TL
-0.059 0.09 0.165 rg
-48. 400. Td
-(Chrome extension) Tj
-ET
-0.15 0.39 0.92 RG
-2. w
-48. 390. m
-96. 390. l
-S
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 372. Td
-(Install from the home page: download hearsay-chrome-extension.zip from the Download section, extract it,) Tj
-ET
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 357. Td
-(open chrome://extensions, enable Developer mode, Load unpacked, and select the extracted folder \(not) Tj
-ET
-BT
-/F1 11 Tf
-12.6499999999999986 TL
-0.2 0.255 0.333 rg
-48. 342. Td
-(the zip\).) Tj
-ET
-0.15 0.39 0.92 rg
-54. 324. m
-54. 325.1045694996615794 53.1045694996615865 326. 52. 326. c
-50.8954305003384135 326. 50. 325.1045694996615794 50. 324. c
-50. 322.8954305003384206 50.8954305003384135 322. 52. 322. c
-53.1045694996615865 322. 54. 322.8954305003384206 54. 324. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 321. Td
-(Pin HearSay from the puzzle icon, then click the toolbar icon to open the side panel.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 308. m
-54. 309.1045694996615794 53.1045694996615865 310. 52. 310. c
-50.8954305003384135 310. 50. 309.1045694996615794 50. 308. c
-50. 306.8954305003384206 50.8954305003384135 306. 52. 306. c
-53.1045694996615865 306. 54. 306.8954305003384206 54. 308. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 305. Td
-(Tabs: Screen Reader Lab and Dictionary - same tools as the website.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 292. m
-54. 293.1045694996615794 53.1045694996615865 294. 52. 294. c
-50.8954305003384135 294. 50. 293.1045694996615794 50. 292. c
-50. 290.8954305003384206 50.8954305003384135 290. 52. 290. c
-53.1045694996615865 290. 54. 290.8954305003384206 54. 292. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 289. Td
-(Cloud Connect once in either tab \(shared credentials\).) Tj
-ET
-0.15 0.39 0.92 rg
-54. 276. m
-54. 277.1045694996615794 53.1045694996615865 278. 52. 278. c
-50.8954305003384135 278. 50. 277.1045694996615794 50. 276. c
-50. 274.8954305003384206 50.8954305003384135 274. 52. 274. c
-53.1045694996615865 274. 54. 274.8954305003384206 54. 276. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 273. Td
-(Pull from page \(Lab tab\) - select text on the active browser tab \(LMS page, syllabus, quiz\) and pull it into the) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 259. Td
-(Lab editor.) Tj
-ET
-0.15 0.39 0.92 rg
-54. 246. m
-54. 247.1045694996615794 53.1045694996615865 248. 52. 248. c
-50.8954305003384135 248. 50. 247.1045694996615794 50. 246. c
-50. 244.8954305003384206 50.8954305003384135 244. 52. 244. c
-53.1045694996615865 244. 54. 244.8954305003384206 54. 246. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 243. Td
-(Switch between Lab and Dictionary without losing your Connect session.) Tj
-ET
-BT
-/F2 16 Tf
-18.3999999999999986 TL
-0.059 0.09 0.165 rg
-48. 217. Td
-(Typical author workflow) Tj
-ET
-0.15 0.39 0.92 RG
-2. w
-48. 207. m
-96. 207. l
-S
-0.15 0.39 0.92 rg
-70. 188. m
-70. 193.5228474983078968 65.5228474983079394 198. 60. 198. c
-54.4771525016920677 198. 50. 193.5228474983078968 50. 188. c
-50. 182.4771525016921032 54.4771525016920677 178. 60. 178. c
-65.5228474983079394 178. 70. 182.4771525016921032 70. 188. c
-f
-BT
-/F2 9 Tf
-10.3499999999999996 TL
-1. g
-57.5249999999999986 184. Td
-(1) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-80. 189. Td
-(Click Cloud Connect and pick or create your class in Dictionary.) Tj
-ET
-0.15 0.39 0.92 rg
-70. 170. m
-70. 175.5228474983078968 65.5228474983079394 180. 60. 180. c
-54.4771525016920677 180. 50. 175.5228474983078968 50. 170. c
-50. 164.4771525016921032 54.4771525016920677 160. 60. 160. c
-65.5228474983079394 160. 70. 164.4771525016921032 70. 170. c
-f
-BT
-/F2 9 Tf
-10.3499999999999996 TL
-1. g
-57.5249999999999986 166. Td
-(2) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-80. 171. Td
-(Add terms manually, import CSV, or use Starter terms when creating a class.) Tj
-ET
-0.15 0.39 0.92 rg
-70. 152. m
-70. 157.5228474983078968 65.5228474983079394 162. 60. 162. c
-54.4771525016920677 162. 50. 157.5228474983078968 50. 152. c
-50. 146.4771525016921032 54.4771525016920677 142. 60. 142. c
-65.5228474983079394 142. 70. 146.4771525016921032 70. 152. c
-f
-BT
-/F2 9 Tf
-10.3499999999999996 TL
-1. g
-57.5249999999999986 148. Td
-(3) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-80. 153. Td
-(Open Screen Reader Lab, select your class, paste sample quiz text \(or Pull from page in the extension\).) Tj
-ET
-0.15 0.39 0.92 rg
-70. 134. m
-70. 139.5228474983078968 65.5228474983079394 144. 60. 144. c
-54.4771525016920677 144. 50. 139.5228474983078968 50. 134. c
-50. 128.4771525016921032 54.4771525016920677 124. 60. 124. c
-65.5228474983079394 124. 70. 128.4771525016921032 70. 134. c
-f
-BT
-/F2 9 Tf
-10.3499999999999996 TL
-1. g
-57.5249999999999986 130. Td
-(4) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-80. 135. Td
-(Listen with Hear. Fix terms in Dictionary until green highlights match what you want students to hear.) Tj
-ET
-0.15 0.39 0.92 rg
-70. 116. m
-70. 121.5228474983078968 65.5228474983079394 126. 60. 126. c
-54.4771525016920677 126. 50. 121.5228474983078968 50. 116. c
-50. 110.4771525016921032 54.4771525016920677 106. 60. 106. c
-65.5228474983079394 106. 70. 110.4771525016921032 70. 116. c
-f
-BT
-/F2 9 Tf
-10.3499999999999996 TL
-1. g
-57.5249999999999986 112. Td
-(5) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-80. 117. Td
-(Use MathSay for Canvas equation and fraction HTML \(dual notation or MathML as appropriate\).) Tj
-ET
-0.15 0.39 0.92 rg
-70. 98. m
-70. 103.5228474983078968 65.5228474983079394 108. 60. 108. c
-54.4771525016920677 108. 50. 103.5228474983078968 50. 98. c
-50. 92.4771525016921032 54.4771525016920677 88. 60. 88. c
-65.5228474983079394 88. 70. 92.4771525016921032 70. 98. c
-f
-BT
-/F2 9 Tf
-10.3499999999999996 TL
-1. g
-57.5249999999999986 94. Td
-(6) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-80. 99. Td
-(Download screen reader dictionary files from Dictionary -> Download for students \(NVDA add-on, .dic,) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-80. 85. Td
-(JAWS TSV, or VoiceOver CSV as needed\).) Tj
-ET
-0.89 0.91 0.94 RG
-0.5 w
-48. 46. m
-564. 46. l
-S
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.392 0.455 0.545 rg
-48. 36. Td
-(HearSay - Author user guide - hearsay pronunciation assistant for course authors) Tj
-ET
-BT
-/F1 8 Tf
-9.1999999999999993 TL
-0.392 0.455 0.545 rg
-523.3600000000000136 36. Td
-(Page 3 of 4) Tj
-ET
-endstream
-endobj
-9 0 obj
-<</Type /Page
-/Parent 1 0 R
-/Resources 2 0 R
-/MediaBox [0 0 612. 792.]
-/Contents 10 0 R
->>
-endobj
-10 0 obj
-<<
-/Length 4384
+/Length 3096
 >>
 stream
 2. w
@@ -1364,152 +824,119 @@ BT
 10.3499999999999996 TL
 1. g
 57.5249999999999986 739. Td
-(7) Tj
+(1) Tj
 ET
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
 80. 744. Td
-(Share the files with students using the install instructions for their screen reader. They install once per) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-80. 730. Td
-(computer; no Canvas changes required.) Tj
-ET
-BT
-/F2 16 Tf
-18.3999999999999986 TL
-0.059 0.09 0.165 rg
-48. 698. Td
-(Tips and troubleshooting) Tj
-ET
-0.15 0.39 0.92 RG
-2. w
-48. 688. m
-96. 688. l
-S
-0.15 0.39 0.92 rg
-54. 673. m
-54. 674.1045694996615794 53.1045694996615865 675. 52. 675. c
-50.8954305003384135 675. 50. 674.1045694996615794 50. 673. c
-50. 671.8954305003384206 50.8954305003384135 671. 52. 671. c
-53.1045694996615865 671. 54. 671.8954305003384206 54. 673. c
-f
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 670. Td
-(Demo dictionary vs class - Demo is offline and read-only. Your real class rows live in Supabase after) Tj
-ET
-BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 656. Td
-(Connect.) Tj
+(Choose the class once.) Tj
 ET
 0.15 0.39 0.92 rg
-54. 643. m
-54. 644.1045694996615794 53.1045694996615865 645. 52. 645. c
-50.8954305003384135 645. 50. 644.1045694996615794 50. 643. c
-50. 641.8954305003384206 50.8954305003384135 641. 52. 641. c
-53.1045694996615865 641. 54. 641.8954305003384206 54. 643. c
+70. 725. m
+70. 730.5228474983078968 65.5228474983079394 735. 60. 735. c
+54.4771525016920677 735. 50. 730.5228474983078968 50. 725. c
+50. 719.4771525016921032 54.4771525016920677 715. 60. 715. c
+65.5228474983079394 715. 70. 719.4771525016921032 70. 725. c
 f
 BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 640. Td
-(Not connected - Save, Pull, Add class, and exports show a message and open Cloud Connect instead of) Tj
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 721. Td
+(2) Tj
 ET
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 626. Td
-(failing silently.) Tj
+80. 726. Td
+(Add course content.) Tj
 ET
 0.15 0.39 0.92 rg
-54. 613. m
-54. 614.1045694996615794 53.1045694996615865 615. 52. 615. c
-50.8954305003384135 615. 50. 614.1045694996615794 50. 613. c
-50. 611.8954305003384206 50.8954305003384135 611. 52. 611. c
-53.1045694996615865 611. 54. 611.8954305003384206 54. 613. c
+70. 707. m
+70. 712.5228474983078968 65.5228474983079394 717. 60. 717. c
+54.4771525016920677 717. 50. 712.5228474983078968 50. 707. c
+50. 701.4771525016921032 54.4771525016920677 697. 60. 697. c
+65.5228474983079394 697. 70. 701.4771525016921032 70. 707. c
 f
+BT
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 703. Td
+(3) Tj
+ET
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 610. Td
-(Screen Reader Lab shows combined speech \(default + dictionary\), not dictionary substitution alone.) Tj
+80. 708. Td
+(Review suggestions and listen; add manual terms as needed.) Tj
 ET
 0.15 0.39 0.92 rg
-54. 597. m
-54. 598.1045694996615794 53.1045694996615865 599. 52. 599. c
-50.8954305003384135 599. 50. 598.1045694996615794 50. 597. c
-50. 595.8954305003384206 50.8954305003384135 595. 52. 595. c
-53.1045694996615865 595. 54. 595.8954305003384206 54. 597. c
+70. 689. m
+70. 694.5228474983078968 65.5228474983079394 699. 60. 699. c
+54.4771525016920677 699. 50. 694.5228474983078968 50. 689. c
+50. 683.4771525016921032 54.4771525016920677 679. 60. 679. c
+65.5228474983079394 679. 70. 683.4771525016921032 70. 689. c
 f
 BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 594. Td
-(Chemistry bundled rules - Demo includes bundled chemistry pronunciations. Real classes use only their) Tj
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 685. Td
+(4) Tj
 ET
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 580. Td
-(saved rows plus optional regex rules where supported.) Tj
+80. 690. Td
+(Approve readings and review the combined change summary.) Tj
 ET
 0.15 0.39 0.92 rg
-54. 567. m
-54. 568.1045694996615794 53.1045694996615865 569. 52. 569. c
-50.8954305003384135 569. 50. 568.1045694996615794 50. 567. c
-50. 565.8954305003384206 50.8954305003384135 565. 52. 565. c
-53.1045694996615865 565. 54. 565.8954305003384206 54. 567. c
+70. 671. m
+70. 676.5228474983078968 65.5228474983079394 681. 60. 681. c
+54.4771525016920677 681. 50. 676.5228474983078968 50. 671. c
+50. 665.4771525016921032 54.4771525016920677 661. 60. 661. c
+65.5228474983079394 661. 70. 665.4771525016921032 70. 671. c
 f
 BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 564. Td
-(Test before sharing - use Lab with your class loaded, then spot-check speech on sample terms \(kJ/mol, 10) Tj
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 667. Td
+(5) Tj
 ET
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 550. Td
-(mL, J/g deg C\) in the reader your students use.) Tj
+80. 672. Td
+(Save changes to the class dictionary.) Tj
 ET
 0.15 0.39 0.92 rg
-54. 537. m
-54. 538.1045694996615794 53.1045694996615865 539. 52. 539. c
-50.8954305003384135 539. 50. 538.1045694996615794 50. 537. c
-50. 535.8954305003384206 50.8954305003384135 535. 52. 535. c
-53.1045694996615865 535. 54. 535.8954305003384206 54. 537. c
+70. 653. m
+70. 658.5228474983078968 65.5228474983079394 663. 60. 663. c
+54.4771525016920677 663. 50. 658.5228474983078968 50. 653. c
+50. 647.4771525016921032 54.4771525016920677 643. 60. 643. c
+65.5228474983079394 643. 70. 647.4771525016921032 70. 653. c
 f
 BT
-/F1 10.5 Tf
-12.0749999999999993 TL
-0.2 0.255 0.333 rg
-64. 534. Td
-(Team privacy - treat the Supabase anon key like a team password; use Row Level Security appropriate for) Tj
+/F2 9 Tf
+10.3499999999999996 TL
+1. g
+57.5249999999999986 649. Td
+(6) Tj
 ET
 BT
 /F1 10.5 Tf
 12.0749999999999993 TL
 0.2 0.255 0.333 rg
-64. 520. Td
-(your project.) Tj
+80. 654. Td
+(Prepare and validate the student dictionary.) Tj
 ET
 0.89 0.91 0.94 RG
 0.5 w
@@ -1521,24 +948,24 @@ BT
 9.1999999999999993 TL
 0.392 0.455 0.545 rg
 48. 36. Td
-(HearSay - Author user guide - hearsay pronunciation assistant for course authors) Tj
+(HearSay - Author user guide) Tj
 ET
 BT
 /F1 8 Tf
 9.1999999999999993 TL
 0.392 0.455 0.545 rg
 523.3600000000000136 36. Td
-(Page 4 of 4) Tj
+(Page 3 of 3) Tj
 ET
 endstream
 endobj
 1 0 obj
 <</Type /Pages
-/Kids [3 0 R 5 0 R 7 0 R 9 0 R ]
-/Count 4
+/Kids [3 0 R 5 0 R 7 0 R ]
+/Count 3
 >>
 endobj
-11 0 obj
+9 0 obj
 <<
 /Type /Font
 /BaseFont /Helvetica
@@ -1548,7 +975,7 @@ endobj
 /LastChar 255
 >>
 endobj
-12 0 obj
+10 0 obj
 <<
 /Type /Font
 /BaseFont /Helvetica-Bold
@@ -1558,7 +985,7 @@ endobj
 /LastChar 255
 >>
 endobj
-13 0 obj
+11 0 obj
 <<
 /Type /Font
 /BaseFont /Helvetica-Oblique
@@ -1568,7 +995,7 @@ endobj
 /LastChar 255
 >>
 endobj
-14 0 obj
+12 0 obj
 <<
 /Type /Font
 /BaseFont /Helvetica-BoldOblique
@@ -1578,7 +1005,7 @@ endobj
 /LastChar 255
 >>
 endobj
-15 0 obj
+13 0 obj
 <<
 /Type /Font
 /BaseFont /Courier
@@ -1588,7 +1015,7 @@ endobj
 /LastChar 255
 >>
 endobj
-16 0 obj
+14 0 obj
 <<
 /Type /Font
 /BaseFont /Courier-Bold
@@ -1598,7 +1025,7 @@ endobj
 /LastChar 255
 >>
 endobj
-17 0 obj
+15 0 obj
 <<
 /Type /Font
 /BaseFont /Courier-Oblique
@@ -1608,7 +1035,7 @@ endobj
 /LastChar 255
 >>
 endobj
-18 0 obj
+16 0 obj
 <<
 /Type /Font
 /BaseFont /Courier-BoldOblique
@@ -1618,7 +1045,7 @@ endobj
 /LastChar 255
 >>
 endobj
-19 0 obj
+17 0 obj
 <<
 /Type /Font
 /BaseFont /Times-Roman
@@ -1628,7 +1055,7 @@ endobj
 /LastChar 255
 >>
 endobj
-20 0 obj
+18 0 obj
 <<
 /Type /Font
 /BaseFont /Times-Bold
@@ -1638,7 +1065,7 @@ endobj
 /LastChar 255
 >>
 endobj
-21 0 obj
+19 0 obj
 <<
 /Type /Font
 /BaseFont /Times-Italic
@@ -1648,7 +1075,7 @@ endobj
 /LastChar 255
 >>
 endobj
-22 0 obj
+20 0 obj
 <<
 /Type /Font
 /BaseFont /Times-BoldItalic
@@ -1658,7 +1085,7 @@ endobj
 /LastChar 255
 >>
 endobj
-23 0 obj
+21 0 obj
 <<
 /Type /Font
 /BaseFont /ZapfDingbats
@@ -1667,7 +1094,7 @@ endobj
 /LastChar 255
 >>
 endobj
-24 0 obj
+22 0 obj
 <<
 /Type /Font
 /BaseFont /Symbol
@@ -1680,32 +1107,32 @@ endobj
 <<
 /ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
 /Font <<
-/F1 11 0 R
-/F2 12 0 R
-/F3 13 0 R
-/F4 14 0 R
-/F5 15 0 R
-/F6 16 0 R
-/F7 17 0 R
-/F8 18 0 R
-/F9 19 0 R
-/F10 20 0 R
-/F11 21 0 R
-/F12 22 0 R
-/F13 23 0 R
-/F14 24 0 R
+/F1 9 0 R
+/F2 10 0 R
+/F3 11 0 R
+/F4 12 0 R
+/F5 13 0 R
+/F6 14 0 R
+/F7 15 0 R
+/F8 16 0 R
+/F9 17 0 R
+/F10 18 0 R
+/F11 19 0 R
+/F12 20 0 R
+/F13 21 0 R
+/F14 22 0 R
 >>
 /XObject <<
 >>
 >>
 endobj
-25 0 obj
+23 0 obj
 <<
 /Producer (jsPDF 2.5.2)
-/CreationDate (D:20260825083646-07'00')
+/CreationDate (D:20261117140358-07'00')
 >>
 endobj
-26 0 obj
+24 0 obj
 <<
 /Type /Catalog
 /Pages 1 0 R
@@ -1714,41 +1141,39 @@ endobj
 >>
 endobj
 xref
-0 27
+0 25
 0000000000 65535 f 
-0000036953 00000 n 
-0000038793 00000 n 
+0000020985 00000 n 
+0000022818 00000 n 
 0000000015 00000 n 
 0000000120 00000 n 
-0000007404 00000 n 
-0000007509 00000 n 
-0000020092 00000 n 
-0000020197 00000 n 
-0000032410 00000 n 
-0000032516 00000 n 
-0000037028 00000 n 
-0000037154 00000 n 
-0000037285 00000 n 
-0000037419 00000 n 
-0000037557 00000 n 
-0000037681 00000 n 
-0000037810 00000 n 
-0000037942 00000 n 
-0000038078 00000 n 
-0000038206 00000 n 
-0000038333 00000 n 
-0000038462 00000 n 
-0000038595 00000 n 
-0000038697 00000 n 
-0000039046 00000 n 
-0000039132 00000 n 
+0000008808 00000 n 
+0000008913 00000 n 
+0000017732 00000 n 
+0000017837 00000 n 
+0000021054 00000 n 
+0000021179 00000 n 
+0000021310 00000 n 
+0000021444 00000 n 
+0000021582 00000 n 
+0000021706 00000 n 
+0000021835 00000 n 
+0000021967 00000 n 
+0000022103 00000 n 
+0000022231 00000 n 
+0000022358 00000 n 
+0000022487 00000 n 
+0000022620 00000 n 
+0000022722 00000 n 
+0000023070 00000 n 
+0000023156 00000 n 
 trailer
 <<
-/Size 27
-/Root 26 0 R
-/Info 25 0 R
-/ID [ <38C7A9D207608ACEB224D45BFE9AA82F> <38C7A9D207608ACEB224D45BFE9AA82F> ]
+/Size 25
+/Root 24 0 R
+/Info 23 0 R
+/ID [ <86BCFC2B95E5689ED60AEAEC7B5B354E> <86BCFC2B95E5689ED60AEAEC7B5B354E> ]
 >>
 startxref
-39236
+23260
 %%EOF

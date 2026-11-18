@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>HearSay · Course pronunciation assistant</title>
+    <title>HearSay · Chrome extension</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='22'%3E%E2%99%AA%3C/text%3E%3C/svg%3E" />
     <script src="src/theme-init.js"></script>
     <link rel="stylesheet" href="src/ui.css" />
@@ -12,87 +12,39 @@
     <div id="hs-nav"></div>
     <main class="hs-landing">
       <header class="hs-landing-hero">
-        <h1 class="ss-title hs-landing-title">HearSay</h1>
-        <p class="hs-landing-tagline">Speak it clearly — for every screen reader.</p>
+        <h1 class="ss-title hs-landing-title">HearSay for Chrome</h1>
         <p class="ss-sub hs-landing-lead">
-          Tools for course authors: build class dictionaries, test quiz speech, and export screen reader dictionaries for students — without asking them to edit personal dictionaries.
+          Work beside your course page. The extension opens HearSay in Chrome's side panel, so you can capture text from Canvas, Google Docs or any web page, listen to it, and add pronunciations to your class dictionary without leaving the page.
+        </p>
+        <p class="hs-landing-download">
+          <a class="ss-btn primary" href="download/hearsay-chrome-extension.zip" download>Download the Chrome extension (.zip)</a>
         </p>
       </header>
 
-      <section class="hs-landing-actions" aria-labelledby="hs-get-started">
-        <h2 id="hs-get-started" class="hs-landing-section-title">Choose a tool</h2>
-        <div class="hs-landing-cards hs-landing-cards-grid" id="hs-landing-cards"></div>
-      </section>
-
       <section class="hs-landing-install" aria-labelledby="hs-chrome-install">
-        <h2 id="hs-chrome-install" class="ss-title hs-landing-section-title" style="text-transform:none;letter-spacing:-0.01em;font-size:0.9375rem;color:var(--text)">Install Chrome extension</h2>
+        <h2 id="hs-chrome-install" class="hs-landing-section-title">Install</h2>
         <ol class="hs-landing-steps">
           <li>Download <a href="download/hearsay-chrome-extension.zip">hearsay-chrome-extension.zip</a>.</li>
           <li>Extract the zip to a folder you will keep (for example <code>Documents/HearSay-extension</code>). The folder must contain <code>manifest.json</code> at the top level.</li>
           <li>Open <code>chrome://extensions</code> and turn on <b>Developer mode</b>.</li>
           <li>Click <b>Load unpacked</b> and select the extracted folder (not the .zip file).</li>
-          <li>Pin HearSay from the puzzle icon, then click the HearSay toolbar icon to open the <b>side panel</b>. Use <b>☁ Connect</b> once, then <b>Screen Reader Lab</b> or <b>Dictionary</b>. On a course page, select text and choose <b>Pull from page</b> (Lab tab).</li>
+          <li>Pin HearSay from the puzzle-piece icon in the toolbar.</li>
         </ol>
       </section>
 
-      <section class="hs-landing-install" aria-labelledby="hs-dict">
-        <h2 id="hs-dict" class="ss-title hs-landing-section-title" style="text-transform:none;letter-spacing:-0.01em;font-size:0.9375rem;color:var(--text)">Typical workflow</h2>
-        <p class="ss-sub" style="margin:0" id="hs-landing-workflow"></p>
+      <section class="hs-landing-install" aria-labelledby="hs-chrome-use">
+        <h2 id="hs-chrome-use" class="hs-landing-section-title">Use it on a course page</h2>
+        <ol class="hs-landing-steps">
+          <li>Open the course page and select the text you want to check.</li>
+          <li>Click the HearSay icon to open the side panel and choose your class.</li>
+          <li>Choose <b>Pull from page</b>, then listen, get AI suggestions, and add pronunciations as on the website.</li>
+        </ol>
+        <p class="ss-sub">Prefer the website? <a href="workspace/">Open HearSay</a>. A Safari extension is coming later.</p>
       </section>
     </main>
     <script type="module">
       import { mountSiteNav } from "./src/site-nav.js";
-      import { SHOW_MATHSAY } from "./src/site-config.js";
-
       mountSiteNav(document.getElementById("hs-nav"), { active: "home", base: "" });
-
-      const cards = document.getElementById("hs-landing-cards");
-      const items = [
-        ...(SHOW_MATHSAY
-          ? [
-              {
-                href: "mathsay/",
-                primary: true,
-                label: "MathSay",
-                sub: "Build MathML equations with speech-aware Canvas export",
-              },
-            ]
-          : []),
-        {
-          href: "lab/",
-          primary: !SHOW_MATHSAY,
-          label: "Screen Reader Lab",
-          sub: "Compare raw vs dictionary speech on pasted course text",
-        },
-        {
-          href: "dictionary/",
-          primary: false,
-          label: "Dictionary",
-          sub: "Edit terms and export screen reader dictionaries for students",
-        },
-        {
-          href: "download/hearsay-chrome-extension.zip",
-          primary: false,
-          label: "Chrome extension",
-          sub: "Side panel while you work in the browser",
-          download: true,
-        },
-      ];
-
-      cards.innerHTML = items
-        .map(
-          (c) =>
-            `<a class="hs-landing-card${c.primary ? " hs-landing-card-primary" : ""}" href="${c.href}"${c.download ? " download" : ""}>` +
-            `<span class="hs-landing-card-label">${c.label}</span>` +
-            `<span class="ss-sub">${c.sub}</span></a>`,
-        )
-        .join("") +
-        `<div class="hs-landing-card hs-landing-card-disabled" aria-disabled="true">` +
-        `<span class="hs-landing-card-label">Safari extension</span>` +
-        `<span class="ss-sub">Coming soon</span></div>`;
-
-      document.getElementById("hs-landing-workflow").innerHTML =
-        `Build terms in <a href="dictionary/">Dictionary</a> (or import CSV from ChatGPT) → test in <a href="lab/">Screen Reader Lab</a> → author equations in <a href="mathsay/">MathSay</a> → export screen reader dictionaries for students.`;
     </script>
   </body>
 </html>

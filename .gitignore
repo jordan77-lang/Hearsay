@@ -7,6 +7,8 @@ test-document/
 *.docx
 supabase/config.local.json
 supabase/config.public.json
+createai/config.local.json
+createai/examples.local.json
 .env
 !.env.local
 # Local instructor test files (not course templates)

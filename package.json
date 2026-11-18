@@ -6,10 +6,12 @@
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.mjs",
+    "test:createai": "node tools/test-createai.mjs",
+    "build:ai-examples": "node tools/build-ai-examples.mjs",
     "build:dict": "node tools/build-dictionary.mjs",
     "build:doc": "node tools/build-test-doc.mjs",
     "build:vendor": "node tools/build-vendor.mjs",
-    "serve": "node tools/build-vendor.mjs && node tools/serve.mjs 8123",
+    "serve": "node tools/build-vendor.mjs && node tools/build-ai-examples.mjs && node tools/serve.mjs 8123",
     "push:dict": "node tools/push-dictionary-to-supabase.mjs",
     "pull:dict": "node tools/pull-dictionary-from-supabase.mjs",
     "sync:dict": "node tools/sync-combined-dictionary.mjs",
@@ -21,6 +23,8 @@
   "devDependencies": {
     "esbuild": "^0.25.0",
     "jspdf": "^2.5.2",
-    "jszip": "^3.10.1"
+    "jszip": "^3.10.1",
+    "linkedom": "^0.18.15",
+    "pdfjs-dist": "^6.5.438"
   }
 }

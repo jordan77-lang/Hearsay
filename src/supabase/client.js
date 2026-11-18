@@ -1,4 +1,5 @@
 // Thin Supabase REST client (no npm dependency — works in browser + Node).
+import { teamAccessToken } from "./team-auth.js";
 
 function trimSlash(url) {
   return url.replace(/\/+$/, "");
@@ -18,6 +19,13 @@ export function createSupabaseClient(config) {
   async function rest(path, { method = "GET", body, prefer } = {}) {
     const h = { ...headers };
     if (prefer) h.Prefer = prefer;
+    // Browser authors signed in with the team password send their session, so
+    // Supabase lets them edit; otherwise the public key can only read.
+    // Command-line tools using a service-role key are never affected.
+    if (!config.serviceRoleKey && config.anonKey) {
+      const token = await teamAccessToken(baseUrl, config.anonKey);
+      if (token) h.Authorization = `Bearer ${token}`;
+    }
     const res = await fetch(`${baseUrl}/rest/v1/${path}`, {
       method,
       headers: h,

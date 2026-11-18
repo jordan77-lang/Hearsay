@@ -1,0 +1,6 @@
+{
+  "baseUrl": "https://api-main.aiml.asu.edu/v1",
+  "serviceToken": "",
+  "model": "defaults",
+  "allowedExtensionIds": []
+}

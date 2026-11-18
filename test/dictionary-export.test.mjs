@@ -30,6 +30,8 @@ test("buildJawsTsv includes header row", () => {
   const out = buildJawsTsv(sample);
   assert.match(out, /Text\tPronunciation\tNote/);
   assert.match(out, /mL\tmilliliters\tvolume/);
+  assert.match(out, /not a student-loadable JAWS dictionary/);
+  assert.doesNotMatch(out, /Import this TSV/);
 });
 
 test("jawsExportPattern glues word subscripts for JAWS curriculum text", () => {

@@ -355,8 +355,8 @@ function segmentWithRules(text, rules, { compositionSafe = false } = {}) {
 }
 
 // All dictionary rules (includes whole-sentence NVDA add-on rules).
-export function segmentByDictionary(text) {
-  return segmentWithRules(text, RULES);
+export function segmentByDictionary(text, rules = RULES) {
+  return segmentWithRules(text, rules);
 }
 
 // Atomic rules only — Sci-Speak stitches these together and leaves punctuation

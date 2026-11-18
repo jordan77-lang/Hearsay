@@ -1,4 +1,4 @@
-// Shared top navigation for HearSay pages (landing, lab, dictionary).
+// Shared top navigation for the landing page and class workspace.
 
 import {
   getStoredCourseId,
@@ -10,15 +10,15 @@ import { SHOW_CANVAS_TRANSLATE, SHOW_MATHSAY } from "./site-config.js";
 
 /**
  * @param {HTMLElement} container
- * @param {{ active?: 'home'|'playground'|'mathsay'|'dictionary'|'lab', base?: string }} opts
+ * @param {{ active?: 'home'|'playground'|'mathsay'|'workspace'|'dictionary'|'lab', base?: string, showConnection?: boolean }} opts
  *   base — path prefix to site root (e.g. ".." from /lab/)
  */
-export function mountSiteNav(container, { active = "", base = "" } = {}) {
+export function mountSiteNav(container, { active = "", base = "", showConnection = true } = {}) {
   if (!container) return;
   initTheme();
   const root = base ? `${base.replace(/\/$/, "")}/` : "./";
-  const dictionary = `${root}dictionary/`;
-  const lab = `${root}lab/`;
+  // HearSay (the class workspace) comes first; the Chrome extension page second.
+  const inWorkspace = ["workspace", "lab", "dictionary"].includes(active);
   const canvasTranslateLink = SHOW_CANVAS_TRANSLATE
     ? `<a role="listitem" class="hs-site-nav-link${active === "playground" ? " is-active" : ""}" href="${root}playground/">Canvas Translate</a>`
     : "";
@@ -43,15 +43,14 @@ export function mountSiteNav(container, { active = "", base = "" } = {}) {
   container.innerHTML = `
     <nav class="hs-site-nav" aria-label="HearSay">
       <div class="hs-site-nav-inner">
-        <a class="hs-site-nav-brand" href="${root}">HearSay</a>
+        <a class="hs-site-nav-brand${inWorkspace ? " is-active" : ""}" href="${root}workspace/"${inWorkspace ? ' aria-current="page"' : ""}>HearSay</a>
         <div class="hs-site-nav-links" role="list">
+          <a role="listitem" class="hs-site-nav-link${active === "home" ? " is-active" : ""}" href="${root}"${active === "home" ? ' aria-current="page"' : ""}>Chrome extension</a>
           ${mathsayLink}
           ${canvasTranslateLink}
-          <a role="listitem" class="hs-site-nav-link${active === "lab" ? " is-active" : ""}" href="${lab}">Screen Reader Lab</a>
-          <a role="listitem" class="hs-site-nav-link${active === "dictionary" ? " is-active" : ""}" href="${dictionary}">Dictionary</a>
         </div>
         <div class="hs-site-nav-end">
-          <button type="button" class="hs-site-nav-status ss-type${isSupabaseConnected() ? " is-connected" : ""}" id="hs-site-nav-connect" title="${escapeHtml(statusTitle())}">${escapeHtml(statusText())}</button>
+          ${showConnection ? `<button type="button" class="hs-site-nav-status ss-type${isSupabaseConnected() ? " is-connected" : ""}" id="hs-site-nav-connect" title="${escapeHtml(statusTitle())}">${escapeHtml(statusText())}</button>` : ""}
           <span class="hs-theme-toggle-mount"></span>
         </div>
       </div>

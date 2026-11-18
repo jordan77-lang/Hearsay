@@ -6,19 +6,22 @@
  * @returns {{ text: string, source: 'selection'|'focused'|'body' } | null}
  */
 export function scrapePageTextInPage() {
+  function capture(text, source, limit) {
+    return { text: text.slice(0, limit), source, truncated: text.length > limit, totalLength: text.length };
+  }
   const sel = window.getSelection?.()?.toString?.()?.trim?.();
   if (sel && sel.length > 0) {
-    return { text: sel.slice(0, 12000), source: "selection" };
+    return capture(sel, "selection", 12000);
   }
 
   const el = document.activeElement;
   if (el instanceof HTMLTextAreaElement) {
     const v = el.value?.trim?.();
-    if (v) return { text: v.slice(0, 12000), source: "focused" };
+    if (v) return capture(v, "focused", 12000);
   }
   if (el && /** @type {HTMLElement} */ (el).isContentEditable) {
     const t = /** @type {HTMLElement} */ (el).innerText?.trim?.();
-    if (t) return { text: t.slice(0, 12000), source: "focused" };
+    if (t) return capture(t, "focused", 12000);
   }
 
   const editable = document.querySelector(
@@ -29,14 +32,14 @@ export function scrapePageTextInPage() {
       editable instanceof HTMLTextAreaElement || editable instanceof HTMLInputElement
         ? editable.value?.trim?.()
         : /** @type {HTMLElement} */ (editable).innerText?.trim?.();
-    if (t) return { text: t.slice(0, 12000), source: "focused" };
+    if (t) return capture(t, "focused", 12000);
   }
 
   if (window !== window.top) return null;
 
   const body = document.body?.innerText?.trim?.() ?? "";
   if (body.length > 40) {
-    return { text: body.slice(0, 6000), source: "body" };
+    return capture(body, "body", 6000);
   }
   return null;
 }
@@ -62,7 +65,7 @@ export function pickBestScrapeResult(injectionResults) {
   });
 
   const best = hits[0];
-  return { text: best.text.trim(), source: best.source };
+  return { text: best.text, source: best.source, truncated: Boolean(best.truncated), totalLength: best.totalLength ?? best.text.length };
 }
 
 /** @param {string | undefined} tabUrl */
@@ -87,6 +90,7 @@ export function canPullFromTabUrl(tabUrl) {
 }
 
 export function pullSourceLabel(source) {
+  if (source === "paste") return "pasted text";
   if (source === "selection") return "selection";
   if (source === "focused") return "editor field";
   if (source === "body") return "page text";

@@ -466,7 +466,7 @@ for (const [ch, entry] of JAWS_OVERRIDES) JAWS_SYMBOLS.set(ch, entry);
 /** Selectable factory profiles for the Lab's default screen reader column. */
 export const SR_PROFILES = {
   nvda: { id: "nvda", label: "NVDA (factory)", level: "some", symbols: NVDA_SYMBOLS },
-  jaws: { id: "jaws", label: "JAWS (factory)", level: "most", symbols: JAWS_SYMBOLS },
+  jaws: { id: "jaws", label: "Approximate JAWS reading", level: "most", symbols: JAWS_SYMBOLS },
 };
 
 let activeProfile = SR_PROFILES.nvda;
