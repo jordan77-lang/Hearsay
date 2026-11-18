@@ -127,7 +127,7 @@ test("ignore case comes from the AI proposal, with a sensible default when it is
   assert.ok(item.required.includes("ignore_case")); assert.deepEqual(item.properties.ignore_case.enum, ["Yes", "No"]);
   // Cross-subject guidance from the course examples goes with every request.
   const system = body.messages.filter(message => message.role === "system").map(message => message.content).join(" ");
-  for (const phrase of ["Skip authoring scaffolding", "D of Earth", "kilometers per second", "Text students must type exactly", "Do not create one entry per range", "economics"]) assert.ok(system.includes(phrase), phrase);
+  for (const phrase of ["Skip authoring scaffolding", "v of max", "kilometers per second", "Text students must type exactly", "Do not create one entry per range", "economics"]) assert.ok(system.includes(phrase), phrase);
 });
 
 test("ASU analysis uses server credentials, validates output and rejects truncated replies", async () => {

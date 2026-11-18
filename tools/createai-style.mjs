@@ -39,9 +39,9 @@ numbers. Flag lost layout and complete equations for review, even if a manual
 dictionary happens to contain a similar repair. Never change or delete saved rules.
 `;
 
-// Cross-subject guidance drawn from reviewing the course examples (astronomy,
-// data analysis, economics and chemistry). These are illustrations of the same
-// style, not instructor-provided entries and not a seed dictionary.
+// Cross-subject guidance (astronomy, statistics and data analysis, economics,
+// chemistry). The examples are generic illustrations of the same style, not
+// taken from any course, not instructor-provided and not a seed dictionary.
 export const CROSS_SUBJECT_GUIDANCE = `
 Courses are not only chemistry: expect astronomy, statistics and data analysis,
 economics and other subjects. Apply the same style to each.
@@ -49,53 +49,53 @@ economics and other subjects. Apply the same style to each.
 Illustrations of the style in other subjects (not instructor-provided, not a
 dictionary; suggest one only when that exact text occurs in the source):
 ${JSON.stringify([
-  ["D_{Earth}", "D of Earth"],
+  ["v_{max}", "v of max"],
   ["v_{0}", "v of 0"],
   ["km/s", "kilometers per second"],
-  ["µL/cm³", "microliters per cubic centimeter"],
+  ["g/cm³", "grams per cubic centimeter"],
   ["20^{o}", "20 degrees"],
   ["e.g.", "for example"],
   ["i.e.", "that is"],
 ])}
 
 Skip authoring scaffolding. Course documents contain notes for course builders,
-not students: all-capital production labels (GARAGE, ARCHIVE, DELETE WHEN NO
-LONGER NEEDED, NUMERIC ANSWER, VERIFY, UPLOAD), style-guide lines (Heading 1,
-Lato 12 pt), placeholders such as XX, [Instructor] labels, learning-standard codes
-(CCSS.MATH.CONTENT..., NGSS, HSF..., ESS1), course codes (AST111, ECN212) and
-learning-objective or checkpoint IDs (LO1, MT1). Do not suggest entries for these.
+not students: all-capital production labels (DELETE BEFORE PUBLISHING, ANSWER
+KEY, TODO, VERIFY), style-guide lines (Heading 1, 12 pt font), placeholders such
+as XX, instructor-only labels, learning-standard codes (Common Core or NGSS codes),
+course codes (BIO 101, CHEM200) and learning-objective or question IDs (LO1, Q3).
+Do not suggest entries for these.
 Capitalized words used for emphasis in instructions (HERE, NOT) are not terms.
 
 Formatting written with markers. A raised lowercase o after a number (20^{o}) is a
 degree sign: read it as degrees. A raised double quote or double prime after a
 number (1^{"}, 10″) means arcseconds in astronomy and inches elsewhere; a single
 prime means arcminutes or feet. Decide from context, and use action review when the
-subject is unclear. Word subscripts on a variable (D_{Earth}, v_{0}) follow the
+subject is unclear. Word subscripts on a variable (v_{max}, v_{0}) follow the
 T of 2 style: letter, "of", then the subscript.
 
 Units. Read compound units in words: a slash is "per", a squared or cubed unit is
-"square" or "cubic" (km/s kilometers per second, µL/cm³ microliters per cubic
+"square" or "cubic" (km/s kilometers per second, g/cm³ grams per cubic
 centimeter). µ is the prefix micro. Keep each unit a separate atomic entry, apart
 from the number in front of it. Suggest a unit only when the default reading would
-be wrong or unclear (km slash s, mu L slash cm 3); familiar whole words need no entry.
+be wrong or unclear (km slash s, g slash cm 3); familiar whole words need no entry.
 
 Text students must type exactly. Spreadsheet formulas and functions
-(=median(A6:A105)), cell references (A6, B16), code, file names and web addresses
+(=AVERAGE(B2:B20)), cell references (B2, C10), code, file names and web addresses
 must keep every character audible. Never propose a dictionary entry that changes
 how their characters are read; at most add a review item explaining the issue.
 
-Number ranges written with a hyphen or dash (120-140, 8-10) can be read as "dash"
+Number ranges written with a hyphen or dash (10-20, 3-5) can be read as "dash"
 or "minus". Do not create one entry per range. Add a single review item suggesting
-the source be written as "120 to 140", and note that subtraction must not change.
+the source be written as "10 to 20", and note that subtraction must not change.
 
 Abbreviations. Short capital-letter abbreviations (MC, ATC, AVC, TC, MR, TR, AU)
 are usually spelled out letter by letter. Suggest a letter-spaced reading (M R) only
-when the abbreviation could be read as a word or title (MR as mister, CPO, AXIOM)
+when the abbreviation could be read as a word or title (MR as mister)
 or the reading is unclear; expanding to the full term (marginal cost) is an
 instructor choice to mention in reason, not a default. Abbreviations with periods
 (e.g., i.e.) may be read letter by letter with "dot": suggest the spoken phrase.
-Invented or product names written in camel case (ImmuFlow, DreamPlot) may run
-together: suggest a listening check with a spaced reading (Immu Flow).
+Invented company or product names written in camel case (BrightLab) may run
+together: suggest a listening check with a spaced reading (Bright Lab).
 
 Ordinary words, numbers, percentages, money amounts and common symbols that a
 screen reader already reads sensibly (20 percent, delta, divided by, times) need no
