@@ -350,9 +350,9 @@ export async function mountDictionaryEditor(root, {
         <h2 id="hs-dict-ed-download-h" class="hs-dict-editor-card-title hs-dict-editor-card-title-inline">
           Export course pronunciations ${helpTip(HELP.students)}
         </h2>
-        <p class="ss-sub">Download the class dictionary as a JAWS backup file (.sbak). Students open it in JAWS Settings Packager to add these pronunciations to JAWS:</p>
+        <p class="ss-sub">Download the class dictionary as a JAWS settings backup (.sbak). It adds these pronunciations to the student's own JAWS dictionary without replacing their entries:</p>
         <ol class="ss-sub hs-dict-editor-sbak-steps">
-          <li>Restore the .sbak file in JAWS Settings Packager.</li>
+          <li>In JAWS, open Utilities, then Import/Export Settings, then Import, and choose the .sbak file. (Dictionary Manager's Import does not read .sbak files.)</li>
           ${JAWS_SBAK_IMPORT_STEPS.map(step => `<li>${escapeHtml(step)}</li>`).join("")}
         </ol>
         <p class="ss-sub">Test the file in JAWS before sharing it with students.</p>

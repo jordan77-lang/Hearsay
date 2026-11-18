@@ -37,7 +37,7 @@ Confirm the raised digits in the original document; HearSay does not infer them
 from a minus sign. Recopy with formatting, or use an explicit plain-text form
 such as `5.00 × 10^(-3)`. This capture aid is not a complete equation converter.
 
-The main export is a **JAWS dictionary backup (.sbak)** that students restore in JAWS Settings Packager, merging it into their own settings. It contains only the class dictionary (`JAWS\UserRoot\settings\enu\DEFAULT.JDF`) plus the backup manifest; no other JAWS settings are included. The format was reverse-engineered from a JAWS 2026 backup and is documented in `src/core/jaws-sbak.js`. Test a file in JAWS before distributing it. The JAWS source TSV remains available as a preparation list. Other screen reader export code and paused tools remain in source but are hidden from the current author workflow.
+The main export is a **JAWS dictionary backup (.sbak)** that students import from the JAWS window (Utilities → Import/Export Settings → Import), merging it into their own settings. Dictionary Manager's Import does not read .sbak files. It contains only the class dictionary (`JAWS\UserRoot\settings\enu\DEFAULT.JDF`) plus the backup manifest; no other JAWS settings are included. The format was reverse-engineered from a JAWS 2026 backup and is documented in `src/core/jaws-sbak.js`. Test a file in JAWS before distributing it. The JAWS source TSV remains available as a preparation list. Other screen reader export code and paused tools remain in source but are hidden from the current author workflow.
 
 ## Why this exists (the core problem)
 

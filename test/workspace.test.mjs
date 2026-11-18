@@ -60,10 +60,13 @@ test("manual and AI proposals share editing, one batch save and one Undo", async
   assert.equal($("#hs-workspace-preparation").hidden, false, "opens the export panel");
   assert.ok($("#hs-workspace-preparation").contains($("#hs-dict-ed-export-sbak")), "the JAWS download is in the panel");
   assert.equal($("#hs-workspace-dictionary").contains($("#hs-dict-ed-export-sbak")), false, "no longer buried in the dictionary tab");
+  assert.match($("#hs-workspace-preparation").textContent, /Utilities, then Import\/Export Settings, then Import/, "gives the JAWS menu path");
   assert.equal($("#hs-dict-ed-export-jaws").disabled, true);
+  assert.equal($("#hs-dict-ed-export-sbak").disabled, true, "no export of unsaved changes");
   $("#hs-dict-ed-save").click(); await flush();
   assert.equal(env.rows.get("chem113").length, 2);
   assert.equal($("#hs-dict-ed-export-jaws").disabled, false);
+  assert.equal($("#hs-dict-ed-export-sbak").disabled, false);
   assert.equal(dictionaryHistory(env.storage, "https://test.supabase.co", "chem113").length, 1);
   assert.match($("#hs-ai-progress").textContent, /2 saved/);
   $("#hs-dict-ed-undo").click(); await flush();
