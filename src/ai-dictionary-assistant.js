@@ -234,7 +234,9 @@ export function mountAiDictionaryAssistant(container, { context = "web", getCour
     const reusable = reusableScientificReading(item);
     let defaultReading = item.term;
     try { defaultReading = reviewSpeech(item.term).spoken || item.term; } catch { /* keep the written form */ }
+    const conflictCheck = item.conflicts && !/^none( found)?\.?$/i.test(item.conflicts) ? `AI conflict check: ${item.conflicts}` : "";
     const notes = [
+      conflictCheck,
       item.pronunciationWarning ? "The AI returned an unusable pronunciation. Enter a correction before adding." : "",
       existing.length ? `Currently saved: ${existing.map(other => other.substitution).join("; ")}` : "",
       staged.length ? `Staged dictionary reading (not saved): ${staged.map(other => other.substitution).join("; ")}` : "",

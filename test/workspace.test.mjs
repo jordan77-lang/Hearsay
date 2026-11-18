@@ -54,8 +54,12 @@ test("manual and AI proposals share editing, one batch save and one Undo", async
   env.manual("lysozyme", "lye suh zime"); $("[data-action=approve][data-index='1']").click();
   assert.equal(env.rows.get("chem113").length, 0);
   assert.match($("#hs-workspace-summary").textContent, /2 additions/);
+  assert.equal($("#hs-workspace-prepare").textContent, "Export dictionary");
+  assert.ok($(".hs-workspace-tabrow").contains($("#hs-workspace-prepare")), "Export dictionary is in the top row");
   $("#hs-workspace-prepare").click();
-  assert.equal($("#hs-workspace-preparation").open, true);
+  assert.equal($("#hs-workspace-preparation").hidden, false, "opens the export panel");
+  assert.ok($("#hs-workspace-preparation").contains($("#hs-dict-ed-export-sbak")), "the JAWS download is in the panel");
+  assert.equal($("#hs-workspace-dictionary").contains($("#hs-dict-ed-export-sbak")), false, "no longer buried in the dictionary tab");
   assert.equal($("#hs-dict-ed-export-jaws").disabled, true);
   $("#hs-dict-ed-save").click(); await flush();
   assert.equal(env.rows.get("chem113").length, 2);
@@ -199,9 +203,11 @@ test("manually added units with slashes or arrows stay editable and can be saved
   assert.equal(env.$("#hs-workspace-savebar").hidden, false);
   env.$("#hs-dict-ed-save").click(); await flush();
   assert.deepEqual(env.rows.get("chem113").map(item => item.text).sort(), ["kJ/mol", "mol/L"]);
-  assert.match(env.$("#hs-workspace-summary").textContent, /Changes saved/);
-  env.$("#hs-workspace-savebar-close").click();
+  // After saving, the bar simply disappears: no "Changes saved / Undo / Close" message.
   assert.equal(env.$("#hs-workspace-savebar").hidden, true);
+  assert.doesNotMatch(env.$("#hs-workspace-summary").textContent, /Changes saved/);
+  // CSV import is not offered in the Class dictionary tab.
+  assert.equal(env.$(".hs-workspace-dictionary-tools").contains(env.$("#hs-dict-ed-import-btn")), false);
   env.mounted.destroy();
 });
 
@@ -439,6 +445,22 @@ test("Save sits in the top row, confirms what will be added, and leaving with un
   assert.equal($("#hs-dict-ed-save").textContent, "Saved");
   const after = new env.window.Event("beforeunload", { cancelable: true }); env.window.dispatchEvent(after);
   assert.equal(after.defaultPrevented, false, "no warning once everything is saved");
+  env.mounted.destroy();
+});
+
+test("suggestion cards check against the whole class dictionary and show the AI's own conflict check", async () => {
+  const env = await setup({ rows: [row("M", "molar")], suggestions: [{ term: "m", spoken: "meters", evidence: "Measure 5 m of tubing.", reason: "Unit.", action: "dictionary", ignore_case: "Yes", conflicts: "M is saved as molar; matching exact case keeps both readings." }] });
+  const { $ } = env;
+  env.edit("#hs-ai-source", "Measure 5 m of tubing."); // the saved M is not in this passage
+  $("#hs-ai-analyze").click(); await flush();
+  assert.equal($("[data-case='0']").value, "No", "resolved up front: exact case");
+  assert.match($("#hs-ai-results").textContent, /AI conflict check: M is saved as molar/);
+  assert.doesNotMatch($("[data-warnings='0']").textContent, /would also change/);
+  // Switching to ignore case raises the clash against the saved M, with a one-click fix.
+  const select = $("[data-case='0']"); select.value = "Yes"; select.dispatchEvent(new Event("change", { bubbles: true }));
+  assert.match($("[data-warnings='0']").textContent, /would also change the saved "M" \(read "molar"\)/);
+  $("[data-warnings='0'] [data-action=fix]").click();
+  assert.equal($("[data-case='0']").value, "No");
   env.mounted.destroy();
 });
 

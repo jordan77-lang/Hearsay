@@ -21,7 +21,7 @@ export function arrangeWorkspace(root, { extension = false, initialView = "revie
   oldHeader.innerHTML = `${extension
       ? '<div class="hs-workspace-title"><h1 class="ss-title">HearSay</h1><span class="hs-workspace-theme"></span></div>'
       : '<h1 class="hs-visually-hidden">HearSay</h1>'}
-    <div class="hs-workspace-toolbar"><div data-slot="course"></div><button type="button" class="ss-btn" id="hs-workspace-settings-toggle" aria-expanded="false" aria-controls="hs-workspace-settings"><span aria-hidden="true">⚙</span> Settings</button></div>
+    <div class="hs-workspace-toolbar"><div data-slot="course"></div><button type="button" class="ss-btn hs-icon-btn" id="hs-workspace-settings-toggle" aria-expanded="false" aria-controls="hs-workspace-settings" aria-label="Settings" title="Settings"><span aria-hidden="true">⚙</span></button></div>
     <div data-slot="connection"></div>
     <div data-slot="status"></div>`;
   oldHeader.querySelector('[data-slot="course"]').append(course);
@@ -58,13 +58,15 @@ export function arrangeWorkspace(root, { extension = false, initialView = "revie
   const tabRow = document.createElement("div"); tabRow.className = "hs-workspace-tabrow";
   const tabs = document.createElement("div"); tabs.className = "hs-workspace-tabs"; tabs.setAttribute("role", "tablist"); tabs.setAttribute("aria-label", "Class workspace");
   tabs.innerHTML = `<button id="hs-workspace-review-tab" class="ss-btn" type="button" role="tab" aria-controls="hs-workspace-review">Review content</button><button id="hs-workspace-dictionary-tab" class="ss-btn" type="button" role="tab" aria-controls="hs-workspace-dictionary">Class dictionary</button>`;
-  const prepareButton = document.createElement("button"); prepareButton.type = "button"; prepareButton.className = "ss-btn"; prepareButton.id = "hs-workspace-prepare"; prepareButton.textContent = "Share with students"; prepareButton.hidden = true; // The export lives in Class dictionary → Share with students.
-  tabRow.append(tabs, prepareButton);
+  // "Export dictionary" opens a side panel with the JAWS download for students.
+  const prepareButton = document.createElement("button"); prepareButton.type = "button"; prepareButton.className = "ss-btn"; prepareButton.id = "hs-workspace-prepare"; prepareButton.textContent = "Export dictionary";
+  prepareButton.setAttribute("aria-expanded", "false"); prepareButton.setAttribute("aria-controls", "hs-workspace-preparation");
+  tabRow.append(tabs);
   // One row: tabs on the left, class picker and Settings on the right. The
   // connection note and status share one small line under it.
   const toolbar = oldHeader.querySelector(".hs-workspace-toolbar"); tabRow.append(toolbar);
   // Save is always visible in the top row, before Settings.
-  toolbar.querySelector("#hs-workspace-settings-toggle").before(save);
+  toolbar.querySelector("#hs-workspace-settings-toggle").before(save, prepareButton);
   // The connection note sits beside the class picker, before Settings.
   toolbar.querySelector('[data-slot="course"]').after(oldHeader.querySelector('[data-slot="connection"]'));
   const notes = document.createElement("div"); notes.className = "hs-workspace-notes";
@@ -73,12 +75,14 @@ export function arrangeWorkspace(root, { extension = false, initialView = "revie
   const dictionary = document.createElement("section"); dictionary.id = "hs-workspace-dictionary"; dictionary.setAttribute("role", "tabpanel"); dictionary.setAttribute("aria-labelledby", "hs-workspace-dictionary-tab");
   const add = document.createElement("button"); add.type = "button"; add.className = "ss-btn primary"; add.id = "hs-workspace-add-term"; add.textContent = "Add a term";
   const dictionaryTools = document.createElement("div"); dictionaryTools.className = "hs-workspace-dictionary-tools";
-  dictionaryTools.append(add, csv, undo);
+  dictionaryTools.append(add, undo); // CSV import is not offered in the workspace
   dictionary.append(dictionaryTools, table);
-  const preparation = document.createElement("details"); preparation.id = "hs-workspace-preparation"; preparation.className = "hs-dict-editor-card";
-  preparation.innerHTML = `<summary>Share with students</summary><p class="ss-sub" id="hs-workspace-export-state"></p>`;
-  preparation.append(downloads); dictionary.append(preparation);
-  main.append(settings, tabRow, notes, review, dictionary, bar);
+  const preparation = document.createElement("section"); preparation.id = "hs-workspace-preparation"; preparation.className = "hs-workspace-settings hs-workspace-export"; preparation.hidden = true;
+  preparation.setAttribute("aria-labelledby", "hs-workspace-export-h");
+  preparation.innerHTML = `<div class="hs-workspace-settings-head"><h2 id="hs-workspace-export-h" class="hs-dict-editor-card-title">Export dictionary</h2><button type="button" class="ss-btn" id="hs-workspace-export-close">Close</button></div><p class="ss-sub" id="hs-workspace-export-state"></p>`;
+  downloads.querySelector("h2")?.setAttribute("hidden", ""); // the panel already has the title
+  preparation.append(downloads);
+  main.append(settings, preparation, tabRow, notes, review, dictionary, bar);
 
   const settingsButton = root.querySelector("#hs-workspace-settings-toggle");
   const settingsClose = settings.querySelector("#hs-workspace-settings-close");
@@ -117,8 +121,19 @@ export function arrangeWorkspace(root, { extension = false, initialView = "revie
   tabs.addEventListener("click", onTabs); tabs.addEventListener("keydown", onKeys);
   const onHash = () => { const view = window.location?.hash?.slice(1); if (["review", "dictionary"].includes(view) && view !== current) showView(view); };
   if (!extension) window.addEventListener("hashchange", onHash);
-  const prepare = () => { showView("dictionary"); preparation.open = true; preparation.querySelector("summary").focus(); preparation.scrollIntoView?.({ block: "start" }); };
+  // One side panel at a time: opening Export closes Settings and vice versa.
+  function setExport(open) {
+    preparation.hidden = !open; prepareButton.setAttribute("aria-expanded", String(open));
+    if (open) { if (!settings.hidden) setSettings(false); const heading = preparation.querySelector("h2"); heading.setAttribute("tabindex", "-1"); heading.focus?.(); }
+    else prepareButton.focus?.();
+  }
+  const prepare = () => setExport(preparation.hidden);
+  const closeExport = () => setExport(false);
+  const onExportKey = event => { if (event.key === "Escape" && !preparation.hidden) { event.preventDefault(); setExport(false); } };
   prepareButton.addEventListener("click", prepare);
+  preparation.querySelector("#hs-workspace-export-close").addEventListener("click", closeExport);
+  preparation.addEventListener("keydown", onExportKey);
+  settingsButton.addEventListener("click", () => { if (!preparation.hidden) { preparation.hidden = true; prepareButton.setAttribute("aria-expanded", "false"); } });
   const addTerm = () => { showView("review"); onAddTerm?.(); };
   add.addEventListener("click", addTerm);
 
@@ -136,7 +151,7 @@ export function arrangeWorkspace(root, { extension = false, initialView = "revie
     summary({ additions = [], replacements = [], removals = [], busy = false, editable = false, error: issue = "", classLabel = "", count = 0, plannedRows = [] }) {
       const total = additions.length + replacements.length + removals.length;
       if (total) { justSaved = false; discarding = false; }
-      else if (previousTotal && !issue) { justSaved = !discarding; discarding = false; }
+      else if (previousTotal && !issue) { justSaved = false; discarding = false; } // no "Changes saved" bar after saving
       previousTotal = total;
       const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
       const parts = [[additions.length, "addition"], [replacements.length, "replacement"], [removals.length, "removal"]].filter(([n]) => n).map(([n, word]) => plural(n, word));
@@ -158,6 +173,7 @@ export function arrangeWorkspace(root, { extension = false, initialView = "revie
       root.querySelector("#hs-dict-ed-class").disabled = busy;
       root.querySelector("#hs-workspace-export-state").textContent = `${classLabel} · ${count} saved entries.${total ? " Save or discard your changes before exporting." : ""}`;
       const exportButton = root.querySelector("#hs-dict-ed-export-jaws"); exportButton.disabled = busy || Boolean(total);
+      const sbakButton = root.querySelector("#hs-dict-ed-export-sbak"); if (sbakButton) sbakButton.disabled = busy || Boolean(total);
     },
     destroy() { tabs.removeEventListener("click", onTabs); tabs.removeEventListener("keydown", onKeys); settingsButton.removeEventListener("click", toggleSettings); settingsClose.removeEventListener("click", closeSettings); settings.removeEventListener("keydown", onSettingsKey); prepareButton.removeEventListener("click", prepare); add.removeEventListener("click", addTerm); discard.removeEventListener("click", onDiscardClick); undoSaved.removeEventListener("click", onUndoSaved); dismiss.removeEventListener("click", onDismiss); undo.removeEventListener("click", onUndo, true); window.removeEventListener("hashchange", onHash); },
   };

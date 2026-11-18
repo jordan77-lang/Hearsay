@@ -40,7 +40,11 @@ import {
   bundledExportRowCount,
   resolveExportRegexEntries,
   downloadTextFile,
+  jawsSbakRows,
+  JAWS_SBAK_IMPORT_STEPS,
 } from "./dictionary-export.js";
+import { buildJawsSbak } from "./core/jaws-sbak.js";
+import { saveBlobAsFile } from "./save-download.js";
 import {
   resolveAddonOptions,
   downloadNvdaAddon,
@@ -346,12 +350,19 @@ export async function mountDictionaryEditor(root, {
         <h2 id="hs-dict-ed-download-h" class="hs-dict-editor-card-title hs-dict-editor-card-title-inline">
           Export course pronunciations ${helpTip(HELP.students)}
         </h2>
-        <p class="ss-sub">Download your class's pronunciations as a JAWS source list (TSV). It is not yet a file students can install directly; test it in JAWS before sharing.</p>
+        <p class="ss-sub">Download the class dictionary as a JAWS backup file (.sbak). Students open it in JAWS Settings Packager to add these pronunciations to JAWS:</p>
+        <ol class="ss-sub hs-dict-editor-sbak-steps">
+          <li>Restore the .sbak file in JAWS Settings Packager.</li>
+          ${JAWS_SBAK_IMPORT_STEPS.map(step => `<li>${escapeHtml(step)}</li>`).join("")}
+        </ol>
+        <p class="ss-sub">Test the file in JAWS before sharing it with students.</p>
+        <p id="hs-dict-ed-sbak-status" class="ss-sub" role="status" aria-live="polite"></p>
         <p id="hs-dict-ed-regex-status" hidden class="hs-dict-editor-regex-status ss-type" aria-live="polite"></p>
         <div class="hs-dict-editor-export-btns">
           <button type="button" hidden class="ss-btn" id="hs-dict-ed-export-addon">NVDA add-on (.nvda-addon)</button>
           <button type="button" hidden class="ss-btn" id="hs-dict-ed-export-nvda">NVDA .dic</button>
-          <button type="button" class="ss-btn primary" id="hs-dict-ed-export-jaws">JAWS source TSV</button>
+          <button type="button" class="ss-btn primary" id="hs-dict-ed-export-sbak">JAWS dictionary (.sbak)</button>
+          <button type="button" class="ss-btn" id="hs-dict-ed-export-jaws">JAWS source list (.tsv)</button>
           <button type="button" hidden class="ss-btn" id="hs-dict-ed-export-apple">Apple VoiceOver CSV</button>
         </div>
         <label class="hs-dict-editor-merge-regex" hidden>
@@ -1756,6 +1767,27 @@ export async function mountDictionaryEditor(root, {
     showClassError("");
     const prefix = getFilePrefix();
     downloadTextFile(`dictionary_${prefix}_apple_voiceover.csv`, buildAppleCsv(rows), "text/csv;charset=utf-8");
+  });
+
+  // JAWS Settings Packager backup containing only the class dictionary (DEFAULT.JDF).
+  root.querySelector("#hs-dict-ed-export-sbak").addEventListener("click", async () => {
+    const rows = jawsSbakRows(exportRows());
+    const statusLine = root.querySelector("#hs-dict-ed-sbak-status");
+    if (!rows.length) { showClassError("Add or load rows before exporting."); return; }
+    showClassError("");
+    const button = root.querySelector("#hs-dict-ed-export-sbak"); button.disabled = true;
+    try {
+      const label = getActiveProfile()?.label || activeSlug;
+      const backup = await buildJawsSbak(rows, { comment: `${label} class dictionary from HearSay` });
+      const { default: JSZip } = await import("./vendor/jszip.js");
+      const zip = new JSZip();
+      for (const entry of backup.entries) zip.file(entry.name, entry.bytes, { compression: "DEFLATE" });
+      const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", mimeType: "application/octet-stream" });
+      await saveBlobAsFile(`${getFilePrefix()}_jaws_dictionary.sbak`, blob);
+      const skipped = backup.skipped.length ? ` ${backup.skipped.length} skipped: ${backup.skipped.slice(0, 5).map(item => `${item.text} (${item.reason})`).join("; ")}${backup.skipped.length > 5 ? "; …" : ""}.` : "";
+      if (statusLine) statusLine.textContent = `Downloaded ${backup.included} pronunciation${backup.included === 1 ? "" : "s"} as a JAWS backup.${skipped}`;
+    } catch (error) { showClassError(`Could not create the JAWS file: ${error.message}`); }
+    finally { button.disabled = false; refreshWorkspaceSummary(); }
   });
 
   root.querySelector("#hs-dict-ed-export-jaws").addEventListener("click", () => {

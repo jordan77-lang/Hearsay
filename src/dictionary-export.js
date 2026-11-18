@@ -43,6 +43,24 @@ export function jawsExportPattern(text) {
   return s;
 }
 
+/**
+ * Rows for a JAWS .sbak: the same pattern conversion as the TSV (glued word
+ * subscripts), keeping any deliberate leading/trailing spaces, one entry per
+ * pattern, sorted case-insensitively as JAWS saves them.
+ */
+export function jawsSbakRows(rows) {
+  const out = [], seen = new Set();
+  for (const row of rows) {
+    const raw = String(row?.text ?? ""), core = jawsExportPattern(raw);
+    if (!core) continue;
+    const text = `${raw.match(/^\s*/)[0]}${core}${raw.match(/\s*$/)[0]}`;
+    if (seen.has(text) || !String(row?.substitution ?? "").trim()) continue;
+    seen.add(text);
+    out.push({ text, substitution: String(row.substitution), ignore_case: normalizeIgnoreCase(row.ignore_case) });
+  }
+  return out.sort((a, b) => a.text.toLowerCase() < b.text.toLowerCase() ? -1 : a.text.toLowerCase() > b.text.toLowerCase() ? 1 : 0);
+}
+
 export const JAWS_SBAK_IMPORT_STEPS = [
   'Choose "No, merge the settings from backup into existing settings."',
   'If JAWS asks about conflicts, choose "Keep current settings."',

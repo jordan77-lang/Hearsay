@@ -3269,7 +3269,7 @@ button.hs-ext-nav-link:hover {
 .hs-workspace-tabrow > .hs-workspace-toolbar [data-slot="course"] { flex: none; max-width: none; }
 .hs-workspace-tabrow .hs-dict-editor-field-class { display: flex; flex-direction: row; align-items: center; gap: .5rem; margin: 0; }
 .hs-workspace-tabrow .hs-dict-editor-field-class .hs-dict-editor-label { margin: 0; font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
-.hs-workspace-tabrow .hs-dict-editor-field-class select { width: 16rem; max-width: 45vw; }
+.hs-workspace-tabrow .hs-dict-editor-field-class select { width: 13rem; max-width: 45vw; }
 .hs-workspace-notes { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 1rem; margin: 0 0 .35rem; }
 .hs-workspace-notes [data-slot] { min-width: 0; }
 .hs-workspace .hs-workspace-notes #hs-dict-ed-connect-note { margin: 0; }
@@ -3305,7 +3305,12 @@ button.hs-ext-nav-link:hover {
 .hs-landing-download .ss-btn { display: inline-flex; align-items: center; min-height: 42px; padding: .5rem 1.1rem; text-decoration: none; font-weight: 600; }
 
 /* Save sits in the top row beside the class picker. */
-.hs-workspace-tabrow #hs-dict-ed-save { white-space: nowrap; min-width: 5.5rem; }
+.hs-workspace-tabrow #hs-dict-ed-save, .hs-workspace-tabrow #hs-workspace-prepare { white-space: nowrap; }
 .hs-workspace-tabrow #hs-dict-ed-save:disabled { opacity: .6; }
 
 /* Read-only status (team project, not signed in) uses the amber dot. */
+
+/* Settings is an icon button; Export dictionary opens a side panel like Settings. */
+.hs-icon-btn { min-width: 2.5rem; padding-inline: .6rem; font-size: 1.05rem; line-height: 1; }
+.hs-workspace #hs-workspace-preparation.hs-workspace-export { margin: 0; padding: 1rem; border-radius: 0; }
+.hs-workspace-export .hs-dict-editor-download { margin: 0; }

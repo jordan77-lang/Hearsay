@@ -164,11 +164,52 @@ export function findRuleConflicts(candidate, existingRows = []) {
     }
   }
 
+  // 3b. Same letters, different case, as an entry already in the class
+  //     (m vs M molar, ml vs ML). Matching exact case keeps both readings right.
+  if (!isRegex) {
+    for (const other of existingRows) {
+      const otherLiteral = literalOf(other);
+      if (!otherLiteral || otherLiteral === pattern || otherLiteral.toLowerCase() !== lower) continue;
+      const otherSpoken = spokenOf(other);
+      if (otherSpoken.toLowerCase() === spoken.toLowerCase()) continue; // same reading: no clash
+      if (ignoresCase(candidate)) {
+        out.push({
+          severity: "high",
+          kind: "case-twin",
+          otherPattern: otherLiteral,
+          message: `"${pattern}" ignores case, so it would also change the saved "${otherLiteral}" (read "${otherSpoken}").`,
+          detail: `Match exact case so "${pattern}" and "${otherLiteral}" each keep their own reading.`,
+          fix: { label: "Match exact case only", ignoreCase: "No" },
+        });
+      } else if (ignoresCase(other)) {
+        out.push({
+          severity: "medium",
+          kind: "case-twin-saved",
+          otherPattern: otherLiteral,
+          message: `The saved "${otherLiteral}" (read "${otherSpoken}") ignores case, so it may also change "${pattern}".`,
+          detail: `In Class dictionary, set "${otherLiteral}" to match exact case so both entries read correctly.`,
+        });
+      }
+    }
+  }
+
+  // 3c. A single letter changes every standalone use of it: variables, initials, labels.
+  if (!isRegex && /^\p{L}$/u.test(pattern)) {
+    out.push({
+      severity: "medium",
+      kind: "single-letter",
+      message: `"${pattern}" is a single letter, so every standalone "${pattern}" will be read as "${spoken}", including variables and labels.`,
+      detail: "Keep it only if that reading is right everywhere in this course.",
+      fix: ignoresCase(candidate) ? { label: "Match exact case only", ignoreCase: "No" } : undefined,
+    });
+  }
+
   // 4. Case-insensitive unit rules collapse distinct SI units.
   if (!isRegex && ignoresCase(candidate)) {
     for (const [lowUnit, upUnit] of SI_CASE_PAIRS) {
       if (lower !== lowUnit.toLowerCase()) continue;
       const twin = pattern === lowUnit ? upUnit : lowUnit;
+      if (out.some((c) => c.kind === "case-twin" && c.otherPattern === twin)) break; // already reported against the saved entry
       out.push({
         severity: "high",
         kind: "si-case",

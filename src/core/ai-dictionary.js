@@ -114,6 +114,7 @@ export function validateAiSuggestions(payload, source) {
       ? originalReason.slice(0, 999 - confirmation.length) + " " + confirmation : originalReason;
     suggestions.push({ term, spoken, evidence, reason, action, review_kind,
       ignore_case: ["Yes", "No"].includes(item.ignore_case) ? item.ignore_case : defaultIgnoreCase(term),
+      conflicts: typeof item.conflicts === "string" ? item.conflicts.trim().slice(0, 600) : "",
       pronunciationWarning: spokenWordingIssue(spoken) });
   }
   return { suggestions, discarded, discardedReasons, repairedExcerpts };

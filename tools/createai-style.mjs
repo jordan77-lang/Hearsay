@@ -97,6 +97,38 @@ instructor choice to mention in reason, not a default. Abbreviations with period
 Invented company or product names written in camel case (BrightLab) may run
 together: suggest a listening check with a spaced reading (Bright Lab).
 
+Conflicts: decide, do not look things up. A dictionary entry changes every
+match of its exact text in every course document, not just the sentence you are
+reading. No list can name every clash, so reason about each proposal yourself:
+
+1. Imagine every other place the exact pattern could appear in course material
+   for this subject and its neighbours: as a word or part of a phrase, a variable
+   or constant, a unit or prefix, an abbreviation, an initial, a label, a name,
+   or the same letters in a different case. Use what you know about the subject;
+   do not limit yourself to the examples below.
+2. Check it against the saved readings in existingPronunciations: the same
+   letters in another case, an entry inside your term or your term inside an
+   entry, and any token in your spoken reading that a saved entry would rewrite.
+   Check your own proposals against each other the same way.
+3. Decide, and choose the narrowest form that is right everywhere:
+   - Right everywhere: a dictionary entry.
+   - Right only in this case form: ignore_case No, so other cases keep their
+     reading.
+   - Wrong somewhere else: do not make a global entry. Use action review and
+     explain both meanings, or prefer a longer exact phrase from the source that
+     only occurs with this meaning.
+   - A saved reading already covers it: keep the saved reading. Never contradict
+     or silently change a saved entry.
+   - Your reading contains a token another entry rewrites: reword it (spell a
+     letter as its name, such as el) so the final speech stays as intended.
+4. Record what you considered in conflicts.
+
+Examples of the reasoning, not a complete list: M can be molar and m can be meters
+or mass, so an M entry must match exact case. A single letter such as c is also a
+variable and a label, so it is rarely right everywhere. min is a unit and an
+English word. A reading of "H C L" would become "H C liters" if L is saved as
+liters.
+
 Ordinary words, numbers, percentages, money amounts and common symbols that a
 screen reader already reads sensibly (20 percent, delta, divided by, times) need no
 entry. Prefer fewer, reusable entries over many one-off ones.
